@@ -1,59 +1,48 @@
 #!/bin/sh
 set -eu
 
-track=${1:-latest}
-channel=${2:-stable}
+channel=${1:-latest/stable}
 
 export DEBIAN_FRONTEND=noninteractive
 export HOME=/root
 
+waitSnapdSeed() (
+  set +x
+  for i in $(seq 60); do # Wait up to 60s.
+    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
+      return 0 # Success.
+    fi
+
+    sleep 1
+  done
+
+  echo "snapd not seeded after ${i}s"
+  return 1 # Failed.
+)
+
 cleanup() {
+    echo ""
     if [ "${FAIL}" = "1" ]; then
-        echo ""
         echo "Test failed"
         exit 1
     fi
+
+    echo "Test passed"
+    exit 0
 }
 
-FAIL=0
+FAIL=1
 trap cleanup EXIT HUP INT TERM
 
-# Make sure we're up to date
-while :; do
-    apt-get update && break
-    sleep 10
-done
+# Wait for snapd seeding
+waitSnapdSeed
 
-while :; do
-    apt-get dist-upgrade --yes && break
-    sleep 10
-done
-
-# Remove pre-installed LXD
-while [ -e /usr/bin/lxd ]; do
-    apt-get remove --purge lxd lxd-client lxcfs --yes
-done
-
-# Install the LXD snap
-if [ "${track}" = "latest" ]; then
-    snapd_channel=${channel}
-else
-    snapd_channel=${track}/${channel}
-fi
-
-# Configure to use the proxy
-curl -s http://canonical-lxd.stgraber.org/config/snapd.sh | sh || true
-
+# Install LXD
 snap remove lxd || true
-snap install lxd --channel="${snapd_channel}"
-export PATH="/snap/bin/:${PATH}"
-lxd waitready --timeout=120
-
-# Generate local certs
-rm -rf ~/.config/lxc/ ~/snap/lxd/common/config/
-lxc remote add localhost --accept-certificate --password=abc 2>/dev/null || true
+snap install lxd --channel=${channel}
+lxd waitready --timeout=300
 
 # Run the pylxd tests
-[ -d pylxd ] || git clone https://github.com/lxc/pylxd
+[ -d pylxd ] || git clone https://github.com/canonical/pylxd
 cd pylxd
-integration/run-integration-tests
+integration/run-integration-tests && FAIL=0
