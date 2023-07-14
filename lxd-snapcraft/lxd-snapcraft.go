@@ -43,6 +43,7 @@ func main() {
 
 	if *flagSetSourceCommit != "" {
 		lxdConfig["source-commit"] = *flagSetSourceCommit
+		delete(lxdConfig, "source-branch") // Can't use source-branch with source-commit.
 		writeOut = true
 	}
 
