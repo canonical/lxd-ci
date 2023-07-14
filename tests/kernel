@@ -1,0 +1,76 @@
+#!/bin/sh
+set -eu
+
+# Print kernel version
+echo "Starting test on: $(uname -a)"
+
+waitSnapdSeed() (
+  set +x
+  for i in $(seq 60); do # Wait up to 60s.
+    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
+      return 0 # Success.
+    fi
+
+    sleep 1
+  done
+
+  echo "snapd not seeded after ${i}s"
+  return 1 # Failed.
+)
+
+# Wait for snapd seeding
+waitSnapdSeed
+
+# Install dependencies
+snap install go --classic
+apt-add-repository ppa:ubuntu-lxc/daily --yes
+apt-get dist-upgrade --yes
+
+apt-get install --no-install-recommends --yes libudev-dev liblxc-dev liblz4-dev libacl1-dev libuv1-dev libselinux-dev libseccomp-dev tcl libsqlite3-dev libcap-dev libdbus-1-dev dh-autoreconf build-essential acl attr easy-rsa ebtables jq pkg-config socat sqlite3 dnsmasq-base dnsutils nftables gettext
+apt-get remove --purge --yes uidmap
+rm -f /etc/subuid* /etc/subgid*
+snap remove lxd
+
+# Environment
+export GOPATH=/root/go
+export CGO_CFLAGS="-I/root/go/deps/raft/include/ -I/root/go/deps/dqlite/include/"
+export CGO_LDFLAGS="-L/root/go/deps/raft/.libs -L/root/go/deps/dqlite/.libs/"
+export CGO_LDFLAGS_ALLOW="(-Wl,-wrap,pthread_create)|(-Wl,-z,now)"
+export LD_LIBRARY_PATH="/root/go/deps/raft/.libs/:/root/go/deps/dqlite/.libs/"
+export PATH="${PATH}:/root/go/bin"
+
+# Build LXD
+cd /root
+mkdir -p /root/go/src/github.com/lxc
+git clone https://github.com/lxc/lxd /root/go/src/github.com/lxc/lxd
+cd /root/go/src/github.com/lxc/lxd
+make deps
+make
+
+# Test environment
+chmod +x /root
+modprobe br_netfilter
+echo 0 > /proc/sys/net/bridge/bridge-nf-call-ip6tables
+ip link add lxdbr0 up type bridge
+ln -sf /usr/sbin/ebtables-legacy /etc/alternatives/ebtables
+
+# Setup cgroup2
+if [ -e "/sys/fs/cgroup/cgroup.procs" ]; then
+    # Try to escape to the root (V2 hosts)
+    if ! echo "$$" > "/sys/fs/cgroup/cgroup.procs" 2>/dev/null; then
+        # Create a .lxc cgroup if missing
+        if [ ! -d "/sys/fs/cgroup/.lxc" ]; then
+            mkdir /sys/fs/cgroup/.lxc
+        fi
+
+        # Use .lxc as the cgroup
+        echo "$$" > "/sys/fs/cgroup/.lxc/cgroup.procs"
+    fi
+fi
+
+# Run tests
+cd /root/go/src/github.com/lxc/lxd/test
+uname -a
+
+# LXD_SHIFTFS_DISABLE=1 because of kernel regression https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1990849
+LXD_SKIP_STATIC=1 LXD_SKIP_TESTS=storage_buckets LXD_OFFLINE=0 LXD_TMPFS=1 LXD_SHIFTFS_DISABLE=1 LXD_VERBOSE=1 time -p ./main.sh

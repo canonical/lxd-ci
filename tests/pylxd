@@ -1,0 +1,48 @@
+#!/bin/sh
+set -eu
+
+channel=${1:-latest/stable}
+
+export DEBIAN_FRONTEND=noninteractive
+export HOME=/root
+
+waitSnapdSeed() (
+  set +x
+  for i in $(seq 60); do # Wait up to 60s.
+    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
+      return 0 # Success.
+    fi
+
+    sleep 1
+  done
+
+  echo "snapd not seeded after ${i}s"
+  return 1 # Failed.
+)
+
+cleanup() {
+    echo ""
+    if [ "${FAIL}" = "1" ]; then
+        echo "Test failed"
+        exit 1
+    fi
+
+    echo "Test passed"
+    exit 0
+}
+
+FAIL=1
+trap cleanup EXIT HUP INT TERM
+
+# Wait for snapd seeding
+waitSnapdSeed
+
+# Install LXD
+snap remove lxd || true
+snap install lxd --channel=${channel}
+lxd waitready --timeout=300
+
+# Run the pylxd tests
+[ -d pylxd ] || git clone https://github.com/canonical/pylxd
+cd pylxd
+integration/run-integration-tests && FAIL=0
