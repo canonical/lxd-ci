@@ -343,7 +343,6 @@ files:
   - bionic
   - focal
   - jammy
-  - kinetic
   - lunar
   - mantic
   - noble
@@ -385,7 +384,6 @@ files:
   - bionic
   - focal
   - jammy
-  - kinetic
   - lunar
   - mantic
   types:
@@ -506,7 +504,6 @@ packages:
     - fuse3
     releases:
     - jammy
-    - kinetic
     - lunar
     - mantic
     action: install
@@ -536,7 +533,6 @@ packages:
     - xenial
     - bionic
     - jammy
-    - kinetic
     - lunar
     - mantic
 
@@ -550,7 +546,6 @@ packages:
     - systemd-resolved
     action: install
     releases:
-    - kinetic
     - lunar
     - mantic
 
@@ -590,7 +585,6 @@ packages:
     releases:
     - focal
     - jammy
-    - kinetic
     - lunar
     - mantic
     types:
@@ -611,7 +605,6 @@ packages:
     - bionic
     - focal
     - jammy
-    - kinetic
     - lunar
     - mantic
     types:
@@ -683,7 +676,6 @@ actions:
   - bionic
   - focal
   - jammy
-  - kinetic
   - lunar
   - mantic
 
@@ -695,7 +687,6 @@ actions:
     # Ensure /etc/resolv.conf is symlinked to /run/systemd/resolve/stub-resolv.conf
     ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
   releases:
-  - kinetic
   - lunar
   - mantic
 
