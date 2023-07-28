@@ -773,6 +773,9 @@ actions:
     # Disable automatic screensaver lock
     gsettings set org.gnome.desktop.screensaver lock-enabled false
 
+    # Disable welcome tour.
+    gsettings set org.gnome.shell welcome-dialog-last-shown-version '4294967295'
+
     # Delete this script
     rm /home/ubuntu/firstboot.sh
     EOF
