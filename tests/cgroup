@@ -33,10 +33,6 @@ trap cleanup EXIT HUP INT TERM
 waitSnapdSeed
 
 # Install LXD
-while [ -e /usr/bin/lxd ]; do
-    apt-get remove --purge --yes lxd lxd-client lxcfs liblxc1
-done
-apt-get remove --purge cloud-init --yes
 snap remove lxd || true
 snap install lxd --channel=latest/edge
 apt-get install --no-install-recommends --yes jq iperf3
@@ -48,7 +44,7 @@ set -x
 
 # Start a container with no limits
 echo "=> Start a container with no limits"
-lxc launch images:ubuntu/20.04 c1
+lxc launch ubuntu:20.04 c1
 
 echo "==> Validate default values"
 [ "$(lxc exec c1 -- nproc)" = "$(nproc)" ]
@@ -204,6 +200,7 @@ fi
 lxc restart c1 --force
 sleep 10s
 IP=$(lxc network get lxdbr0 ipv4.address | cut -d/ -f1)
+lxc exec c1 -- apt-get update
 lxc exec c1 -- apt-get install --no-install-recommends --yes iperf3
 
 iperf3 -s -D
