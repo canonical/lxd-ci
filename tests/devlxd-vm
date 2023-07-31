@@ -32,12 +32,6 @@ trap cleanup EXIT HUP INT TERM
 # Wait for snapd seeding
 waitSnapdSeed
 
-# Configure to use the proxy
-curl -s http://canonical-lxd.stgraber.org/config/snapd.sh | sh
-
-# Configure for ceph use
-curl -s http://canonical-lxd.stgraber.org/config/ceph.sh | sh
-
 # Install LXD
 while [ -e /usr/bin/lxd ]; do
     apt-get remove --purge --yes lxd lxd-client lxcfs liblxc1
@@ -146,7 +140,6 @@ lxc start v1
 waitVMAgent v1
 
 # Configure to use the proxy
-curl -s http://canonical-lxd.stgraber.org/config/snapd.sh | lxc exec v1 -- sh
 lxc exec v1 -- apt-get install --no-install-recommends snapd --yes
 lxc exec v1 -- snap install lxd --channel=latest/edge
 lxc exec v1 -- /snap/bin/lxd init --auto

@@ -32,9 +32,6 @@ trap cleanup EXIT HUP INT TERM
 # Wait for snapd seeding
 waitSnapdSeed
 
-# Configure to use the proxy
-curl -s http://canonical-lxd.stgraber.org/config/snapd.sh | sh
-
 # Install LXD
 while [ -e /usr/bin/lxd ]; do
     apt-get remove --purge --yes lxd lxd-client lxcfs liblxc1
@@ -744,7 +741,6 @@ bind-interfaces
 interface-name=u1.lxd,eth0
 EOF
 
-    lxc exec u1 -- rm /run/systemd/system/dnsmasq.service
     lxc exec u1 -- systemctl unmask dnsmasq
     lxc exec u1 -- systemctl start dnsmasq
     dig a +tcp @192.0.2.1 u1.lxd
@@ -770,7 +766,6 @@ bind-interfaces
 interface-name=u2.lxd,eth0
 EOF
 
-    lxc exec u2 -- rm /run/systemd/system/dnsmasq.service
     lxc exec u2 -- systemctl unmask dnsmasq
     lxc exec u2 -- systemctl start dnsmasq
 
@@ -958,7 +953,6 @@ interface-name=u1.lxd,eth0
 host-record=lxd.localdomain,127.0.0.1
 EOF
 
-    lxc exec u1 -- rm /run/systemd/system/dnsmasq.service
     lxc exec u1 -- systemctl unmask dnsmasq
     lxc exec u1 -- systemctl start dnsmasq
     dig a +tcp @192.0.2.1 u1.lxd
@@ -997,7 +991,6 @@ interface-name=u2.lxd,eth0
 host-record=lxd.localdomain,127.0.0.2
 EOF
 
-    lxc exec u2 -- rm /run/systemd/system/dnsmasq.service
     lxc exec u2 -- systemctl unmask dnsmasq
     lxc exec u2 -- systemctl start dnsmasq
 
