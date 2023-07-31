@@ -33,10 +33,6 @@ trap cleanup EXIT HUP INT TERM
 waitSnapdSeed
 
 # Install LXD
-while [ -e /usr/bin/lxd ]; do
-    apt-get remove --purge --yes lxd lxd-client lxcfs liblxc1
-done
-apt-get remove --purge cloud-init --yes
 snap remove lxd || true
 snap install lxd --channel=latest/edge
 apt-get install --no-install-recommends --yes jq
@@ -75,9 +71,9 @@ ovn_basic_tests() {
     lxc network info ovn-virtual-network | grep -P 'MTU: \d+'
     lxc network info ovn-virtual-network | grep -P "Chassis: $(hostname)"
 
-    echo "==> Check host connectivity to linuxcontainers.org"
-    ping -c1 -4 -w5 linuxcontainers.org
-    ping -c1 -6 -w5 linuxcontainers.org
+    echo "==> Check host connectivity to ubuntu.com"
+    ping -c1 -4 -w5 ubuntu.com
+    ping -c1 -6 -w5 ubuntu.com
 
     echo "==> Launching a test container on lxdbr0"
     lxc init "${instanceImage}" u1 -s default
@@ -107,8 +103,8 @@ ovn_basic_tests() {
     U3_IPV6="$(lxc list u3 -c6 --format=csv | cut -d' ' -f1)"
 
     echo "==> lxdbr0 to internet"
-    lxc exec u1 -- ping -c1 -4 -w5 linuxcontainers.org
-    lxc exec u1 -- ping -c1 -6 -w5 linuxcontainers.org
+    lxc exec u1 -- ping -c1 -4 -w5 ubuntu.com
+    lxc exec u1 -- ping -c1 -6 -w5 ubuntu.com
 
     echo "==> lxdbr0 to OVN gateway"
     lxc exec u1 -- ping -c1 -4 -w5 10.10.10.200
@@ -131,8 +127,8 @@ ovn_basic_tests() {
     lxc exec u2 -- ping -c1 -w5 fd42:4242:4242:1010::1
 
     echo "==> OVN to internet"
-    lxc exec u2 -- ping -c1 -4 -w5 linuxcontainers.org
-    lxc exec u2 -- ping -c1 -6 -w5 linuxcontainers.org
+    lxc exec u2 -- ping -c1 -4 -w5 ubuntu.com
+    lxc exec u2 -- ping -c1 -6 -w5 ubuntu.com
 
     # Check sticky DHCPv4 allocations, so that when deleting an instance with a lower dynamic IP that restarting a
     # later instance doesn't cause it to be allocated the (now available) lower IP and instead it should keep the
@@ -455,8 +451,8 @@ ovn_basic_tests() {
     lxc exec u2 -- ping -c1 fd42:4242:4242:1010::1
 
     echo "==> OVN to internet in project testovn"
-    lxc exec u2 -- ping -c1 -4 -w5 linuxcontainers.org
-    lxc exec u2 -- ping -c1 -6 -w5 linuxcontainers.org
+    lxc exec u2 -- ping -c1 -4 -w5 ubuntu.com
+    lxc exec u2 -- ping -c1 -6 -w5 ubuntu.com
 
     echo "===> Check network in use protection from deletion"
     # Delete instances in default project first.
