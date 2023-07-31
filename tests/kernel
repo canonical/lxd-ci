@@ -18,6 +18,9 @@ waitSnapdSeed() (
   return 1 # Failed.
 )
 
+# Refresh apt
+apt-get update
+
 # Wait for snapd seeding
 waitSnapdSeed
 

@@ -29,6 +29,9 @@ cleanup() {
 FAIL=1
 trap cleanup EXIT HUP INT TERM
 
+# Refresh apt
+apt-get update
+
 # Wait for snapd seeding
 waitSnapdSeed
 
