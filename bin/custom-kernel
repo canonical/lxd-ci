@@ -1,0 +1,113 @@
+#!/bin/sh
+export DEBIAN_FRONTEND="noninteractive"
+for i in $(echo "${1}" | tr ',' ' '); do
+case "$i" in
+      default)
+        echo "===> No kernel changes needed"
+        exit 0
+      ;;
+
+      cgroup1)
+        echo "===> CGroup1"
+
+        # shellcheck disable=SC2016
+        echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} systemd.unified_cgroup_hierarchy=0"' > /etc/default/grub.d/99-cgroup.cfg
+        update-grub
+      ;;
+
+      cgroup2)
+        echo "===> CGroup2"
+
+        # shellcheck disable=SC2016
+        echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} systemd.unified_cgroup_hierarchy=1"' > /etc/default/grub.d/99-cgroup.cfg
+        update-grub
+      ;;
+
+      swapaccount)
+        echo "===> CGroup swap accounting"
+
+        # shellcheck disable=SC2016
+        echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} swapaccount=1"' > /etc/default/grub.d/99-cgroup-swap.cfg
+        update-grub
+      ;;
+
+      iommu)
+        echo "===> Enabling iommu"
+
+        # shellcheck disable=SC2016
+        echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} iommu=pt intel_iommu=on amd_iommu=on"' > /etc/default/grub.d/99-iommu.cfg
+        update-grub
+      ;;
+
+      virtual-hwe)
+        echo "===> Installing the virtual HWE kernel"
+
+        echo "MODULES=dep" > /etc/initramfs-tools/conf.d/modules.conf
+        apt-get update
+        apt-get dist-upgrade --yes
+	. /etc/os-release
+        apt-get install --no-install-recommends --yes "linux-image-virtual-hwe-${VERSION_ID}"
+        apt-get autopurge --yes linux-image-virtual "linux-image-$(uname -r)" "linux-modules-$(uname -r)"
+      ;;
+
+      ubuntu)
+        echo "===> Ensuring default kernel is up to date"
+
+        echo "MODULES=dep" > /etc/initramfs-tools/conf.d/modules.conf
+        apt-get update
+        apt-get dist-upgrade --yes
+      ;;
+
+      ubuntu-proposed)
+        echo "===> Installing the current proposed kernel"
+
+        # shellcheck disable=SC1091
+        . /etc/os-release
+        echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu ${UBUNTU_CODENAME}-proposed main universe" > /etc/apt/sources.list.d/proposed.list
+        apt-get update
+        apt-get install --no-install-recommends --yes linux-generic
+        rm /etc/apt/sources.list.d/proposed.list
+        apt-get update
+      ;;
+
+      ubuntu-bootstrap)
+        echo "===> Installing the current bootstrap kernel"
+
+        echo "MODULES=dep" > /etc/initramfs-tools/conf.d/modules.conf
+        apt-get update
+        apt-get install --no-install-recommends --yes software-properties-common
+        apt-add-repository ppa:canonical-kernel-team/bootstrap --yes
+        apt-get dist-upgrade --yes
+        apt-get install --no-install-recommends --yes linux-generic-wip
+      ;;
+
+      ubuntu-unstable)
+        echo "===> Installing the current unstable kernel"
+
+        echo "MODULES=dep" > /etc/initramfs-tools/conf.d/modules.conf
+        apt-get update
+        apt-get install --no-install-recommends --yes software-properties-common
+        apt-add-repository ppa:canonical-kernel-team/unstable --yes
+        apt-get dist-upgrade --yes
+        apt-get install --no-install-recommends --yes linux-generic-wip
+      ;;
+
+      daily)
+        echo "===> Installing a mainline daily build"
+
+        wget -e robots=off -r --no-parent -A '*all*.deb' -R '*lpae*' -R '*lowlatency*' https://kernel.ubuntu.com/~kernel-ppa/mainline/daily/current/
+        wget -e robots=off -r --no-parent -A '*amd64*.deb' -R '*lpae*' -R '*lowlatency*' https://kernel.ubuntu.com/~kernel-ppa/mainline/daily/current/
+        echo "MODULES=dep" > /etc/initramfs-tools/conf.d/modules.conf
+        apt-get update
+        apt-get install ./kernel.ubuntu.com/~kernel-ppa/mainline/daily/current/amd64/*.deb --yes
+        apt-get dist-upgrade --yes
+      ;;
+
+      *)
+        echo "Unsupported kernel requested: ${1}"
+        exit 1
+      ;;
+    esac
+done
+
+reboot
