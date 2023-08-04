@@ -20,7 +20,7 @@ shift 3
 
 KEY_NAME="ssh-key"
 FLAVOR="staging-cpu8-ram32-disk20"
-NETWORK="net_stg-lxd-cloud-testing"
+NETWORK="$(openstack network list -f value -c Name | grep -Fm1 "net_stg-lxd-cloud-testing")"
 IMAGE="$(openstack image list -f value -c Name --sort-column Name --sort-descending | grep -Fm1 "auto-sync/ubuntu-${serie}")"
 NAME="lxd-ci-${test_name}-${serie}-$$"
 
