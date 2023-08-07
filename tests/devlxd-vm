@@ -33,10 +33,6 @@ trap cleanup EXIT HUP INT TERM
 waitSnapdSeed
 
 # Install LXD
-while [ -e /usr/bin/lxd ]; do
-    apt-get remove --purge --yes lxd lxd-client lxcfs liblxc1
-done
-apt-get remove --purge cloud-init --yes
 snap remove lxd || true
 snap install lxd --channel=latest/edge
 apt-get install --no-install-recommends --yes jq
