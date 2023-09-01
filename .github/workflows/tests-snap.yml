@@ -6,7 +6,13 @@ permissions:
   contents: read
 
 jobs:
-  test-self-hosted-large-container:
+  network-routed:
+    name: Network Routed
     runs-on: [self-hosted, linux, X64, jammy, large]
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run test script
+        run: |
+          sudo tests/network-routed
