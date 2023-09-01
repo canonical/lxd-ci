@@ -50,7 +50,6 @@ trap cleanup EXIT HUP INT TERM
 waitSnapdSeed
 
 # Install LXD
-snap remove lxd || true
 snap install lxd --channel=latest/edge
 lxd waitready --timeout=300
 
@@ -90,6 +89,7 @@ lxc exec v1 -- rm -fr /etc/netplan
 lxc exec v1 -- netplan apply
 lxc exec v1 -- systemctl mask systemd-networkd
 lxc exec v1 -- systemctl stop systemd-networkd
+lxc exec v1 -- ip link set enp5s0 up
 lxc exec v1 -- ip -4 a add 192.0.2.2/32 dev enp5s0
 lxc exec v1 -- ip -6 a add 2001:db8::2/128 dev enp5s0
 lxc exec v1 -- ip -4 r add 169.254.0.1/32 dev enp5s0
@@ -110,5 +110,6 @@ lxc exec v1 -- ping -c1 -6 -W5 -I enp5s0 fe80::1
 lxc delete -f v1
 ip link delete dummy0
 lxc storage delete default
+lxc remote remove ubuntu-minimal
 
 FAIL=0
