@@ -50,6 +50,7 @@ trap cleanup EXIT HUP INT TERM
 waitSnapdSeed
 
 # Install LXD
+snap remove lxd || true
 snap install lxd --channel=latest/edge
 lxd waitready --timeout=300
 
@@ -72,7 +73,7 @@ ip addr add 192.0.2.1/32 dev dummy0
 ip addr add 2001:db8::1/128 dev dummy0
 
 # Create VM and add routed NIC.
-lxc init ubuntu:22.04 v1 --vm -s default -c limits.memory=2GiB
+lxc init ubuntu:22.04 v1 --vm -s default -c limits.memory=512MiB
 lxc config device add v1 eth0 nic \
     nictype=routed \
     parent=dummy0 \
