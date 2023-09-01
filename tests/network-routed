@@ -15,6 +15,23 @@ waitSnapdSeed() (
   return 1 # Failed.
 )
 
+waitVMAgent() (
+  set +x
+  # shellcheck disable=SC3043
+  local vmName="$1"
+  for i in $(seq 300) # Wait up to 300s.
+  do
+    if lxc info "${vmName}" | grep -qF 127.0.0.1; then
+      return 0 # Success.
+    fi
+
+    sleep 1
+  done
+
+  echo "VM ${vmName} agent not running after ${i}s"
+  return 1 # Failed.
+)
+
 cleanup() {
     echo ""
     if [ "${FAIL}" = "1" ]; then
@@ -63,7 +80,9 @@ lxc config device add v1 eth0 nic \
     ipv4.address=192.0.2.2,192.0.2.3 \
     ipv6.address=2001:db8::2,2001:db8::3
 lxc start v1
-sleep 1m
+
+# Wait for VM to start.
+waitVMAgent v1
 
 # Configure NIC in VM manually.
 lxc exec v1 -- rm -fr /etc/netplan
