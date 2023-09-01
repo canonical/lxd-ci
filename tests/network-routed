@@ -79,25 +79,31 @@ lxc config device add v1 eth0 nic \
     parent=dummy0 \
     ipv4.address=192.0.2.2,192.0.2.3 \
     ipv6.address=2001:db8::2,2001:db8::3
+
+cat <<EOF | lxc config set v1 cloud-init.network-config -
+network:
+  version: 2
+  ethernets:
+    enp5s0:
+      routes:
+      - to: default
+        via: 169.254.0.1
+        on-link: true
+      - to: default
+        via: fe80::1
+        on-link: true
+      addresses:
+      - 192.0.2.2/32
+      - 192.0.2.3/32
+      - 2001:db8::2/128
+      - 2001:db8::3/128
+EOF
+
 lxc start v1
 
 # Wait for VM to start.
 waitVMAgent v1
 sleep 10
-
-# Configure NIC in VM manually.
-lxc exec v1 -- rm -fr /etc/netplan
-lxc exec v1 -- netplan apply
-lxc exec v1 -- systemctl mask systemd-networkd
-lxc exec v1 -- systemctl stop systemd-networkd
-lxc exec v1 -- ip link set enp5s0 up
-sleep 5
-lxc exec v1 -- ip -4 a add 192.0.2.2/32 dev enp5s0
-lxc exec v1 -- ip -6 a add 2001:db8::2/128 dev enp5s0
-lxc exec v1 -- ip -4 r add 169.254.0.1/32 dev enp5s0
-lxc exec v1 -- ip -4 r add default via 169.254.0.1 dev enp5s0
-lxc exec v1 -- ip -6 r add fe80::1/128 dev enp5s0
-lxc exec v1 -- ip -6 r add default via fe80::1 dev enp5s0
 
 # Test ping to/from VM NIC.
 ping -c1 -4 -W5 192.0.2.2
