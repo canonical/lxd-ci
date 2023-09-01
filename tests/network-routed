@@ -72,8 +72,7 @@ ip addr add 192.0.2.1/32 dev dummy0
 ip addr add 2001:db8::1/128 dev dummy0
 
 # Create VM and add routed NIC.
-lxc remote add --protocol simplestreams ubuntu-minimal https://cloud-images.ubuntu.com/minimal/releases/
-lxc init ubuntu-minimal:22.04 v1 --vm -s default -c limits.memory=512MiB
+lxc init ubuntu:22.04 v1 --vm -s default -c limits.memory=2GiB
 lxc config device add v1 eth0 nic \
     nictype=routed \
     parent=dummy0 \
@@ -83,6 +82,7 @@ lxc start v1
 
 # Wait for VM to start.
 waitVMAgent v1
+sleep 10
 
 # Configure NIC in VM manually.
 lxc exec v1 -- rm -fr /etc/netplan
@@ -90,6 +90,7 @@ lxc exec v1 -- netplan apply
 lxc exec v1 -- systemctl mask systemd-networkd
 lxc exec v1 -- systemctl stop systemd-networkd
 lxc exec v1 -- ip link set enp5s0 up
+sleep 5
 lxc exec v1 -- ip -4 a add 192.0.2.2/32 dev enp5s0
 lxc exec v1 -- ip -6 a add 2001:db8::2/128 dev enp5s0
 lxc exec v1 -- ip -4 r add 169.254.0.1/32 dev enp5s0
@@ -100,7 +101,6 @@ lxc exec v1 -- ip -6 r add default via fe80::1 dev enp5s0
 # Test ping to/from VM NIC.
 ping -c1 -4 -W5 192.0.2.2
 ping -c1 -6 -W5 2001:db8::2
-lxc file push /usr/bin/ping v1/usr/bin/
 lxc exec v1 -- ping -c1 -4 -W5 192.0.2.1
 lxc exec v1 -- ping -c1 -6 -W5 2001:db8::2
 lxc exec v1 -- ping -c1 -4 -W5 169.254.0.1
@@ -110,6 +110,5 @@ lxc exec v1 -- ping -c1 -6 -W5 -I enp5s0 fe80::1
 lxc delete -f v1
 ip link delete dummy0
 lxc storage delete default
-lxc remote remove ubuntu-minimal
 
 FAIL=0
