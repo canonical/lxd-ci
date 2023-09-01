@@ -56,7 +56,7 @@ lxd waitready --timeout=300
 
 # Configure LXD.
 lxc project switch default
-lxc storage create default zfs
+lxc storage create default dir
 
 # Set global sysctl.
 sysctl net.ipv6.conf.all.forwarding=1
@@ -73,7 +73,8 @@ ip addr add 192.0.2.1/32 dev dummy0
 ip addr add 2001:db8::1/128 dev dummy0
 
 # Create VM and add routed NIC.
-lxc init ubuntu:22.04 v1 --vm -s default
+lxc remote add --protocol simplestreams ubuntu-minimal https://cloud-images.ubuntu.com/minimal/releases/
+lxc init ubuntu-minimal:22.04 v1 --vm -s default -c limits.memory=512MiB
 lxc config device add v1 eth0 nic \
     nictype=routed \
     parent=dummy0 \
@@ -99,6 +100,7 @@ lxc exec v1 -- ip -6 r add default via fe80::1 dev enp5s0
 # Test ping to/from VM NIC.
 ping -c1 -4 -W5 192.0.2.2
 ping -c1 -6 -W5 2001:db8::2
+lxc file push /usr/bin/ping v1/usr/bin/
 lxc exec v1 -- ping -c1 -4 -W5 192.0.2.1
 lxc exec v1 -- ping -c1 -6 -W5 2001:db8::2
 lxc exec v1 -- ping -c1 -4 -W5 169.254.0.1
