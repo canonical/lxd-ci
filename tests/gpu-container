@@ -29,6 +29,25 @@ cleanup() {
 FAIL=1
 trap cleanup EXIT HUP INT TERM
 
+# Install required components from "restricted" pocket
+if ! grep -v '^#' /etc/apt/sources.list | grep -qwFm1 restricted; then
+    ARCH="$(dpkg --print-architecture)"
+    DISTRO="$(lsb_release -sc)"
+    if [ "$ARCH" != "amd64" ]; then
+        cat << EOF > /etc/apt/sources.list.d/restricted.list
+deb [arch=${ARCH}] http://ports.ubuntu.com/ubuntu-ports ${DISTRO} restricted
+deb [arch=${ARCH}] http://ports.ubuntu.com/ubuntu-ports ${DISTRO}-updates restricted
+EOF
+    else
+        cat << EOF > /etc/apt/sources.list.d/restricted.list
+deb [arch=${ARCH}] http://archive.ubuntu.com/ubuntu/ ${DISTRO} restricted
+deb [arch=${ARCH}] http://archive.ubuntu.com/ubuntu/ ${DISTRO}-updates restricted
+EOF
+    fi
+    apt-get update
+fi
+apt-get install --yes nvidia-utils-525 nvidia-driver-525
+
 # Wait for snapd seeding
 waitSnapdSeed
 
