@@ -1,0 +1,121 @@
+#!/bin/sh
+set -eu
+
+waitSnapdSeed() (
+  set +x
+  for i in $(seq 60); do # Wait up to 60s.
+    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
+      return 0 # Success.
+    fi
+
+    sleep 1
+  done
+
+  echo "snapd not seeded after ${i}s"
+  return 1 # Failed.
+)
+
+cleanup() {
+    echo ""
+    if [ "${FAIL}" = "1" ]; then
+        echo "Test failed"
+        exit 1
+    fi
+
+    echo "Test passed"
+    exit 0
+}
+
+FAIL=1
+trap cleanup EXIT HUP INT TERM
+
+# Install required components from "restricted" pocket
+if ! grep -v '^#' /etc/apt/sources.list | grep -qwFm1 restricted; then
+    ARCH="$(dpkg --print-architecture)"
+    DISTRO="$(lsb_release -sc)"
+    if [ "$ARCH" != "amd64" ]; then
+        cat << EOF > /etc/apt/sources.list.d/restricted.list
+deb [arch=${ARCH}] http://ports.ubuntu.com/ubuntu-ports ${DISTRO} restricted
+deb [arch=${ARCH}] http://ports.ubuntu.com/ubuntu-ports ${DISTRO}-updates restricted
+EOF
+    else
+        cat << EOF > /etc/apt/sources.list.d/restricted.list
+deb [arch=${ARCH}] http://archive.ubuntu.com/ubuntu/ ${DISTRO} restricted
+deb [arch=${ARCH}] http://archive.ubuntu.com/ubuntu/ ${DISTRO}-updates restricted
+EOF
+    fi
+    apt-get update
+fi
+apt-get install --yes nvidia-utils-525 nvidia-driver-525
+
+# Wait for snapd seeding
+waitSnapdSeed
+
+# Install LXD
+snap remove lxd || true
+snap install lxd --channel=latest/edge
+lxd waitready --timeout=300
+
+# Check that NVIDIA is installed
+nvidia-smi
+
+# Configure LXD
+lxc storage create default zfs
+lxc profile device add default root disk path=/ pool=default
+lxc network create lxdbr0
+lxc profile device add default eth0 nic network=lxdbr0 name=eth0
+
+# Launch a test container
+echo "==> Launching a test container"
+lxc launch ubuntu:22.04 c1
+sleep 10
+
+# Confirm no GPU
+echo "==> Testing with no GPU"
+! lxc exec c1 -- ls -lh /dev/dri/ || false
+
+# Validate with one GPU
+echo "==> Testing with one GPU"
+lxc config device add c1 gpu0 gpu id=0
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+
+# Validate with all remove
+echo "==> Testing with no GPU"
+lxc config device remove c1 gpu0
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "0" ] || false
+
+# Validate with all GPUs
+echo "==> Testing with all GPUs"
+lxc config device add c1 gpus gpu
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+
+# Test nvidia runtime
+echo "==> Testing nvidia runtime"
+! lxc exec c1 -- nvidia-smi || false
+lxc stop c1
+lxc config set c1 nvidia.runtime true
+lxc start c1
+lxc exec c1 -- nvidia-smi
+
+# Test with PCI addresses
+echo "==> Testing PCI address selection"
+lxc config device remove c1 gpus
+lxc config device add c1 gpu1 gpu pci=0000:06:00.0
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+lxc exec c1 -- nvidia-smi
+
+# Test with vendor
+echo "==> Testing PCI vendor selection"
+lxc config device remove c1 gpu1
+lxc config device add c1 gpus gpu vendorid=10de
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+lxc exec c1 -- nvidia-smi
+
+# Test with vendor and product
+echo "==> Testing PCI vendor and product selection"
+lxc config device remove c1 gpus
+lxc config device add c1 gpus gpu vendorid=10de productid=27b8
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+lxc exec c1 -- nvidia-smi
+
+FAIL=0
