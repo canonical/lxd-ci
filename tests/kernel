@@ -44,9 +44,9 @@ export PATH="${PATH}:/root/go/bin"
 
 # Build LXD
 cd /root
-mkdir -p /root/go/src/github.com/lxc
-git clone https://github.com/lxc/lxd /root/go/src/github.com/lxc/lxd
-cd /root/go/src/github.com/lxc/lxd
+mkdir -p /root/go/src/github.com/canonical
+git clone https://github.com/canonical/lxd /root/go/src/github.com/canonical/lxd
+cd /root/go/src/github.com/canonical/lxd
 make deps
 make
 
@@ -72,7 +72,7 @@ if [ -e "/sys/fs/cgroup/cgroup.procs" ]; then
 fi
 
 # Run tests
-cd /root/go/src/github.com/lxc/lxd/test
+cd /root/go/src/github.com/canonical/lxd/test
 uname -a
 
 # LXD_SHIFTFS_DISABLE=1 because of kernel regression https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1990849
