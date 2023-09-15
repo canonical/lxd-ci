@@ -2019,6 +2019,94 @@ ovn_l3only_tests() {
     lxc network delete lxdbr0
 }
 
+# countDynamicLeases is a helper function that counts dynamic leases of the instance within
+# all network leases.
+countDynamicLeases(){
+        network="$1"
+        instance="$2"
+        count="$(lxc network list-leases "${network}" --format csv | awk -F, -v inst="${instance}" '$1 == inst && $4 == "DYNAMIC" { count++ } END { print count+0 }')"
+        echo "${count}"
+}
+
+# countStaticLeases is a helper function that counts static leases of the instance within
+# all network leases.
+countStaticLeases(){
+        network="$1"
+        instance="$2"
+        count="$(lxc network list-leases "${network}" --format csv | awk -F, -v inst="${instance}" '$1 == inst && $4 == "STATIC" { count++ } END { print count+0 }')"
+        echo "${count}"
+}
+
+# hasLeaseIP is a helper function that checks whether the instance has the given static lease IP.
+hasLeaseIP(){
+        network="$1"
+        instance="$2"
+        ip="$3"
+        result="$(lxc network list-leases "${network}" --format csv | awk -F, -v inst="${instance}" -v ip="${ip}" '$1 == inst && $3 == ip { print $3 }')"
+        [ -n "${result}" ]
+}
+
+ovn_leases_tests() {
+        lxc network create lxdbr0 \
+            ipv4.address=10.10.10.1/24 ipv4.nat=true \
+            ipv4.dhcp.ranges=10.10.10.2-10.10.10.199 \
+            ipv4.ovn.ranges=10.10.10.200-10.10.10.254 \
+            ipv6.address=fd42:4242:4242:1010::1/64 ipv6.nat=true \
+            ipv6.ovn.ranges=fd42:4242:4242:1010::200-fd42:4242:4242:1010::254
+
+        lxc network create ovn0 --type=ovn network=lxdbr0
+        lxc network set ovn0 \
+                ipv4.address=10.10.11.1/24 \
+                ipv6.address=fd42:1000:1000:1011::1/64
+
+        # Ensure the instance gets both ipv4 and ipv6 dynamic leases and that they
+        # do not disappear after restart.
+        lxc launch "${instanceImage}" c1 -s default -n ovn0
+        [ "$(countDynamicLeases ovn0 c1)" = "2" ]
+        [ "$(countStaticLeases ovn0 c1)" = "0" ]
+
+        lxc restart -f c1
+        [ "$(countDynamicLeases ovn0 c1)" = "2" ]
+        [ "$(countStaticLeases ovn0 c1)" = "0" ]
+
+        lxc delete -f c1
+
+        # Ensure the instance gets static ipv4 and dynamic ipv6 leases and that they
+        # do not disappear after restart.
+        lxc launch "${instanceImage}" c1 -s default -n ovn0 -d eth0,ipv4.address=10.10.11.15
+        [ "$(countDynamicLeases ovn0 c1)" = "1" ]
+        [ "$(countStaticLeases ovn0 c1)" = "1" ]
+        hasLeaseIP ovn0 c1 "10.10.11.15"
+
+        lxc restart -f c1
+        [ "$(countDynamicLeases ovn0 c1)" = "1" ]
+        [ "$(countStaticLeases ovn0 c1)" = "1" ]
+        hasLeaseIP ovn0 c1 "10.10.11.15"
+
+        lxc delete -f c1
+
+        # Ensure the instance gets static ipv4 and ipv6 leases.
+        lxc network set ovn0 ipv6.dhcp.stateful=true
+
+        lxc launch "${instanceImage}" c1 -s default -n ovn0 -d eth0,ipv4.address=10.10.11.15 -d eth0,ipv6.address=fd42:1000:1000:1011:a:b:c:d
+        [ "$(countDynamicLeases ovn0 c1)" = "0" ]
+        [ "$(countStaticLeases ovn0 c1)" = "2" ]
+        hasLeaseIP ovn0 c1 "10.10.11.15"
+        hasLeaseIP ovn0 c1 "fd42:1000:1000:1011:a:b:c:d"
+
+        lxc restart -f c1
+        [ "$(countDynamicLeases ovn0 c1)" = "0" ]
+        [ "$(countStaticLeases ovn0 c1)" = "2" ]
+        hasLeaseIP ovn0 c1 "10.10.11.15"
+        hasLeaseIP ovn0 c1 "fd42:1000:1000:1011:a:b:c:d"
+
+        lxc delete -f c1
+
+        # Cleanup.
+        lxc network delete ovn0
+        lxc network delete lxdbr0
+}
+
 # Allow for running a specific set of tests.
 if [ "$#" -gt 0 ]; then
   TEST_CURRENT="ovn_${1}_tests"
@@ -2033,6 +2121,7 @@ else
     ovn_nested_vlan_tests
     ovn_acl_tests
     ovn_l3only_tests
+    ovn_leases_tests
 fi
 
 lxc image delete "${instanceImage}"
