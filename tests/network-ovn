@@ -43,6 +43,13 @@ lxd waitready --timeout=300
 # Install dependencies
 apt-get install --no-install-recommends --yes ovn-host ovn-central bind9-dnsutils jq
 
+# Check for IPv6 uplink connectivity
+IPV6_UPLINK="true"
+if ! ip -6 ro get :: >/dev/null 2>&1; then
+  echo "No IPv6 uplink connectivity" >&2
+  IPV6_UPLINK="false"
+fi
+
 # Configure OVN.
 ovs-vsctl set open_vswitch . \
   external_ids:ovn-remote=unix:/var/run/ovn/ovnsb_db.sock \
@@ -74,8 +81,8 @@ ovn_basic_tests() {
     lxc network info ovn-virtual-network | grep -P "Chassis: $(hostname)"
 
     echo "==> Check host connectivity to ubuntu.com"
-    ping -c1 -4 -w5 ubuntu.com
-    ping -c1 -6 -w5 ubuntu.com
+    nc -zv -4 -w5 ubuntu.com 443
+    [ "${IPV6_UPLINK}" = "true" ] && nc -zv -6 -w5 ubuntu.com 443
 
     echo "==> Launching a test container on lxdbr0"
     lxc init "${instanceImage}" u1 -s default
@@ -105,8 +112,8 @@ ovn_basic_tests() {
     U3_IPV6="$(lxc list u3 -c6 --format=csv | cut -d' ' -f1)"
 
     echo "==> lxdbr0 to internet"
-    lxc exec u1 -- ping -c1 -4 -w5 ubuntu.com
-    lxc exec u1 -- ping -c1 -6 -w5 ubuntu.com
+    lxc exec u1 -- nc -zv -4 -w5 ubuntu.com 443
+    [ "${IPV6_UPLINK}" = "true" ] && lxc exec u1 -- nc -zv -6 -w5 ubuntu.com 443
 
     echo "==> lxdbr0 to OVN gateway"
     lxc exec u1 -- ping -c1 -4 -w5 10.10.10.200
@@ -129,8 +136,8 @@ ovn_basic_tests() {
     lxc exec u2 -- ping -c1 -w5 fd42:4242:4242:1010::1
 
     echo "==> OVN to internet"
-    lxc exec u2 -- ping -c1 -4 -w5 ubuntu.com
-    lxc exec u2 -- ping -c1 -6 -w5 ubuntu.com
+    lxc exec u2 -- nc -zv -4 -w5 ubuntu.com 443
+    [ "${IPV6_UPLINK}" = "true" ] && lxc exec u2 -- nc -zv -6 -w5 ubuntu.com 443
 
     # Check sticky DHCPv4 allocations, so that when deleting an instance with a lower dynamic IP that restarting a
     # later instance doesn't cause it to be allocated the (now available) lower IP and instead it should keep the
@@ -453,8 +460,8 @@ ovn_basic_tests() {
     lxc exec u2 -- ping -c1 fd42:4242:4242:1010::1
 
     echo "==> OVN to internet in project testovn"
-    lxc exec u2 -- ping -c1 -4 -w5 ubuntu.com
-    lxc exec u2 -- ping -c1 -6 -w5 ubuntu.com
+    lxc exec u2 -- nc -zv -4 -w5 ubuntu.com 443
+    [ "${IPV6_UPLINK}" = "true" ] && lxc exec u2 -- nc -zv -6 -w5 ubuntu.com 443
 
     echo "===> Check network in use protection from deletion"
     # Delete instances in default project first.
