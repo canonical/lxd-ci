@@ -1911,7 +1911,7 @@ ovn_l3only_tests() {
     lxc launch "${instanceImage}" u1 -s default -n ovn1
     lxc launch "${instanceImage}" u2 -s default -n ovn1
 
-    sleep 5
+    sleep 10
     lxc ls
 
     U1_IPV4="$(lxc list u1 -c4 --format=csv | cut -d' ' -f1)"
