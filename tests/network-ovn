@@ -739,6 +739,7 @@ ovn_forward_tests() {
 
     # Check DNS TCP forwarding using default target rule.
     lxc exec u1 -- systemctl mask dnsmasq
+    lxc exec u1 -- apt-get update
     lxc exec u1 -- apt-get install --no-install-recommends --yes dnsmasq
 cat <<EOF | lxc exec u1 -- tee /etc/dnsmasq.d/lxd_test.conf
 interface=eth0
@@ -764,6 +765,7 @@ EOF
     U2_IPV6="$(lxc list u2 -c6 --format=csv | cut -d' ' -f1)"
 
     lxc exec u2 -- systemctl mask dnsmasq
+    lxc exec u2 -- apt-get update
     lxc exec u2 -- apt-get install --no-install-recommends --yes dnsmasq
 cat <<EOF | lxc exec u2 -- tee /etc/dnsmasq.d/lxd_test.conf
 interface=eth0
@@ -950,6 +952,7 @@ ovn_load_balancer_tests() {
     # Check DNS TCP forwarding towards u1.
     # Relies on static route (above) rather than neighbour adverts see https://github.com/ovn-org/ovn/issues/124
     lxc exec u1 -- systemctl mask dnsmasq
+    lxc exec u1 -- apt-get update
     lxc exec u1 -- apt-get install --no-install-recommends --yes dnsmasq
 cat <<EOF | lxc exec u1 -- tee /etc/dnsmasq.d/lxd_test.conf
 interface=eth0
@@ -988,6 +991,7 @@ EOF
 
     # Check DNS TCP forwarding towards u2.
     lxc exec u2 -- systemctl mask dnsmasq
+    lxc exec u2 -- apt-get update
     lxc exec u2 -- apt-get install --no-install-recommends --yes dnsmasq
 cat <<EOF | lxc exec u2 -- tee /etc/dnsmasq.d/lxd_test.conf
 interface=eth0
