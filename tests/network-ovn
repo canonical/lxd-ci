@@ -38,11 +38,10 @@ waitSnapdSeed
 # Install LXD
 snap remove lxd || true
 snap install lxd --channel=latest/edge
-apt-get install --no-install-recommends --yes jq
 lxd waitready --timeout=300
 
-# Install OVN and dnsutils.
-apt-get install --no-install-recommends --yes ovn-host ovn-central dnsutils
+# Install dependencies
+apt-get install --no-install-recommends --yes ovn-host ovn-central bind9-dnsutils jq
 
 # Configure OVN.
 ovs-vsctl set open_vswitch . \
@@ -1586,7 +1585,7 @@ ovn_acl_tests() {
 
     # Check default rule action is reject (disable acl, install dig in c1, then re-enable acl).
     lxc network unset ovn0 security.acls
-    lxc exec c1 -- apt-get install --no-install-recommends --yes dnsutils
+    lxc exec c1 -- apt-get install --no-install-recommends --yes bind9-dnsutils
     lxc network set ovn0 security.acls=lxdbr0-ping
     sleep 2
 
@@ -1659,7 +1658,7 @@ ovn_acl_tests() {
     ovn-nbctl list acl | grep -c 'name.*eth0-egress' | grep 0
 
     # Test c1's default ingress rule defaults to reject by querying from c2 (which now has no ACLs applied).
-    lxc exec c2 -- apt-get install --no-install-recommends --yes dnsutils
+    lxc exec c2 -- apt-get install --no-install-recommends --yes bind9-dnsutils
     lxc exec c2 -- dig @c1.lxd -4 +tcp +timeout=1 -p 5053 lxdbr0.test | grep "refused"
     lxc exec c2 -- dig @c1.lxd -6 +tcp +timeout=1 -p 5053 lxdbr0.test | grep "refused"
     lxc exec c2 -- ping -c1 -w5 -4 c1.lxd | grep "Host Unreachable"
