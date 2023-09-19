@@ -1,5 +1,5 @@
 #!/bin/sh
-set -eu
+set -eux
 
 parentNIC="${1:-"enp5s0"}"
 
@@ -17,13 +17,13 @@ waitSnapdSeed() (
   return 1 # Failed.
 )
 
-waitVMAgent() (
+waitInstanceReady() (
   set +x
   # shellcheck disable=SC3043
   local vmName="$1"
   for i in $(seq 90) # Wait up to 90s.
   do
-    if lxc info "${vmName}" | grep -qF 127.0.0.1; then
+    if lxc info "${vmName}" | grep -qF "Status: READY"; then
       return 0 # Success.
     fi
 
@@ -68,22 +68,17 @@ ip a
 lxc storage create default zfs
 lxc profile device add default root disk path=/ pool=default
 
-(
-cat << EOF
-version: 2
-ethernets:
-  eth0:
-    optional: true
-    accept-ra: true
-    dhcp4: true
-    dhcp6: true
-  enp5s0:
-    optional: true
-    accept-ra: true
-    dhcp4: true
-    dhcp6: true
+cat <<EOF | lxc profile set default cloud-init.user-data -
+#cloud-config
+packages:
+  - curl
+write_files:
+  - content: |
+     #!/bin/sh
+     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
+    path: /var/lib/cloud/scripts/per-boot/ready.sh
+    permissions: "0755"
 EOF
-) | lxc profile set default user.network-config -
 
 # Launch instances with physical NICs
 echo "==> VM on default VLAN with physical"
@@ -120,10 +115,13 @@ lxc start c1-sriov
 
 # Wait for VMs to start.
 echo "==> Waiting for VMs to start"
-sleep 30
-waitVMAgent v1-physical
-waitVMAgent v1-macvlan
-waitVMAgent v1-sriov
+
+waitInstanceReady c1-physical
+waitInstanceReady c1-macvlan
+waitInstanceReady c1-sriov
+waitInstanceReady v1-physical
+waitInstanceReady v1-macvlan
+waitInstanceReady v1-sriov
 
 # Check that all instances have an IPv4 and IPv6 address
 networkTests() {
@@ -164,7 +162,7 @@ networkTests() {
         fi
 
         # DNS resolution
-        if lxc exec "${name}" -- getent hosts linuxcontainers.org >/dev/null 2>&1 || lxc exec "${name}" -- ping -c1 -W1 linuxcontainers.org >/dev/null 2>&1; then
+        if lxc exec "${name}" -- getent hosts ubuntu.com >/dev/null 2>&1 || lxc exec "${name}" -- ping -nc1 -W1 ubuntu.com >/dev/null 2>&1; then
             echo "PASS: DNS resolution: ${name}"
         else
             echo "FAIL: DNS resolution: ${name}"
@@ -247,13 +245,14 @@ networkTests
 
 # Check VM "agent.nic_config" works by reconfiguring eth0 to use parent and mtu settings.
 echo "=> Performing VM bridged NIC agent.nic_config tests"
+lxc exec v1-physical -- "sync"
 lxc stop v1-physical -f
 lxc config set v1-physical agent.nic_config=true
 lxc config device set v1-physical eth0 nictype=bridged parent=lxdbr0 network= mtu=1400 name=eth0
 lxc start v1-physical
 
 # Wait for lxd-agent to rename the interface.
-waitVMAgent v1-physical
+waitInstanceReady v1-physical
 
 # Interface "eth0" should exist in the VM with the correct MTU.
 lxc exec v1-physical -- test -d /sys/class/net/eth0
