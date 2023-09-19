@@ -20,17 +20,17 @@ waitSnapdSeed() (
 waitInstanceReady() (
   set +x
   # shellcheck disable=SC3043
-  local vmName="$1"
+  local instName="$1"
   for i in $(seq 90) # Wait up to 90s.
   do
-    if lxc info "${vmName}" | grep -qF "Status: READY"; then
+    if lxc info "${instName}" | grep -qF "Status: READY"; then
       return 0 # Success.
     fi
 
     sleep 1
   done
 
-  echo "VM ${vmName} agent not running after ${i}s"
+  echo "Instance ${instName} not ready after ${i}s"
   return 1 # Failed.
 )
 
