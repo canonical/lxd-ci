@@ -245,6 +245,7 @@ networkTests
 
 # Check VM "agent.nic_config" works by reconfiguring eth0 to use parent and mtu settings.
 echo "=> Performing VM bridged NIC agent.nic_config tests"
+lxc exec v1-physical -- "sync"
 lxc stop v1-physical -f
 lxc config set v1-physical agent.nic_config=true
 lxc config device set v1-physical eth0 nictype=bridged parent=lxdbr0 network= mtu=1400 name=eth0
