@@ -15,6 +15,23 @@ waitSnapdSeed() (
   return 1 # Failed.
 )
 
+waitInstanceReady() (
+  set +x
+  # shellcheck disable=SC3043
+  local instName="$1"
+  for i in $(seq 90) # Wait up to 90s.
+  do
+    if lxc info "${instName}" | grep -qF "Status: READY"; then
+      return 0 # Success.
+    fi
+
+    sleep 1
+  done
+
+  echo "Instance ${instName} not ready after ${i}s"
+  return 1 # Failed.
+)
+
 cleanup() {
     echo ""
     if [ "${FAIL}" = "1" ]; then
@@ -59,6 +76,18 @@ ovs-vsctl set open_vswitch . \
 # Configure LXD.
 lxc project switch default
 lxc storage create default zfs
+
+cat <<EOF | lxc profile set default cloud-init.user-data -
+#cloud-config
+packages:
+  - curl
+write_files:
+  - content: |
+     #!/bin/sh
+     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
+    path: /var/lib/cloud/scripts/per-boot/ready.sh
+    permissions: "0755"
+EOF
 
 instanceImage="ubuntu:22.04"
 
@@ -105,7 +134,10 @@ ovn_basic_tests() {
     lxc start 4u
 
     echo "==> Wait for addresses"
-    sleep 10
+    waitInstanceReady u1
+    waitInstanceReady u2
+    waitInstanceReady u3
+
     lxc list
 
     echo "==> Testing connectivity"
@@ -167,7 +199,8 @@ ovn_basic_tests() {
     lxc start u2
 
     echo "==> Wait for new addresses"
-    sleep 10
+    waitInstanceReady u2
+    waitInstanceReady u3
     lxc list
 
     U2_IPV4="$(lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
