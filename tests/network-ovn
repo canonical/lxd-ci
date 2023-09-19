@@ -99,6 +99,11 @@ ovn_basic_tests() {
     lxc config device add u3 eth0 nic network=ovn-virtual-network name=eth0
     lxc start u3
 
+    echo "==> Launching a third test container on ovn-virtual-network"
+    lxc init "${instanceImage}" 4u -s default
+    lxc config device add 4u eth0 nic network=ovn-virtual-network name=eth0
+    lxc start 4u
+
     echo "==> Wait for addresses"
     sleep 10
     lxc list
@@ -130,10 +135,18 @@ ovn_basic_tests() {
     echo "==> DNS resolution on OVN"
     lxc exec u3 -- ping -nc1 -4 -w5 u2.lxd
     lxc exec u3 -- ping -nc1 -6 -w5 u2.lxd
+    lxc exec u3 -- ping -nc1 -4 -w5 4u.lxd
+    lxc exec u3 -- ping -nc1 -6 -w5 4u.lxd
 
     echo "==> OVN to lxdbr0 gateway"
     lxc exec u2 -- ping -nc1 -w5 10.10.10.1
     lxc exec u2 -- ping -nc1 -w5 fd42:4242:4242:1010::1
+
+    echo "==> OVN to lxdbr0"
+    lxc exec 4u -- ping -nc1 -w5 u1.lxd
+    lxc exec 4u -- ping -nc1 -w5 u1.lxd
+
+    lxc delete -f 4u
 
     echo "==> OVN to internet"
     lxc exec u2 -- nc -zv -4 -w5 ubuntu.com 443
