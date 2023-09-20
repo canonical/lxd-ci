@@ -1236,7 +1236,7 @@ ovn_peering_tests() {
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null || false
     wait
 
-    # Clear all security rules and check spoofed packets are recieved to prove the security rules were working.
+    # Clear all security rules and check spoofed packets are received to prove the security rules were working.
     ovn-nbctl lr-list
     ovn1NetID=$(lxd sql global 'select id from networks where name = "ovn1"' | grep -Po '\d+')
     ovn2NetID=$(lxd sql global 'select id from networks where name = "ovn2"' | grep -Po '\d+')
