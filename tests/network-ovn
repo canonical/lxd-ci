@@ -28,6 +28,7 @@ waitInstanceReady() (
   for i in $(seq 90) # Wait up to 90s.
   do
     if lxc info --project "${instProj}" "${instName}" | grep -qF "Status: READY"; then
+      sleep 5 # Allow some time for DHCP/SLAAC
       return 0 # Success.
     fi
 
