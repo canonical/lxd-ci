@@ -128,6 +128,11 @@ ovn_basic_tests() {
     lxc config device add u3 eth0 nic network=ovn-virtual-network name=eth0
     lxc start u3
 
+    echo "==> Launching a third test container on ovn-virtual-network"
+    lxc init "${instanceImage}" 4u -s default
+    lxc config device add 4u eth0 nic network=ovn-virtual-network name=eth0
+    lxc start 4u
+
     echo "==> Wait for addresses"
     waitInstanceReady u1
     waitInstanceReady u2
@@ -162,10 +167,18 @@ ovn_basic_tests() {
     echo "==> DNS resolution on OVN"
     lxc exec u3 -- ping -nc1 -4 -w5 u2.lxd
     lxc exec u3 -- ping -nc1 -6 -w5 u2.lxd
+    lxc exec u3 -- ping -nc1 -4 -w5 4u.lxd
+    lxc exec u3 -- ping -nc1 -6 -w5 4u.lxd
 
     echo "==> OVN to lxdbr0 gateway"
     lxc exec u2 -- ping -nc1 -w5 10.10.10.1
     lxc exec u2 -- ping -nc1 -w5 fd42:4242:4242:1010::1
+
+    echo "==> OVN to lxdbr0"
+    lxc exec 4u -- ping -nc1 -w5 u1.lxd
+    lxc exec 4u -- ping -nc1 -w5 u1.lxd
+
+    lxc delete -f 4u
 
     echo "==> OVN to internet"
     lxc exec u2 -- nc -zv -4 -w5 ubuntu.com 443
@@ -1258,7 +1271,7 @@ ovn_peering_tests() {
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null || false
     wait
 
-    # Clear all security rules and check spoofed packets are recieved to prove the security rules were working.
+    # Clear all security rules and check spoofed packets are received to prove the security rules were working.
     ovn-nbctl lr-list
     ovn1NetID=$(lxd sql global 'select id from networks where name = "ovn1"' | grep -Po '\d+')
     ovn2NetID=$(lxd sql global 'select id from networks where name = "ovn2"' | grep -Po '\d+')
@@ -1760,14 +1773,14 @@ ovn_acl_tests() {
     ! lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd || false
 
     # Create new ACL to allow ingress ping, assign to NIC and test pinging static assigned IPs.
-    lxc network acl create ingress-ping
-    lxc network acl rule add ingress-ping ingress action=allow protocol=icmp4
-    lxc network acl rule add ingress-ping ingress action=allow protocol=icmp6
+    lxc network acl create 0ingress-ping
+    lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp4
+    lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp6
 
     # Expect 3 LXD related port group to exist as new ACL not assigned to anything yet.
     ovn-nbctl --bare --column=name --format=csv find port_group | grep -c lxd | grep 3
 
-    lxc config device set c1 eth0 security.acls=ingress-ping
+    lxc config device set c1 eth0 security.acls=0ingress-ping
 
     sleep 2
 
@@ -1778,24 +1791,24 @@ ovn_acl_tests() {
     lxc exec c2 -- ping -nc1 -w5 -6 fd42:4242:4242:1011::2
 
     # Test IP range rule.
-    lxc network acl rule remove ingress-ping ingress action=allow protocol=icmp4
+    lxc network acl rule remove 0ingress-ping ingress action=allow protocol=icmp4
     ! lxc exec c2 -- ping -nc1 -w5 -4 10.10.11.2 || false
-    lxc network acl rule add ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.2
+    lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.2
     lxc exec c2 -- ping -nc1 -w5 -4 10.10.11.2
-    lxc network acl rule remove ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.2
-    lxc network acl rule add ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.1
+    lxc network acl rule remove 0ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.2
+    lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.1
     ! lxc exec c2 -- ping -nc1 -w5 -4 10.10.11.2 || false
 
     # Test ACL rule referencing our own ACL name as source in rule.
-    lxc network acl rule remove ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.1
-    lxc network acl rule add ingress-ping ingress action=allow protocol=icmp4 source=ingress-ping
-    lxc network acl rule remove ingress-ping ingress action=allow protocol=icmp6
-    lxc network acl rule add ingress-ping ingress action=allow protocol=icmp6 source=ingress-ping
+    lxc network acl rule remove 0ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.1
+    lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp4 source=0ingress-ping
+    lxc network acl rule remove 0ingress-ping ingress action=allow protocol=icmp6
+    lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp6 source=0ingress-ping
 
-    ! lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd || false # Expect to fail as c2 isn't part of ingress-ping ACL group yet.
-    ! lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd || false # Expect to fail as c2 isn't part of ingress-ping ACL group yet.
+    ! lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd || false # Expect to fail as c2 isn't part of 0ingress-ping ACL group yet.
+    ! lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd || false # Expect to fail as c2 isn't part of 0ingress-ping ACL group yet.
 
-    lxc config device set c2 eth0 security.acls=ingress-ping # Add c2 to ACL group.
+    lxc config device set c2 eth0 security.acls=0ingress-ping # Add c2 to ACL group.
     lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd
     lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd
     lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd
@@ -1803,14 +1816,14 @@ ovn_acl_tests() {
 
     # Create empty ACL group and then update existing rule to reference that as source to check ping stops working.
     lxc network acl create test-empty-group
-    lxc network acl rule remove ingress-ping ingress action=allow protocol=icmp4 source=ingress-ping
-    lxc network acl rule remove ingress-ping ingress action=allow protocol=icmp6 source=ingress-ping
+    lxc network acl rule remove 0ingress-ping ingress action=allow protocol=icmp4 source=0ingress-ping
+    lxc network acl rule remove 0ingress-ping ingress action=allow protocol=icmp6 source=0ingress-ping
 
     # Expect 5 LXD related port groups to exist as new one not assigned.
     ovn-nbctl --bare --column=name --format=csv find port_group | grep -c lxd | grep 5
 
-    lxc network acl rule add ingress-ping ingress action=allow protocol=icmp4 source=test-empty-group
-    lxc network acl rule add ingress-ping ingress action=allow protocol=icmp6 source=test-empty-group
+    lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp4 source=test-empty-group
+    lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp6 source=test-empty-group
 
     # Expect 6 LXD related port groups to exist as new one now used by ACL that is assigned.
     ovn-nbctl --bare --column=name --format=csv find port_group | grep -c lxd | grep 6
@@ -1825,7 +1838,7 @@ ovn_acl_tests() {
     lxc network acl delete lxdbr0-ping
     lxc config device unset c1 eth0 security.acls
     lxc config device unset c2 eth0 security.acls
-    lxc network acl delete ingress-ping
+    lxc network acl delete 0ingress-ping
     lxc network acl delete test-empty-group
 
     # Check only network level port group exists.
