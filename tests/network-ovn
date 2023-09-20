@@ -479,20 +479,20 @@ ovn_basic_tests() {
     lxc exec u1 --project default -- ping -nc1 -w5 -6 fd42:4242:4242:1010::201
 
     echo "==> OVN to OVN in project testovn"
-    lxc exec u2 -- ping -nc1 -4 "${U3_IPV4}"
-    lxc exec u2 -- ping -nc1 -6 "${U3_IPV6}"
+    lxc exec u2 -- ping -nc1 -w5 -4 "${U3_IPV4}"
+    lxc exec u2 -- ping -nc1 -w5 -6 "${U3_IPV6}"
 
     echo "==> OVN to lxdbr0 instance in project testovn"
-    lxc exec u3 -- ping -nc1 -4 "${U1_IPV4}"
-    lxc exec u3 -- ping -nc1 -6 "${U1_IPV6}"
+    lxc exec u3 -- ping -nc1 -w5 -4 "${U1_IPV4}"
+    lxc exec u3 -- ping -nc1 -w5 -6 "${U1_IPV6}"
 
     echo "==> DNS resolution on OVN in project testovn"
-    lxc exec u3 -- ping -nc1 -4 u2.lxd
-    lxc exec u3 -- ping -nc1 -6 u2.lxd
+    lxc exec u3 -- ping -nc1 -w5 -4 u2.lxd
+    lxc exec u3 -- ping -nc1 -w5 -6 u2.lxd
 
     echo "==> OVN to lxdbr0 gateway in project testovn"
-    lxc exec u2 -- ping -nc1 10.10.10.1
-    lxc exec u2 -- ping -nc1 fd42:4242:4242:1010::1
+    lxc exec u2 -- ping -nc1 -w5 -4 10.10.10.1
+    lxc exec u2 -- ping -nc1 -w5 -6 fd42:4242:4242:1010::1
 
     echo "===> Check network in use protection from deletion"
     # Delete instances in default project first.
