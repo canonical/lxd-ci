@@ -215,7 +215,7 @@ ovn_basic_tests() {
     [ "${U3_IPV4_OLD}" = "${U3_IPV4}" ]
 
     echo "===> Testing project restrictions"
-    lxc project create testovn -c features.networks=true -c features.images=false -c restricted=true
+    lxc project create testovn -c features.networks=true -c features.images=false -c features.storage.volumes=false -c restricted=true
     lxc profile device add default root disk path=/ pool=default --project testovn
     setupCloudInitReady testovn
 
@@ -457,7 +457,7 @@ ovn_basic_tests() {
     ip link delete dummy0
 
     echo "===> Testing projects"
-    lxc project create testovn -c features.networks=true -c features.images=false -c limits.networks=1
+    lxc project create testovn -c features.networks=true -c features.images=false -c features.storage.volumes=false -c limits.networks=1
     lxc project switch testovn
     lxc profile device add default root disk path=/ pool=default
     setupCloudInitReady testovn
