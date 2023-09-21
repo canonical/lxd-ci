@@ -48,8 +48,6 @@ setupCloudInitReady() {
 
   cat <<EOF | lxc profile set "${profile}" --project "${instProj}" cloud-init.user-data -
 #cloud-config
-packages:
-  - curl
 write_files:
   - content: |
      #!/bin/sh
