@@ -40,6 +40,25 @@ waitInstanceReady() (
   return 1 # Failed.
 )
 
+setupCloudInitReady() {
+  # shellcheck disable=SC3043
+  local instProj="${1}"
+  # shellcheck disable=SC3043
+  local profile="${2:-default}"
+
+  cat <<EOF | lxc profile set "${profile}" --project "${instProj}" cloud-init.user-data -
+#cloud-config
+packages:
+  - curl
+write_files:
+  - content: |
+     #!/bin/sh
+     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
+    path: /var/lib/cloud/scripts/per-boot/ready.sh
+    permissions: "0755"
+EOF
+}
+
 cleanup() {
     echo ""
     if [ "${FAIL}" = "1" ]; then
@@ -77,18 +96,7 @@ ovs-vsctl set open_vswitch . \
 # Configure LXD.
 lxc project switch default
 lxc storage create default zfs
-
-cat <<EOF | lxc profile set default cloud-init.user-data -
-#cloud-config
-packages:
-  - curl
-write_files:
-  - content: |
-     #!/bin/sh
-     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
-    path: /var/lib/cloud/scripts/per-boot/ready.sh
-    permissions: "0755"
-EOF
+setupCloudInitReady default
 
 instanceImage="ubuntu:22.04"
 
@@ -211,6 +219,7 @@ ovn_basic_tests() {
     echo "===> Testing project restrictions"
     lxc project create testovn -c features.networks=true -c features.images=false -c restricted=true
     lxc profile device add default root disk path=/ pool=default --project testovn
+    setupCloudInitReady testovn
 
     # Test we cannot create network in restricted project with no defined uplinks.
     ! lxc network create ovn-virtual-network --project testovn || false
@@ -453,6 +462,7 @@ ovn_basic_tests() {
     lxc project create testovn -c features.networks=true -c features.images=false -c limits.networks=1
     lxc project switch testovn
     lxc profile device add default root disk path=/ pool=default
+    setupCloudInitReady testovn
 
     # Create network inside project with same name and subnet as network in default project.
     lxc network create ovn-virtual-network network=lxdbr0 --type=ovn \
