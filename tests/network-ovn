@@ -94,9 +94,32 @@ ovs-vsctl set open_vswitch . \
 # Configure LXD.
 lxc project switch default
 lxc storage create default zfs
+lxc storage volume create default images
+lxc config set storage.images_volume=default/images # Speeds up instance creation.
 setupCloudInitReady default
 
-instanceImage="ubuntu:22.04"
+setupInstanceImage() {
+  lxc image copy ubuntu-minimal:22.04 local: --alias jammy-minimal
+  lxc init jammy-minimal jammy-small-tmp -s default
+  lxc network create lxdbr-tmp
+  lxc config device add jammy-small-tmp eth0 nic network=lxdbr-tmp name=eth0
+  lxc start jammy-small-tmp
+  waitInstanceReady jammy-small-tmp
+  lxc exec jammy-small-tmp -- systemctl mask --now console-getty.service
+  lxc exec jammy-small-tmp -- systemctl disable --now systemd-journald.service systemd-journald.socket systemd-journald-dev-log.socket
+  lxc exec jammy-small-tmp -- apt-get update
+  lxc exec jammy-small-tmp -- apt-get autopurge -y needrestart networkd-dispatcher openssh-server polkitd snapd unattended-upgrades
+  lxc exec jammy-small-tmp -- apt-get install -y --no-install-recommends iputils-ping netcat-openbsd tcpdump
+  lxc exec jammy-small-tmp -- apt-get clean
+  lxc stop jammy-small-tmp
+  lxc publish jammy-small-tmp local: --alias jammy-small
+  lxc delete jammy-small-tmp
+  lxc image delete jammy-minimal
+  lxc network delete lxdbr-tmp
+}
+
+setupInstanceImage
+instanceImage="local:jammy-small"
 
 ovn_basic_tests() {
     lxc network create lxdbr0 \
@@ -1233,9 +1256,8 @@ ovn_peering_tests() {
     ovn2NICIPv4="$(lxc list ovn2 -c4 --format=csv --project=ovn2 | cut -d' ' -f1)"
     ovn2NICIPv6="$(lxc list ovn2 -c6 --format=csv --project=ovn2 | cut -d' ' -f1)"
 
-    # Install tcpdump and check we can detect ICMP packets coming to the ovn2 instance from ovn1 instance when
+    # Check we can detect ICMP packets coming to the ovn2 instance from ovn1 instance when
     # pinging the allowed addresses.
-    lxc exec ovn2 --project=ovn2 -- apt-get install --no-install-recommends --yes tcpdump
     lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
     lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null
     wait
@@ -2013,6 +2035,9 @@ else
     ovn_l3only_tests
 fi
 
+lxc image delete "${instanceImage}"
+lxc config unset storage.images_volume
+lxc storage volume delete default images
 lxc storage delete default
 
 FAIL=0
