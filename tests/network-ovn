@@ -1236,11 +1236,11 @@ ovn_peering_tests() {
     # Install tcpdump and check we can detect ICMP packets coming to the ovn2 instance from ovn1 instance when
     # pinging the allowed addresses.
     lxc exec ovn2 --project=ovn2 -- apt-get install --no-install-recommends --yes tcpdump
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -4 -w5 "${ovn2NICIPv4}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
     lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -6 -w5 "${ovn2NICIPv6}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
     lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null
     wait
 
@@ -1266,11 +1266,11 @@ ovn_peering_tests() {
     lxc exec ovn1 --project=ovn1 -- ip -4 r
     lxc exec ovn1 --project=ovn1 -- ip -6 r
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -4 -w5 "${ovn2NICIPv4}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null || false
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -6 -w5 "${ovn2NICIPv6}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null || false
     wait
 
@@ -1282,11 +1282,11 @@ ovn_peering_tests() {
     ovn-nbctl lr-policy-del "lxd-net${ovn1NetID}-lr"
     ovn-nbctl lr-policy-del "lxd-net${ovn2NetID}-lr"
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -4 -w5 "${ovn2NICIPv4}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
     lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -6 -w5 "${ovn2NICIPv6}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
     lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null
     wait
 
@@ -1312,11 +1312,11 @@ ovn_peering_tests() {
     ip -4 r add "${ovn2NICIPv4}/32" via "${ovn2IPv4}" dev lxdbr0 src "${ovn1NICIPv4}"
     ip -6 r add "${ovn2NICIPv6}/128" via "${ovn2IPv6}" dev lxdbr0 src "${ovn1NICIPv6}"
 
-    ping -4 -w5 "${ovn2NICIPv4}" || true &
+    ping -n -4 -w5 "${ovn2NICIPv4}" || true &
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null || false
     wait
 
-    ping -6 -w5 "${ovn2NICIPv6}" || true &
+    ping -n -6 -w5 "${ovn2NICIPv6}" || true &
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null || false
     wait
 
