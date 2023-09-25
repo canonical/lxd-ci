@@ -19,18 +19,43 @@ waitInstanceReady() (
   set +x
   # shellcheck disable=SC3043
   local instName="$1"
+  # shellcheck disable=SC3043
+  local instProj="${2:-}"
+  if [ -z "${instProj}" ]; then
+    # Find the currently selected project.
+    instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
+  fi
   for i in $(seq 90) # Wait up to 90s.
   do
-    if lxc info "${instName}" | grep -qF "Status: READY"; then
+    if lxc info --project "${instProj}" "${instName}" | grep -qF "Status: READY"; then
+      sleep 5 # Allow some time for DHCP/SLAAC
       return 0 # Success.
     fi
 
     sleep 1
   done
 
-  echo "Instance ${instName} not ready after ${i}s"
+  echo "Instance ${instName} (${instProj}) not ready after ${i}s"
+  lxc list --project "${instProj}" "${instName}"
   return 1 # Failed.
 )
+
+setupCloudInitReady() {
+  # shellcheck disable=SC3043
+  local instProj="${1}"
+  # shellcheck disable=SC3043
+  local profile="${2:-default}"
+
+  cat <<EOF | lxc profile set "${profile}" --project "${instProj}" cloud-init.user-data -
+#cloud-config
+write_files:
+  - content: |
+     #!/bin/sh
+     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
+    path: /var/lib/cloud/scripts/per-boot/ready.sh
+    permissions: "0755"
+EOF
+}
 
 cleanup() {
     echo ""
@@ -60,13 +85,6 @@ lxd waitready --timeout=300
 # Install dependencies
 apt-get install --no-install-recommends --yes ovn-host ovn-central bind9-dnsutils jq
 
-# Check for IPv6 uplink connectivity
-IPV6_UPLINK="true"
-if ! ip -6 ro get :: >/dev/null 2>&1; then
-  echo "No IPv6 uplink connectivity" >&2
-  IPV6_UPLINK="false"
-fi
-
 # Configure OVN.
 ovs-vsctl set open_vswitch . \
   external_ids:ovn-remote=unix:/var/run/ovn/ovnsb_db.sock \
@@ -76,20 +94,32 @@ ovs-vsctl set open_vswitch . \
 # Configure LXD.
 lxc project switch default
 lxc storage create default zfs
+lxc storage volume create default images
+lxc config set storage.images_volume=default/images # Speeds up instance creation.
+setupCloudInitReady default
 
-cat <<EOF | lxc profile set default cloud-init.user-data -
-#cloud-config
-packages:
-  - curl
-write_files:
-  - content: |
-     #!/bin/sh
-     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
-    path: /var/lib/cloud/scripts/per-boot/ready.sh
-    permissions: "0755"
-EOF
+setupInstanceImage() {
+  lxc image copy ubuntu-minimal:22.04 local: --alias jammy-minimal
+  lxc init jammy-minimal jammy-small-tmp -s default
+  lxc network create lxdbr-tmp
+  lxc config device add jammy-small-tmp eth0 nic network=lxdbr-tmp name=eth0
+  lxc start jammy-small-tmp
+  waitInstanceReady jammy-small-tmp
+  lxc exec jammy-small-tmp -- systemctl mask --now console-getty.service
+  lxc exec jammy-small-tmp -- systemctl disable --now systemd-journald.service systemd-journald.socket systemd-journald-dev-log.socket
+  lxc exec jammy-small-tmp -- apt-get update
+  lxc exec jammy-small-tmp -- apt-get autopurge -y needrestart networkd-dispatcher openssh-server polkitd snapd unattended-upgrades
+  lxc exec jammy-small-tmp -- apt-get install -y --no-install-recommends iputils-ping netcat-openbsd tcpdump
+  lxc exec jammy-small-tmp -- apt-get clean
+  lxc stop jammy-small-tmp
+  lxc publish jammy-small-tmp local: --alias jammy-small
+  lxc delete jammy-small-tmp
+  lxc image delete jammy-minimal
+  lxc network delete lxdbr-tmp
+}
 
-instanceImage="ubuntu:22.04"
+setupInstanceImage
+instanceImage="local:jammy-small"
 
 ovn_basic_tests() {
     lxc network create lxdbr0 \
@@ -109,9 +139,9 @@ ovn_basic_tests() {
     lxc network info ovn-virtual-network | grep -P 'MTU: \d+'
     lxc network info ovn-virtual-network | grep -P "Chassis: $(hostname)"
 
-    echo "==> Check host connectivity to ubuntu.com"
-    nc -zv -4 -w5 ubuntu.com 443
-    [ "${IPV6_UPLINK}" = "true" ] && nc -zv -6 -w5 ubuntu.com 443
+    echo "==> Check host connectivity to lxdbr0 gateway"
+    ping -nc1 -4 -w5 10.10.10.1
+    ping -nc1 -6 -w5 fd42:4242:4242:1010::1
 
     echo "==> Launching a test container on lxdbr0"
     lxc init "${instanceImage}" u1 -s default
@@ -137,7 +167,7 @@ ovn_basic_tests() {
     waitInstanceReady u1
     waitInstanceReady u2
     waitInstanceReady u3
-
+    waitInstanceReady 4u
     lxc list
 
     echo "==> Testing connectivity"
@@ -148,9 +178,9 @@ ovn_basic_tests() {
     U3_IPV4="$(lxc list u3 -c4 --format=csv | cut -d' ' -f1)"
     U3_IPV6="$(lxc list u3 -c6 --format=csv | cut -d' ' -f1)"
 
-    echo "==> lxdbr0 to internet"
-    lxc exec u1 -- nc -zv -4 -w5 ubuntu.com 443
-    [ "${IPV6_UPLINK}" = "true" ] && lxc exec u1 -- nc -zv -6 -w5 ubuntu.com 443
+    echo "==> lxdbr0 to lxdbr0 gateway"
+    lxc exec u1 -- ping -nc1 -4 -w5 10.10.10.1
+    lxc exec u1 -- ping -nc1 -6 -w5 fd42:4242:4242:1010::1
 
     echo "==> lxdbr0 to OVN gateway"
     lxc exec u1 -- ping -nc1 -4 -w5 10.10.10.200
@@ -180,10 +210,6 @@ ovn_basic_tests() {
 
     lxc delete -f 4u
 
-    echo "==> OVN to internet"
-    lxc exec u2 -- nc -zv -4 -w5 ubuntu.com 443
-    [ "${IPV6_UPLINK}" = "true" ] && lxc exec u2 -- nc -zv -6 -w5 ubuntu.com 443
-
     # Check sticky DHCPv4 allocations, so that when deleting an instance with a lower dynamic IP that restarting a
     # later instance doesn't cause it to be allocated the (now available) lower IP and instead it should keep the
     # IP it was already allocated. Also check that the newly launched instance that replaces the deleted one claims
@@ -212,8 +238,9 @@ ovn_basic_tests() {
     [ "${U3_IPV4_OLD}" = "${U3_IPV4}" ]
 
     echo "===> Testing project restrictions"
-    lxc project create testovn -c features.networks=true -c features.images=false -c restricted=true
+    lxc project create testovn -c features.networks=true -c features.images=false -c features.storage.volumes=false -c restricted=true
     lxc profile device add default root disk path=/ pool=default --project testovn
+    setupCloudInitReady testovn
 
     # Test we cannot create network in restricted project with no defined uplinks.
     ! lxc network create ovn-virtual-network --project testovn || false
@@ -288,7 +315,7 @@ ovn_basic_tests() {
     lxc start u1 --project testovn
 
     # Test external IPs allocated and published using dnat.
-    sleep 5
+    waitInstanceReady u1 testovn
     U1_EXT_IPV4="$(lxc list u1 --project testovn -c4 --format=csv | cut -d' ' -f1)"
     U1_EXT_IPV6="$(lxc list u1 --project testovn -c6 --format=csv | cut -d' ' -f1)"
     ovn-nbctl --bare --format=csv --column=external_ip,logical_ip,type find nat | grep "${U1_EXT_IPV4},${U1_EXT_IPV4},dnat_and_snat"
@@ -453,9 +480,10 @@ ovn_basic_tests() {
     ip link delete dummy0
 
     echo "===> Testing projects"
-    lxc project create testovn -c features.networks=true -c features.images=false -c limits.networks=1
+    lxc project create testovn -c features.networks=true -c features.images=false -c features.storage.volumes=false -c limits.networks=1
     lxc project switch testovn
     lxc profile device add default root disk path=/ pool=default
+    setupCloudInitReady testovn
 
     # Create network inside project with same name and subnet as network in default project.
     lxc network create ovn-virtual-network network=lxdbr0 --type=ovn \
@@ -477,7 +505,8 @@ ovn_basic_tests() {
     lxc start u3
 
     echo "==> Wait for addresses"
-    sleep 10
+    waitInstanceReady u2 testovn
+    waitInstanceReady u3 testovn
     lxc list
 
     echo "==> Testing connectivity"
@@ -490,24 +519,20 @@ ovn_basic_tests() {
     lxc exec u1 --project default -- ping -nc1 -w5 -6 fd42:4242:4242:1010::201
 
     echo "==> OVN to OVN in project testovn"
-    lxc exec u2 -- ping -nc1 -4 "${U3_IPV4}"
-    lxc exec u2 -- ping -nc1 -6 "${U3_IPV6}"
+    lxc exec u2 -- ping -nc1 -w5 -4 "${U3_IPV4}"
+    lxc exec u2 -- ping -nc1 -w5 -6 "${U3_IPV6}"
 
     echo "==> OVN to lxdbr0 instance in project testovn"
-    lxc exec u3 -- ping -nc1 -4 "${U1_IPV4}"
-    lxc exec u3 -- ping -nc1 -6 "${U1_IPV6}"
+    lxc exec u3 -- ping -nc1 -w5 -4 "${U1_IPV4}"
+    lxc exec u3 -- ping -nc1 -w5 -6 "${U1_IPV6}"
 
     echo "==> DNS resolution on OVN in project testovn"
-    lxc exec u3 -- ping -nc1 -4 u2.lxd
-    lxc exec u3 -- ping -nc1 -6 u2.lxd
+    lxc exec u3 -- ping -nc1 -w5 -4 u2.lxd
+    lxc exec u3 -- ping -nc1 -w5 -6 u2.lxd
 
     echo "==> OVN to lxdbr0 gateway in project testovn"
-    lxc exec u2 -- ping -nc1 10.10.10.1
-    lxc exec u2 -- ping -nc1 fd42:4242:4242:1010::1
-
-    echo "==> OVN to internet in project testovn"
-    lxc exec u2 -- nc -zv -4 -w5 ubuntu.com 443
-    [ "${IPV6_UPLINK}" = "true" ] && lxc exec u2 -- nc -zv -6 -w5 ubuntu.com 443
+    lxc exec u2 -- ping -nc1 -w5 -4 10.10.10.1
+    lxc exec u2 -- ping -nc1 -w5 -6 fd42:4242:4242:1010::1
 
     echo "===> Check network in use protection from deletion"
     # Delete instances in default project first.
@@ -596,7 +621,7 @@ ovn_basic_tests() {
 
     # Check connectivity back to uplink bridge without SNAT address specified.
     lxc launch "${instanceImage}" u1 -n ovn-virtual-network -s default
-    sleep 5
+    waitInstanceReady u1
     lxc exec u1 -- ping -nc1 -w5 192.0.2.1
     lxc exec u1 -- ping -nc1 -w5 2001:db8:1:1::1
 
@@ -761,7 +786,7 @@ ovn_forward_tests() {
 
     # Create instance connected to ovn-virtual-network.
     lxc launch "${instanceImage}" u1 -n ovn-virtual-network -s default
-    sleep 5
+    waitInstanceReady u1
     lxc list
     U1_IPV4="$(lxc list u1 -c4 --format=csv | cut -d' ' -f1)"
     U1_IPV6="$(lxc list u1 -c6 --format=csv | cut -d' ' -f1)"
@@ -805,7 +830,7 @@ EOF
 
     # Check TCP port forward of port 53 to a different host.
     lxc launch "${instanceImage}" u2 -n ovn-virtual-network -s default
-    sleep 5
+    waitInstanceReady u2
     lxc list
     U2_IPV4="$(lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
     U2_IPV6="$(lxc list u2 -c6 --format=csv | cut -d' ' -f1)"
@@ -958,7 +983,7 @@ ovn_load_balancer_tests() {
 
     # Create instance connected to ovn-virtual-network.
     lxc launch "${instanceImage}" u1 -n ovn-virtual-network -s default
-    sleep 5
+    waitInstanceReady u1
     lxc list
     U1_IPV4="$(lxc list u1 -c4 --format=csv | cut -d' ' -f1)"
     U1_IPV6="$(lxc list u1 -c6 --format=csv | cut -d' ' -f1)"
@@ -1020,7 +1045,7 @@ EOF
 
     # Check changing DNS TCP forwarding towards u2.
     lxc launch "${instanceImage}" u2 -n ovn-virtual-network -s default
-    sleep 5
+    waitInstanceReady u2
     lxc list
     U2_IPV4="$(lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
     U2_IPV6="$(lxc list u2 -c6 --format=csv | cut -d' ' -f1)"
@@ -1156,9 +1181,10 @@ ovn_peering_tests() {
         ipv6.routes.external=2001:db8:1:2::2/128
     lxc start ovn1 --project=ovn1
     lxc launch "${instanceImage}" ovn2 -n ovn2 -s default --project=ovn2
+    waitInstanceReady ovn1 ovn1
+    waitInstanceReady ovn2 ovn2
 
     # Add IPs from routes to ovn1 instance.
-    sleep 2
     lxc exec ovn1 --project=ovn1 -- ip a add 198.51.100.1/32 dev eth0
     lxc exec ovn1 --project=ovn1 -- ip a add 198.51.100.2/32 dev eth0
     lxc exec ovn1 --project=ovn1 -- ip a add 2001:db8:1:2::1/128 dev eth0
@@ -1224,20 +1250,19 @@ ovn_peering_tests() {
     ovn-nbctl list address_set | grep -F 2001:db8:1:2::2/128
 
     # Check security policies prevent spoofed packets using peer connection.
-    sleep 5
+    waitInstanceReady ovn1 ovn1
     ovn1NICIPv4="$(lxc list ovn1 -c4 --format=csv --project=ovn1 | cut -d' ' -f1)"
     ovn1NICIPv6="$(lxc list ovn1 -c6 --format=csv --project=ovn1 | cut -d' ' -f1)"
     ovn2NICIPv4="$(lxc list ovn2 -c4 --format=csv --project=ovn2 | cut -d' ' -f1)"
     ovn2NICIPv6="$(lxc list ovn2 -c6 --format=csv --project=ovn2 | cut -d' ' -f1)"
 
-    # Install tcpdump and check we can detect ICMP packets coming to the ovn2 instance from ovn1 instance when
+    # Check we can detect ICMP packets coming to the ovn2 instance from ovn1 instance when
     # pinging the allowed addresses.
-    lxc exec ovn2 --project=ovn2 -- apt-get install --no-install-recommends --yes tcpdump
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -4 -w5 "${ovn2NICIPv4}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
     lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -6 -w5 "${ovn2NICIPv6}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
     lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null
     wait
 
@@ -1263,11 +1288,11 @@ ovn_peering_tests() {
     lxc exec ovn1 --project=ovn1 -- ip -4 r
     lxc exec ovn1 --project=ovn1 -- ip -6 r
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -4 -w5 "${ovn2NICIPv4}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null || false
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -6 -w5 "${ovn2NICIPv6}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null || false
     wait
 
@@ -1279,11 +1304,11 @@ ovn_peering_tests() {
     ovn-nbctl lr-policy-del "lxd-net${ovn1NetID}-lr"
     ovn-nbctl lr-policy-del "lxd-net${ovn2NetID}-lr"
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -4 -w5 "${ovn2NICIPv4}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
     lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -6 -w5 "${ovn2NICIPv6}" || true &
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
     lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null
     wait
 
@@ -1292,7 +1317,7 @@ ovn_peering_tests() {
     lxc delete -f ovn1 --project=ovn1 # Remove as we cleared its DHCP config.
     lxc network set ovn1 ipv4.address=192.0.2.1/24 ipv6.address=2001:db8:1:1::1/64 --project=ovn1
     lxc launch "${instanceImage}" ovn1 -n ovn1 -s default --project=ovn1
-    sleep 5
+    waitInstanceReady ovn1 ovn1
     ovn1NICIPv4="$(lxc list ovn1 -c4 --format=csv --project=ovn1 | cut -d' ' -f1)"
     ovn1NICIPv6="$(lxc list ovn1 -c6 --format=csv --project=ovn1 | cut -d' ' -f1)"
     lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -4 -w5 "${ovn1NICIPv4}"
@@ -1309,11 +1334,11 @@ ovn_peering_tests() {
     ip -4 r add "${ovn2NICIPv4}/32" via "${ovn2IPv4}" dev lxdbr0 src "${ovn1NICIPv4}"
     ip -6 r add "${ovn2NICIPv6}/128" via "${ovn2IPv6}" dev lxdbr0 src "${ovn1NICIPv6}"
 
-    ping -4 -w5 "${ovn2NICIPv4}" || true &
+    ping -n -4 -w5 "${ovn2NICIPv4}" || true &
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null || false
     wait
 
-    ping -6 -w5 "${ovn2NICIPv6}" || true &
+    ping -n -6 -w5 "${ovn2NICIPv6}" || true &
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null || false
     wait
 
@@ -1431,7 +1456,7 @@ ovn_dhcp_reservation_tests() {
 
     # Launch new dynamic IP instance and check its not allocated the reserved IP.
     lxc launch "${instanceImage}" u2 -s default -n ovn1
-    sleep 10
+    waitInstanceReady u2
     lxc list
     U2_IPV4="$(lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
     [ "${U2_IPV4}" != "10.10.11.2" ] || false
@@ -1491,7 +1516,7 @@ ovn_nested_vlan_tests() {
         ipv6.dhcp.stateful=true
 
     sleep 2
-    lxc network list | grep ovn1
+    lxc network list | grep -wF ovn1
     lxc launch "${instanceImage}" u1 -s default -n ovn1 -c security.nesting=true
 
     # Add nested NICs to u1.
@@ -1533,7 +1558,8 @@ ovn_nested_vlan_tests() {
     lxc exec u1 -- ip netns exec vlan_nesting2 ip address add fd42:4242:4242:1011::11/64 dev eth0.2 nodad
     lxc exec u1 -- ip netns exec vlan_nesting2 ip link set eth0.2 up
 
-    sleep 5
+    waitInstanceReady u1
+    waitInstanceReady u2
     lxc ls
     lxc exec u1 -- ip netns exec vlan_nesting1 ip address
     lxc exec u1 -- ip netns exec vlan_nesting2 ip address
@@ -1613,7 +1639,8 @@ ovn_acl_tests() {
     lxc launch "${instanceImage}" c2 -n ovn0 -s default
 
     echo "==> Wait for addresses"
-    sleep 10
+    waitInstanceReady c1
+    waitInstanceReady c2
     lxc list
 
     # Check per-NIC ACL rules added.
@@ -1764,7 +1791,7 @@ ovn_acl_tests() {
     lxc start c1
 
     echo "==> Wait for addresses"
-    sleep 10
+    waitInstanceReady c1
     lxc list
 
     # Ping to c1 instance from c2 should be blocked.
@@ -1904,7 +1931,8 @@ ovn_acl_tests() {
     lxc start c1
 
     echo "==> Wait for addresses"
-    sleep 10
+    waitInstanceReady c1
+    waitInstanceReady c2
     lxc list
 
     # Check c2 can ping external.
@@ -1961,7 +1989,8 @@ ovn_l3only_tests() {
     lxc launch "${instanceImage}" u1 -s default -n ovn1
     lxc launch "${instanceImage}" u2 -s default -n ovn1
 
-    sleep 10
+    waitInstanceReady u1
+    waitInstanceReady u2
     lxc ls
 
     U1_IPV4="$(lxc list u1 -c4 --format=csv | cut -d' ' -f1)"
@@ -2006,6 +2035,9 @@ else
     ovn_l3only_tests
 fi
 
+lxc image delete "${instanceImage}"
+lxc config unset storage.images_volume
+lxc storage volume delete default images
 lxc storage delete default
 
 FAIL=0
