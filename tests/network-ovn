@@ -29,7 +29,6 @@ waitInstanceReady() (
   fi
   for _ in $(seq "${maxWait}"); do
     if lxc info --project "${instProj}" "${instName}" | grep -qF "Status: READY"; then
-      sleep 5 # Allow some time for DHCP/SLAAC
       return 0 # Success.
     fi
 
