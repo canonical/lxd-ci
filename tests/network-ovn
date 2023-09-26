@@ -215,7 +215,13 @@ ovn_basic_tests() {
     [ "${U3_IPV4_OLD}" = "${U3_IPV4}" ]
 
     echo "===> Testing project restrictions"
-    lxc project create testovn -c features.networks=true -c features.images=false -c features.storage.volumes=false -c restricted=true
+    lxc project create testovn \
+        -c features.images=false \
+        -c features.profiles=true \
+        -c features.storage.volumes=false \
+        -c features.networks=true \
+        -c restricted=true
+
     lxc profile device add default root disk path=/ pool=default --project testovn
     setupCloudInitReady testovn
 
@@ -457,10 +463,15 @@ ovn_basic_tests() {
     ip link delete dummy0
 
     echo "===> Testing projects"
-    lxc project create testovn -c features.networks=true -c features.images=false -c features.storage.volumes=false -c limits.networks=1
+    lxc project create testovn \
+        -c features.images=false \
+        -c features.profiles=false \
+        -c features.storage.volumes=false \
+        -c features.networks=true \
+        -c limits.networks=1
+
     lxc project switch testovn
     lxc profile device add default root disk path=/ pool=default
-    setupCloudInitReady testovn
 
     # Create network inside project with same name and subnet as network in default project.
     lxc network create ovn-virtual-network network=lxdbr0 --type=ovn \
@@ -665,7 +676,12 @@ ovn_forward_tests() {
         ipv6.ovn.ranges=fd42:4242:4242:1010::200-fd42:4242:4242:1010::254
 
     # Create OVN network using physical uplink network.
-    lxc project create testovn -c features.networks=true -c features.images=false
+    lxc project create testovn \
+        -c features.images=false \
+        -c features.profiles=false \
+        -c features.storage.volumes=false \
+        -c features.networks=true
+
     lxc project switch testovn
     lxc network create ovn-virtual-network --type=ovn network=lxdbr0
     sleep 2
@@ -881,7 +897,12 @@ ovn_load_balancer_tests() {
         ipv6.ovn.ranges=fd42:4242:4242:1010::200-fd42:4242:4242:1010::254
 
     # Create OVN network using physical uplink network.
-    lxc project create testovn -c features.networks=true -c features.images=false
+    lxc project create testovn \
+        -c features.images=false \
+        -c features.profiles=false \
+        -c features.storage.volumes=false \
+        -c features.networks=true
+
     lxc project switch testovn
     lxc network create ovn-virtual-network --type=ovn network=lxdbr0
     sleep 2
