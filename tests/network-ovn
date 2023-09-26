@@ -94,32 +94,9 @@ ovs-vsctl set open_vswitch . \
 # Configure LXD.
 lxc project switch default
 lxc storage create default zfs
-lxc storage volume create default images
-lxc config set storage.images_volume=default/images # Speeds up instance creation.
 setupCloudInitReady default
 
-setupInstanceImage() {
-  lxc image copy ubuntu:22.04 local: --alias jammy-minimal
-  lxc init jammy-minimal jammy-small-tmp -s default
-  lxc network create lxdbr-tmp
-  lxc config device add jammy-small-tmp eth0 nic network=lxdbr-tmp name=eth0
-  lxc start jammy-small-tmp
-  waitInstanceReady jammy-small-tmp
-  lxc exec jammy-small-tmp -- systemctl mask --now console-getty.service
-  lxc exec jammy-small-tmp -- systemctl disable --now systemd-journald.service systemd-journald.socket systemd-journald-dev-log.socket
-  lxc exec jammy-small-tmp -- apt-get update
-  lxc exec jammy-small-tmp -- apt-get autopurge -y needrestart networkd-dispatcher openssh-server polkitd snapd unattended-upgrades
-  lxc exec jammy-small-tmp -- apt-get install -y --no-install-recommends iputils-ping netcat-openbsd tcpdump
-  lxc exec jammy-small-tmp -- apt-get clean
-  lxc stop jammy-small-tmp
-  lxc publish jammy-small-tmp local: --alias jammy-small
-  lxc delete jammy-small-tmp
-  lxc image delete jammy-minimal
-  lxc network delete lxdbr-tmp
-}
-
-setupInstanceImage
-instanceImage="local:jammy-small"
+instanceImage="ubuntu:22.04"
 
 ovn_basic_tests() {
     lxc network create lxdbr0 \
@@ -2124,9 +2101,7 @@ else
     ovn_leases_tests
 fi
 
-lxc image delete "${instanceImage}"
-lxc config unset storage.images_volume
-lxc storage volume delete default images
+lxc profile device remove default root
 lxc storage delete default
 
 FAIL=0
