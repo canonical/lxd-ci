@@ -18,6 +18,8 @@ waitSnapdSeed() (
 waitInstanceReady() (
   set +x
   # shellcheck disable=SC3043
+  local maxWait=90
+  # shellcheck disable=SC3043
   local instName="$1"
   # shellcheck disable=SC3043
   local instProj="${2:-}"
@@ -25,8 +27,7 @@ waitInstanceReady() (
     # Find the currently selected project.
     instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
   fi
-  for i in $(seq 90) # Wait up to 90s.
-  do
+  for _ in $(seq "${maxWait}"); do
     if lxc info --project "${instProj}" "${instName}" | grep -qF "Status: READY"; then
       sleep 5 # Allow some time for DHCP/SLAAC
       return 0 # Success.
@@ -35,7 +36,7 @@ waitInstanceReady() (
     sleep 1
   done
 
-  echo "Instance ${instName} (${instProj}) not ready after ${i}s"
+  echo "Instance ${instName} (${instProj}) not ready after ${maxWait}s"
   lxc list --project "${instProj}" "${instName}"
   return 1 # Failed.
 )
@@ -99,7 +100,7 @@ lxc config set storage.images_volume=default/images # Speeds up instance creatio
 setupCloudInitReady default
 
 setupInstanceImage() {
-  lxc image copy ubuntu-minimal:22.04 local: --alias jammy-minimal
+  lxc image copy ubuntu:22.04 local: --alias jammy-minimal
   lxc init jammy-minimal jammy-small-tmp -s default
   lxc network create lxdbr-tmp
   lxc config device add jammy-small-tmp eth0 nic network=lxdbr-tmp name=eth0
