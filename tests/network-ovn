@@ -18,6 +18,8 @@ waitSnapdSeed() (
 waitInstanceReady() (
   set +x
   # shellcheck disable=SC3043
+  local maxWait=90
+  # shellcheck disable=SC3043
   local instName="$1"
   # shellcheck disable=SC3043
   local instProj="${2:-}"
@@ -25,17 +27,15 @@ waitInstanceReady() (
     # Find the currently selected project.
     instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
   fi
-  for i in $(seq 90) # Wait up to 90s.
-  do
+  for _ in $(seq "${maxWait}"); do
     if lxc info --project "${instProj}" "${instName}" | grep -qF "Status: READY"; then
-      sleep 5 # Allow some time for DHCP/SLAAC
       return 0 # Success.
     fi
 
     sleep 1
   done
 
-  echo "Instance ${instName} (${instProj}) not ready after ${i}s"
+  echo "Instance ${instName} (${instProj}) not ready after ${maxWait}s"
   lxc list --project "${instProj}" "${instName}"
   return 1 # Failed.
 )
@@ -94,32 +94,9 @@ ovs-vsctl set open_vswitch . \
 # Configure LXD.
 lxc project switch default
 lxc storage create default zfs
-lxc storage volume create default images
-lxc config set storage.images_volume=default/images # Speeds up instance creation.
 setupCloudInitReady default
 
-setupInstanceImage() {
-  lxc image copy ubuntu-minimal:22.04 local: --alias jammy-minimal
-  lxc init jammy-minimal jammy-small-tmp -s default
-  lxc network create lxdbr-tmp
-  lxc config device add jammy-small-tmp eth0 nic network=lxdbr-tmp name=eth0
-  lxc start jammy-small-tmp
-  waitInstanceReady jammy-small-tmp
-  lxc exec jammy-small-tmp -- systemctl mask --now console-getty.service
-  lxc exec jammy-small-tmp -- systemctl disable --now systemd-journald.service systemd-journald.socket systemd-journald-dev-log.socket
-  lxc exec jammy-small-tmp -- apt-get update
-  lxc exec jammy-small-tmp -- apt-get autopurge -y needrestart networkd-dispatcher openssh-server polkitd snapd unattended-upgrades
-  lxc exec jammy-small-tmp -- apt-get install -y --no-install-recommends iputils-ping netcat-openbsd tcpdump
-  lxc exec jammy-small-tmp -- apt-get clean
-  lxc stop jammy-small-tmp
-  lxc publish jammy-small-tmp local: --alias jammy-small
-  lxc delete jammy-small-tmp
-  lxc image delete jammy-minimal
-  lxc network delete lxdbr-tmp
-}
-
-setupInstanceImage
-instanceImage="local:jammy-small"
+instanceImage="ubuntu:22.04"
 
 ovn_basic_tests() {
     lxc network create lxdbr0 \
@@ -238,7 +215,13 @@ ovn_basic_tests() {
     [ "${U3_IPV4_OLD}" = "${U3_IPV4}" ]
 
     echo "===> Testing project restrictions"
-    lxc project create testovn -c features.networks=true -c features.images=false -c features.storage.volumes=false -c restricted=true
+    lxc project create testovn \
+        -c features.images=false \
+        -c features.profiles=true \
+        -c features.storage.volumes=false \
+        -c features.networks=true \
+        -c restricted=true
+
     lxc profile device add default root disk path=/ pool=default --project testovn
     setupCloudInitReady testovn
 
@@ -480,10 +463,15 @@ ovn_basic_tests() {
     ip link delete dummy0
 
     echo "===> Testing projects"
-    lxc project create testovn -c features.networks=true -c features.images=false -c features.storage.volumes=false -c limits.networks=1
+    lxc project create testovn \
+        -c features.images=false \
+        -c features.profiles=false \
+        -c features.storage.volumes=false \
+        -c features.networks=true \
+        -c limits.networks=1
+
     lxc project switch testovn
     lxc profile device add default root disk path=/ pool=default
-    setupCloudInitReady testovn
 
     # Create network inside project with same name and subnet as network in default project.
     lxc network create ovn-virtual-network network=lxdbr0 --type=ovn \
@@ -688,7 +676,12 @@ ovn_forward_tests() {
         ipv6.ovn.ranges=fd42:4242:4242:1010::200-fd42:4242:4242:1010::254
 
     # Create OVN network using physical uplink network.
-    lxc project create testovn -c features.networks=true -c features.images=false
+    lxc project create testovn \
+        -c features.images=false \
+        -c features.profiles=false \
+        -c features.storage.volumes=false \
+        -c features.networks=true
+
     lxc project switch testovn
     lxc network create ovn-virtual-network --type=ovn network=lxdbr0
     sleep 2
@@ -904,7 +897,12 @@ ovn_load_balancer_tests() {
         ipv6.ovn.ranges=fd42:4242:4242:1010::200-fd42:4242:4242:1010::254
 
     # Create OVN network using physical uplink network.
-    lxc project create testovn -c features.networks=true -c features.images=false
+    lxc project create testovn \
+        -c features.images=false \
+        -c features.profiles=false \
+        -c features.storage.volumes=false \
+        -c features.networks=true
+
     lxc project switch testovn
     lxc network create ovn-virtual-network --type=ovn network=lxdbr0
     sleep 2
@@ -1560,7 +1558,7 @@ ovn_nested_vlan_tests() {
 
     waitInstanceReady u1
     waitInstanceReady u2
-    lxc ls
+    lxc list
     lxc exec u1 -- ip netns exec vlan_nesting1 ip address
     lxc exec u1 -- ip netns exec vlan_nesting2 ip address
 
@@ -1991,7 +1989,7 @@ ovn_l3only_tests() {
 
     waitInstanceReady u1
     waitInstanceReady u2
-    lxc ls
+    lxc list
 
     U1_IPV4="$(lxc list u1 -c4 --format=csv | cut -d' ' -f1)"
     U1_IPV6="$(lxc list u1 -c6 --format=csv | cut -d' ' -f1)"
@@ -2124,9 +2122,7 @@ else
     ovn_leases_tests
 fi
 
-lxc image delete "${instanceImage}"
-lxc config unset storage.images_volume
-lxc storage volume delete default images
+lxc profile device remove default root
 lxc storage delete default
 
 FAIL=0
