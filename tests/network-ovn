@@ -1558,7 +1558,7 @@ ovn_nested_vlan_tests() {
 
     waitInstanceReady u1
     waitInstanceReady u2
-    lxc ls
+    lxc list
     lxc exec u1 -- ip netns exec vlan_nesting1 ip address
     lxc exec u1 -- ip netns exec vlan_nesting2 ip address
 
@@ -1989,7 +1989,7 @@ ovn_l3only_tests() {
 
     waitInstanceReady u1
     waitInstanceReady u2
-    lxc ls
+    lxc list
 
     U1_IPV4="$(lxc list u1 -c4 --format=csv | cut -d' ' -f1)"
     U1_IPV6="$(lxc list u1 -c6 --format=csv | cut -d' ' -f1)"
