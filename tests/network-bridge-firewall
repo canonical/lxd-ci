@@ -148,11 +148,45 @@ firewallTests() {
     lxc delete -f c1
 }
 
+networkLimitsPriorityNftablesTest() {
+    lxc launch ubuntu:focal c1
+    sleep 10
+
+    prio=7
+    ctEth0Hostname=$(lxc config get "c1" volatile.eth0.host_name)
+    tempNftTableName="network_bridge_limits_prio_temp"
+
+    # prepare a trap for skb's with skb->priority is set
+    nft add table netdev "${tempNftTableName}"
+    nft add chain netdev "${tempNftTableName}" skb_with_prio_trap "{ type filter hook egress device \"${ctEth0Hostname}\" priority filter + 1; policy accept; }"
+    nft add rule netdev "${tempNftTableName}" skb_with_prio_trap meta priority 0:$prio counter
+
+    lxc config device override c1 eth0 limits.priority=$prio
+
+    packetsBefore=$(nft list table netdev "${tempNftTableName}" | grep meta | awk '{ print $6 }')
+
+    packetsToSend=14
+    # generate some network packets
+    lxc exec c1 -- ping -c"${packetsToSend}" 192.0.2.1
+
+    packetsAfter=$(nft list table netdev "${tempNftTableName}" | grep meta | awk '{ print $6 }')
+    packetsDiff=$((packetsAfter - packetsBefore))
+
+    [ "${packetsDiff}" -ge "${packetsToSend}" ]
+
+    nft delete table netdev "${tempNftTableName}"
+
+    lxc delete -f c1
+}
+
 echo "=> Performing nftables managed bridge tests"
 # Check by default on fresh system we detect and use nftables.
 lxc info | grep 'firewall: nftables'
 lxc profile device add default eth0 nic network=lxdbr0
 firewallTests
+
+echo "=> Performing nftables network device limits.priority option test"
+networkLimitsPriorityNftablesTest
 
 echo "=> Performing nftables unmanaged bridge tests"
 ip a flush dev lxdbr0 # Clear duplicate address from lxdbr0.
