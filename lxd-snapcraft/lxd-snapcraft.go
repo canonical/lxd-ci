@@ -13,6 +13,7 @@ import (
 func main() {
 	log.SetFlags(0)
 	flagFilePath := flag.String("file", "snapcraft.yaml", "Path to snapcraft.yaml file")
+	flagPackageName := flag.String("package", "lxd", "Package name")
 	flagGetVersion := flag.Bool("get-version", false, "Get version of package and source commit hash for lxd part")
 	flagSetVersion := flag.String("set-version", "", "Set version of package")
 	flagSetSourceCommit := flag.String("set-source-commit", "", "Set source-commit hash for lxd part")
@@ -24,13 +25,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	lxdVersion, lxdConfig := getVersionInfo(snapcraftConfig)
+	pkgVersion, pkgConfig := getVersionInfo(*flagPackageName, snapcraftConfig)
 
 	if *flagGetVersion {
-		fmt.Println(lxdVersion)
+		fmt.Println(pkgVersion)
 
-		if lxdConfig["source-commit"] != nil {
-			fmt.Println(lxdConfig["source-commit"])
+		if pkgConfig["source-commit"] != nil {
+			fmt.Println(pkgConfig["source-commit"])
 		}
 	}
 
@@ -42,8 +43,8 @@ func main() {
 	}
 
 	if *flagSetSourceCommit != "" {
-		lxdConfig["source-commit"] = *flagSetSourceCommit
-		delete(lxdConfig, "source-branch") // Can't use source-branch with source-commit.
+		pkgConfig["source-commit"] = *flagSetSourceCommit
+		delete(pkgConfig, "source-branch") // Can't use source-branch with source-commit.
 		writeOut = true
 	}
 
@@ -71,25 +72,25 @@ func loadSnapcraftYaml(snapcraftYamlPath string) (map[any]any, error) {
 	return data, nil
 }
 
-func getVersionInfo(snapcraftConfig map[any]any) (string, map[any]any) {
-	var lxdVersion string
-	var lxdConfig map[any]any
+func getVersionInfo(pkgName string, snapcraftConfig map[any]any) (string, map[any]any) {
+	var pkgVersion string
+	var pkgConfig map[any]any
 
 	for k, v := range snapcraftConfig {
 		if k == "version" {
-			lxdVersion = v.(string)
+			pkgVersion = v.(string)
 		} else if k == "parts" {
 			for k, v := range v.(map[any]any) {
-				if k.(string) != "lxd" {
+				if k.(string) != pkgName {
 					continue
 				}
 
-				lxdConfig = v.(map[any]any)
+				pkgConfig = v.(map[any]any)
 			}
 		}
 	}
 
-	return lxdVersion, lxdConfig
+	return pkgVersion, pkgConfig
 }
 
 func writeSnapcraftYaml(snapcraftYamlPath string, snapcraftConfig map[any]any) error {
