@@ -39,7 +39,7 @@ waitSnapdSeed
 
 # Install LXD
 snap remove lxd || true
-snap install lxd --channel=${channel}
+snap install lxd --channel="${channel}"
 lxd waitready --timeout=300
 
 # Run the pylxd tests
