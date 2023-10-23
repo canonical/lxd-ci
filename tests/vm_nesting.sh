@@ -46,59 +46,57 @@ instanceImage="ubuntu:22.04"
 snapChannel="latest/edge"
 
 function parallel() {
-        seq 1 $1 | xargs -P $1 -I "{}" "${@:2}"
+	seq "$1" | xargs -P "$1" -I "{}" "${@:2}"
 }
 
 function init() {
-  vm="${2:-}"
-  if [ -z "${vm}" ]
-  then
-      parallel $1 lxc init "${instanceImage}" "t{}" -s default -n lxdbr0
-  else
-      parallel $1 lxc init "${instanceImage}" "t{}" "${vm}" -s default -n lxdbr0
-  fi
+	vm="${2:-}"
+	if [ -z "${vm}" ]
+	then
+		parallel "$1" lxc init "${instanceImage}" "t{}" -s default -n lxdbr0
+	else
+	    parallel "$1" lxc init "${instanceImage}" "t{}" "${vm}" -s default -n lxdbr0
+	fi
 }
 
 function conf() {
-	parallel $1 lxc config set "t{}" $2
+	parallel "$1" lxc config set "t{}" "$2"
 }
 
 function device_add() {
-	parallel $1 lxc config device add "t{}" $2 $3 $4
+	parallel "$1" lxc config device add "t{}" "$2" "$3" "$4"
 }
 
 function start() {
-	args=""
-
-	for i in $(seq 1 $1); do
-		args="t$i $args"
+	instances=()
+	for i in $(seq "$1"); do
+		instances["$i"]="t$i"
 	done
 
-	echo "Start $args"
-	lxc start $args
+	echo "Start ${instances[*]}"
+	lxc start -f "${instances[@]}"
 }
 
 function wait() {
-	parallel $1 bash -c "while true; do if lxc shell t{}; then break; fi; sleep 1; done"
+	parallel "$1" bash -c "while true; do if lxc shell t{}; then break; fi; sleep 1; done"
 }
 
 function copy() {
-	parallel $1 lxc file push $2 "t{}$3"
+	parallel "$1" lxc file push "$2" "t{}$3"
 }
 
 function cmd() {
-	parallel $1 lxc exec "t{}" -- bash -c "$2"
+	parallel "$1" lxc exec "t{}" -- bash -c "$2"
 }
 
 function delete() {
-	args=""
+	instances=()
+	for i in $(seq "$1"); do
+		instances["$i"]="t$i"
+	done
 
-	for i in $(seq 1 $1); do
-                args="t$i $args"
-        done
-
-	echo "Delete $args"
-	lxc delete -f $args
+	echo "Delete ${instances[*]}"
+	lxc delete -f "${instances[@]}"
 }
 
 # Test 10 VMs in parallel.
