@@ -386,6 +386,7 @@ files:
   - jammy
   - lunar
   - mantic
+  - noble
   types:
   - vm
   variants:
@@ -490,6 +491,7 @@ packages:
     - jammy
     - lunar
     - mantic
+    - noble
     action: install
 
   - packages:
@@ -519,6 +521,7 @@ packages:
     - jammy
     - lunar
     - mantic
+    - noble
 
   - packages:
     - cloud-init
@@ -532,6 +535,7 @@ packages:
     releases:
     - lunar
     - mantic
+    - noble
 
   - packages:
     - acpid
@@ -571,6 +575,7 @@ packages:
     - jammy
     - lunar
     - mantic
+    - noble
     types:
     - vm
 
@@ -591,6 +596,7 @@ packages:
     - jammy
     - lunar
     - mantic
+    - noble
     types:
     - vm
 
@@ -662,6 +668,7 @@ actions:
   - jammy
   - lunar
   - mantic
+  - noble
 
 - trigger: post-packages
   action: |-
@@ -673,6 +680,7 @@ actions:
   releases:
   - lunar
   - mantic
+  - noble
 
 - trigger: post-packages
   action: |-
