@@ -71,6 +71,11 @@ ln -s "${testRoot}/not-allowed1" "${testRoot}/allowed1/not-allowed1"
 ln -s "${testRoot}/allowed2" "${testRoot}/allowed1/not-allowed2"
 (cd "${testRoot}/allowed1" || false; ln -s foo1 foolink)
 
+# Create loop device to use as NVMe disk
+loopimg="$(mktemp)"
+truncate -s 100M "${loopimg}"
+loopdev="$(losetup --show --find "${loopimg}")"
+
 # Configure LXD
 lxc project switch default
 lxc network create lxdbr0
@@ -157,6 +162,18 @@ lxc restart -f v1
 waitVMAgent v1
 lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot disabled"
 
+# Remove disk device restrictions and add a NVMe disk
+lxc stop -f v1
+lxc project unset restricted restricted.devices.disk
+lxc project unset restricted restricted.devices.disk.paths
+lxc project unset restricted restricted
+
+# Add a NVMe disk and check if a NVMe controller is added to the VM
+lxc config device add v1 nvme-ssd disk source="${loopdev}" io.bus=nvme
+lxc start v1
+waitVMAgent v1
+lxc exec v1 -- lspci | grep -F "QEMU NVM Express Controller"
+
 echo "==> Cleanup"
 lxc delete -f v1
 lxc project switch default
@@ -173,5 +190,7 @@ rmdir "${testRoot}/allowed1"
 rmdir "${testRoot}/allowed2"
 rmdir "${testRoot}/not-allowed1"
 rmdir "${testRoot}"
+losetup --detach "${loopdev}"
+rm "${loopimg}"
 
 FAIL=0
