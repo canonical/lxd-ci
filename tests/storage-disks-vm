@@ -82,7 +82,6 @@ lxc project create restricted \
   -c restricted=true \
   -c restricted.devices.disk=allow \
   -c restricted.devices.disk.paths="${testRoot}/allowed1,${testRoot}/allowed2"
-  lxc project switch restricted
 lxc project switch restricted
 lxc profile device add default root disk path="/" pool=default
 lxc profile device add default eth0 nic network=lxdbr0
