@@ -112,7 +112,7 @@ lxc config device set v1 d1 source="${testRoot}/allowed1" shift=true
 lxc config device set v1 d1 source="${testRoot}/allowed1" shift=false
 lxc start v1
 waitVMAgent v1
-lxc exec v1 --project restricted -- ls /mnt/foo1
+lxc exec v1 --project restricted -- ls -l /mnt/foo1
 lxc stop -f v1
 
 # Check adding a disk with a source path that is allowed that symlinks to another allowed source path isn't
