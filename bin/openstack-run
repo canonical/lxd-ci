@@ -21,7 +21,7 @@ shift 3
 KEY_NAME="ssh-key"
 FLAVOR="$(openstack flavor list -f value -c Name | grep -m1 'cpu8-ram32-disk20\b')"
 NETWORK="$(openstack network list -f value -c Name | grep -Fm1 "net_stg-lxd-cloud-testing")"
-IMAGE="$(openstack image list -f value -c Name --sort-column Name --sort-descending | grep -Fm1 "auto-sync/ubuntu-${serie}")"
+IMAGE="$(openstack image list -f value -c Name --sort-column Name --sort-descending | grep -m1 "auto-sync/ubuntu-${serie}-.*-amd64-")"
 NAME="lxd-ci-${test_name}-${serie}-$$"
 
 if ! [ -e ~/.ssh/id_ed25519 ]; then
