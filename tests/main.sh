@@ -15,3 +15,6 @@
 ./bin/openstack-run jammy default tests/pylxd latest/edge
 ./bin/openstack-run jammy default tests/pylxd 5.0/edge
 ./bin/openstack-run jammy default tests/pylxd 4.0/edge
+
+# storage
+./bin/openstack-run jammy default tests/storage-disks-vm
