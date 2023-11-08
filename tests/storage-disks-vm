@@ -164,6 +164,7 @@ lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot disabled"
 
 # Remove disk device restrictions and add a NVMe disk
 lxc stop -f v1
+lxc config device remove v1 d1
 lxc project unset restricted restricted.devices.disk
 lxc project unset restricted restricted.devices.disk.paths
 lxc project unset restricted restricted
