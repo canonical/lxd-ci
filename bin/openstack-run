@@ -15,8 +15,9 @@ fi
 serie="${1}"
 kernel="${2}"
 script="${3}"
-test_name="$(basename "${script}")"
 shift 3
+_script="$(mktemp)"
+test_name="$(basename "${script}")"
 
 KEY_NAME="ssh-key"
 FLAVOR="$(openstack flavor list -f value -c Name | grep -m1 'cpu8-ram32-disk20\b')"
@@ -60,6 +61,7 @@ cleanup() {
     # Release the macine
     set +e
     openstack server delete "${NAME}"
+    rm -f "${_script}"
 
     if [ "${RET}" = "0" ]; then
         echo "" >&2
@@ -92,10 +94,11 @@ fi
 
 # Connect and run something
 echo "==> Running the job (${test_name})" >&2
+sed '1 r bin/helpers' "${script}" > "${_script}"
 if echo "${IP}" | grep -q ":"; then
-    scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "${script}" "ubuntu@[${IP}]:test-script"
+    scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "${_script}" "ubuntu@[${IP}]:test-script"
 else
-    scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "${script}" "ubuntu@${IP}:test-script"
+    scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "${_script}" "ubuntu@${IP}:test-script"
 fi
 ssh -n -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "ubuntu@${IP}" sudo "https_proxy=http://squid.internal:3128" sh test-script "$@"
 
