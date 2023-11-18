@@ -71,6 +71,7 @@ packages:
     - systemd
     - systemd-networkd
     - systemd-resolved
+    - systemd-udev
     action: install
 
 actions:
