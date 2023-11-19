@@ -346,6 +346,7 @@ files:
   - kinetic
   - lunar
   - mantic
+  - noble
   types:
   - container
   variants:
