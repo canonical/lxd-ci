@@ -31,7 +31,7 @@ modprobe br_netfilter
 ip link add lxdbr0unmanaged type bridge
 
 firewallTests() {
-    lxc launch ubuntu:focal c1
+    lxc launch ubuntu-daily:22.04 c1
     sleep 10
 
     managed=0
@@ -116,7 +116,7 @@ firewallTests() {
 }
 
 networkLimitsPriorityNftablesTest() {
-    lxc launch ubuntu:focal c1
+    lxc launch ubuntu-daily:22.04 c1
     sleep 10
 
     prio=7
