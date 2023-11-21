@@ -1,48 +1,17 @@
 #!/bin/sh
 set -eu
 
-waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
-)
-
-cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
-
-    echo "Test passed"
-    exit 0
-}
-
-FAIL=1
-trap cleanup EXIT HUP INT TERM
-
 # Refresh apt
 apt-get update
 
-# Wait for snapd seeding
-waitSnapdSeed
+# Install dependencies
+apt-get install --no-install-recommends --yes attr
 
 # Install LXD
-snap remove lxd || true
-snap install lxd --channel=latest/edge
-snap set lxd shiftfs.enable=true
-apt-get install --no-install-recommends --yes attr
-lxd waitready --timeout=300
+install_lxd
 
 # Configure LXD
+snap set lxd shiftfs.enable=true
 lxd init --auto
 
 # Test
@@ -112,4 +81,5 @@ lxc exec c1 -- mount /dev/sda /mnt
 [ "$(lxc exec c1 -- stat --format=%u:%g /mnt)" = "0:0" ]
 lxc exec c1 -- umount /mnt
 
+# shellcheck disable=SC2034
 FAIL=0
