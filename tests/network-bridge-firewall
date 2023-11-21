@@ -1,11 +1,14 @@
 #!/bin/sh
-set -eux
+set -eu
 
 # Refresh apt
 apt-get update
 
 # Install LXD
 install_lxd
+
+# Test
+set -x
 
 # Configure LXD
 lxc storage create default zfs
@@ -152,8 +155,12 @@ lxc info | grep 'firewall: nftables'
 lxc profile device add default eth0 nic network=lxdbr0
 firewallTests
 
-echo "=> Performing nftables network device limits.priority option test"
-networkLimitsPriorityNftablesTest
+if hasNeededAPIExtension instances_nic_limits_priority && runsMinimumKernel 5.17; then
+    echo "=> Performing nftables network device limits.priority option test"
+    networkLimitsPriorityNftablesTest
+else
+    echo "=> Skipping nftables network device limits.priority option test"
+fi
 
 echo "=> Performing nftables unmanaged bridge tests"
 ip a flush dev lxdbr0 # Clear duplicate address from lxdbr0.
@@ -203,4 +210,5 @@ lxc storage delete default
 lxd shutdown
 iptables -D INPUT
 
+# shellcheck disable=SC2034
 FAIL=0
