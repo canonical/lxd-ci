@@ -1,20 +1,25 @@
 #!/bin/sh
+set -eu
 
-# cgroup
-./bin/openstack-run jammy default tests/cgroup
-./bin/openstack-run jammy cgroup1 tests/cgroup
-./bin/openstack-run jammy swapaccount tests/cgroup
+for lxd_snap_channel in "latest/edge" "5.0/edge"; do
+  # cgroup
+  ./bin/openstack-run jammy default tests/cgroup "${lxd_snap_channel}"
+  ./bin/openstack-run jammy cgroup1 tests/cgroup "${lxd_snap_channel}"
+  ./bin/openstack-run jammy swapaccount tests/cgroup "${lxd_snap_channel}"
 
-# interception
-./bin/openstack-run jammy default tests/interception
+  # interception
+  ./bin/openstack-run jammy default tests/interception "${lxd_snap_channel}"
 
-# network-bridge-firewall
-./bin/openstack-run jammy default tests/network-bridge-firewall
+  # network-bridge-firewall
+  ./bin/openstack-run jammy default tests/network-bridge-firewall "${lxd_snap_channel}"
+
+  # pylxd
+  ./bin/openstack-run jammy default tests/pylxd "${lxd_snap_channel}"
+
+  # storage
+  ./bin/openstack-run jammy default tests/storage-disks-vm "${lxd_snap_channel}"
+done
 
 # pylxd
-./bin/openstack-run jammy default tests/pylxd latest/edge
-./bin/openstack-run jammy default tests/pylxd 5.0/edge
-./bin/openstack-run jammy default tests/pylxd 4.0/edge
+./bin/openstack-run jammy default tests/pylxd "4.0/edge"
 
-# storage
-./bin/openstack-run jammy default tests/storage-disks-vm
