@@ -115,18 +115,22 @@ lxc restart -f v1
 waitVMAgent v1
 lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot disabled"
 
-# Remove disk device restrictions and add a NVMe disk
-lxc stop -f v1
-lxc config device remove v1 d1
-lxc project unset restricted restricted.devices.disk
-lxc project unset restricted restricted.devices.disk.paths
-lxc project unset restricted restricted
+if hasNeededAPIExtension disk_io_bus; then
+  # Remove disk device restrictions and add a NVMe disk
+  lxc stop -f v1
+  lxc config device remove v1 d1
+  lxc project unset restricted restricted.devices.disk
+  lxc project unset restricted restricted.devices.disk.paths
+  lxc project unset restricted restricted
 
-# Add a NVMe disk and check if a NVMe controller is added to the VM
-lxc config device add v1 nvme-ssd disk source="${loopdev}" io.bus=nvme
-lxc start v1
-waitVMAgent v1
-lxc exec v1 -- lspci | grep -F "QEMU NVM Express Controller"
+  # Add a NVMe disk and check if a NVMe controller is added to the VM
+  lxc config device add v1 nvme-ssd disk source="${loopdev}" io.bus=nvme
+  lxc start v1
+  waitVMAgent v1
+  lxc exec v1 -- lspci | grep -F "QEMU NVM Express Controller"
+else
+  echo 'Skipping NVME test due to missing extension: "disk_io_bus"'
+fi
 
 echo "==> Cleanup"
 lxc delete -f v1
