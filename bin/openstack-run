@@ -15,7 +15,8 @@ fi
 serie="${1}"
 kernel="${2}"
 script="${3}"
-shift 3
+lxd_snap_channel="${4}"
+shift 4
 _script="$(mktemp)"
 test_name="$(basename "${script}")"
 
@@ -43,7 +44,7 @@ wait_machine() {
     # https://bugs.launchpad.net/ubuntu/+source/cloud-init/+bug/2039441
     for _ in $(seq 30); do
         ssh -o ConnectTimeout=1 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "ubuntu@${IP}" true && break
-	sleep 1
+        sleep 1
     done
 }
 
@@ -58,7 +59,7 @@ create() {
 
 RET=1
 cleanup() {
-    # Release the macine
+    # Release the machine
     set +e
     openstack server delete "${NAME}"
     rm -f "${_script}"
@@ -94,7 +95,7 @@ fi
 
 # Connect and run something
 echo "==> Running the job (${test_name})" >&2
-sed '1 r bin/helpers' "${script}" > "${_script}"
+sed -e "1 a LXD_SNAP_CHANNEL=${lxd_snap_channel}" -e "1 r bin/helpers" "${script}" > "${_script}"
 if echo "${IP}" | grep -q ":"; then
     scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "${_script}" "ubuntu@[${IP}]:test-script"
 else
