@@ -14,6 +14,7 @@ for lxd_snap_channel in "latest/edge" "5.0/edge"; do
 
   # network-bridge-firewall
   ./bin/openstack-run jammy default tests/network-bridge-firewall "${lxd_snap_channel}"
+  ./bin/openstack-run jammy hwe tests/network-bridge-firewall "${lxd_snap_channel}"
 
   # pylxd
   ./bin/openstack-run jammy default tests/pylxd "${lxd_snap_channel}"
