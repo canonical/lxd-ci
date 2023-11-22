@@ -39,15 +39,20 @@ case "$i" in
         update-grub
       ;;
 
-      virtual-hwe)
-        echo "===> Installing the virtual HWE kernel"
+      hwe)
+        echo "===> Installing the HWE kernel"
 
         echo "MODULES=dep" > /etc/initramfs-tools/conf.d/modules.conf
         apt-get update
         apt-get dist-upgrade --yes
-	. /etc/os-release
-        apt-get install --no-install-recommends --yes "linux-image-virtual-hwe-${VERSION_ID}"
-        apt-get autopurge --yes linux-image-virtual "linux-image-$(uname -r)" "linux-modules-$(uname -r)"
+        . /etc/os-release
+
+        FLAVOR="generic"
+        if systemd-detect-virt --quiet --vm; then
+          FLAVOR="virtual"
+        fi
+        apt-get install --no-install-recommends --yes "linux-image-${FLAVOR}-hwe-${VERSION_ID}"
+        apt-get autopurge --yes "linux-image-${FLAVOR}" "linux-image-$(uname -r)" "linux-modules-$(uname -r)"
       ;;
 
       ubuntu)
