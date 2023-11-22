@@ -4,7 +4,9 @@ set -eu
 for lxd_snap_channel in "latest/edge" "5.0/edge"; do
   # cgroup
   ./bin/openstack-run jammy default tests/cgroup "${lxd_snap_channel}"
-  ./bin/openstack-run jammy cgroup1 tests/cgroup "${lxd_snap_channel}"
+  # XXX: disable test with Jammy's GA kernel configured for cgroup1
+  #      https://github.com/canonical/lxd-ci/issues/7
+  #./bin/openstack-run jammy cgroup1 tests/cgroup "${lxd_snap_channel}"
   ./bin/openstack-run jammy swapaccount tests/cgroup "${lxd_snap_channel}"
 
   # interception
