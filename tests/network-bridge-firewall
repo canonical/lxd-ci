@@ -1,44 +1,14 @@
 #!/bin/sh
-set -eux
-
-waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
-)
-
-cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
-
-    echo "Test passed"
-    exit 0
-}
-
-FAIL=1
-trap cleanup EXIT HUP INT TERM
+set -eu
 
 # Refresh apt
 apt-get update
 
-# Wait for snapd seeding
-waitSnapdSeed
-
 # Install LXD
-snap remove lxd || true
-snap install lxd --channel=latest/edge
-lxd waitready --timeout=300
+install_lxd
+
+# Test
+set -x
 
 # Configure LXD
 lxc storage create default zfs
@@ -64,7 +34,7 @@ modprobe br_netfilter
 ip link add lxdbr0unmanaged type bridge
 
 firewallTests() {
-    lxc launch ubuntu:focal c1
+    lxc launch ubuntu-daily:22.04 c1
     sleep 10
 
     managed=0
@@ -149,7 +119,7 @@ firewallTests() {
 }
 
 networkLimitsPriorityNftablesTest() {
-    lxc launch ubuntu:focal c1
+    lxc launch ubuntu-daily:22.04 c1
     sleep 10
 
     prio=7
@@ -185,8 +155,12 @@ lxc info | grep 'firewall: nftables'
 lxc profile device add default eth0 nic network=lxdbr0
 firewallTests
 
-echo "=> Performing nftables network device limits.priority option test"
-networkLimitsPriorityNftablesTest
+if hasNeededAPIExtension instances_nic_limits_priority && runsMinimumKernel 5.17; then
+    echo "=> Performing nftables network device limits.priority option test"
+    networkLimitsPriorityNftablesTest
+else
+    echo "=> Skipping nftables network device limits.priority option test"
+fi
 
 echo "=> Performing nftables unmanaged bridge tests"
 ip a flush dev lxdbr0 # Clear duplicate address from lxdbr0.
@@ -236,4 +210,5 @@ lxc storage delete default
 lxd shutdown
 iptables -D INPUT
 
+# shellcheck disable=SC2034
 FAIL=0

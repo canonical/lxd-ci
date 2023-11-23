@@ -1,20 +1,27 @@
 #!/bin/sh
+set -eu
 
-# cgroup
-./bin/openstack-run jammy default tests/cgroup
-./bin/openstack-run jammy cgroup1 tests/cgroup
-./bin/openstack-run jammy swapaccount tests/cgroup
+for lxd_snap_channel in "latest/edge" "5.0/edge"; do
+  # cgroup
+  ./bin/openstack-run jammy default tests/cgroup "${lxd_snap_channel}"
+  # XXX: disable test with Jammy's GA kernel configured for cgroup1
+  #      https://github.com/canonical/lxd-ci/issues/7
+  #./bin/openstack-run jammy cgroup1 tests/cgroup "${lxd_snap_channel}"
+  ./bin/openstack-run jammy swapaccount tests/cgroup "${lxd_snap_channel}"
+
+  # network-bridge-firewall
+  ./bin/openstack-run jammy default tests/network-bridge-firewall "${lxd_snap_channel}"
+  ./bin/openstack-run jammy hwe tests/network-bridge-firewall "${lxd_snap_channel}"
+
+  # pylxd
+  ./bin/openstack-run jammy default tests/pylxd "${lxd_snap_channel}"
+
+  # storage
+  ./bin/openstack-run jammy default tests/storage-disks-vm "${lxd_snap_channel}"
+done
 
 # interception
-./bin/openstack-run jammy default tests/interception
-
-# network-bridge-firewall
-./bin/openstack-run jammy default tests/network-bridge-firewall
+./bin/openstack-run jammy default tests/interception "latest/edge"
 
 # pylxd
-./bin/openstack-run jammy default tests/pylxd latest/edge
-./bin/openstack-run jammy default tests/pylxd 5.0/edge
-./bin/openstack-run jammy default tests/pylxd 4.0/edge
-
-# storage
-./bin/openstack-run jammy default tests/storage-disks-vm
+./bin/openstack-run jammy default tests/pylxd "4.0/edge"
