@@ -1,34 +1,6 @@
 #!/bin/sh
 set -eu
 
-waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
-)
-
-cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
-
-    echo "Test passed"
-    exit 0
-}
-
-FAIL=1
-trap cleanup EXIT HUP INT TERM
-
 # Install required components from "restricted" pocket
 if ! grep -v '^#' /etc/apt/sources.list | grep -qwFm1 restricted; then
     ARCH="$(dpkg --print-architecture)"
@@ -48,13 +20,8 @@ EOF
 fi
 apt-get install --yes nvidia-utils-525 nvidia-driver-525
 
-# Wait for snapd seeding
-waitSnapdSeed
-
 # Install LXD
-snap remove lxd || true
-snap install lxd --channel=latest/edge
-lxd waitready --timeout=300
+install_lxd
 
 # Check that NVIDIA is installed
 nvidia-smi
@@ -118,4 +85,5 @@ lxc config device add c1 gpus gpu vendorid=10de productid=27b8
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
 lxc exec c1 -- nvidia-smi
 
+# shellcheck disable=SC2034
 FAIL=0
