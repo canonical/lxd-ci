@@ -16,8 +16,8 @@ deb [arch=${ARCH}] http://archive.ubuntu.com/ubuntu/ ${DISTRO} restricted
 deb [arch=${ARCH}] http://archive.ubuntu.com/ubuntu/ ${DISTRO}-updates restricted
 EOF
     fi
-    apt-get update
 fi
+apt-get update
 apt-get install --yes nvidia-utils-525 nvidia-driver-525
 
 # Install LXD
