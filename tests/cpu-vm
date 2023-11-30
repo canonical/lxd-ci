@@ -1,64 +1,13 @@
 #!/bin/sh
 set -eux
 
-waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
-)
-
-cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
-
-    echo "Test passed"
-    exit 0
-}
-
 architecture="$(uname -m)"
-
 if [ "${architecture}" != "x86_64" ] && [ "${architecture}" != "s390x" ]; then
   echo "Skipping test as CPU hotplugging not supported on ${architecture}"
 fi
 
-FAIL=1
-trap cleanup EXIT HUP INT TERM
-
-# Wait for snapd seeding
-waitSnapdSeed
-
 # Install LXD
-snap remove lxd || true
-snap install lxd --channel=latest/edge
-lxd waitready --timeout=300
-
-waitVMAgent() (
-  set +x
-  # shellcheck disable=SC3043
-  local vmName="$1"
-  for i in $(seq 90) # Wait up to 90s.
-  do
-    if lxc info "${vmName}" | grep -qF 127.0.0.1; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "VM ${vmName} agent not running after ${i}s"
-  return 1 # Failed.
-)
+install_lxd
 
 # Configure LXD
 lxc network create lxdbr0
@@ -123,4 +72,5 @@ lxc storage delete "${poolName}"
 echo "==> Deleting storage pool"
 lxc network delete lxdbr0
 
+# shellcheck disable=SC2034
 FAIL=0
