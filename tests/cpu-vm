@@ -20,7 +20,7 @@ echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 
 echo "==> Create ephemeral VM and boot"
-lxc launch images:ubuntu/22.04 v1 --vm -s "${poolName}" --ephemeral
+lxc launch ubuntu-daily:22.04 v1 --vm -s "${poolName}" --ephemeral
 waitVMAgent v1
 lxc info v1
 
