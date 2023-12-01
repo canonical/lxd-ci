@@ -128,7 +128,7 @@ case "$i" in
 
         # shellcheck disable=SC1091
         . /etc/os-release
-        echo "deb http://us.archive.ubuntu.com/ubuntu ${UBUNTU_CODENAME}-proposed main restricted universe multiverse" > /etc/apt/sources.list.d/proposed.list
+        echo "deb [arch=amd64] http://archive.ubuntu.com/ubuntu ${UBUNTU_CODENAME}-proposed main universe" > /etc/apt/sources.list.d/proposed.list
         apt-get update
         apt-get install --no-install-recommends --yes linux-generic
         rm /etc/apt/sources.list.d/proposed.list
