@@ -1,7 +1,1 @@
-*/__pycache__
-etc/config
-etc/hosts
-build/*
-jenkins/jenkins_jobs.ini
-jenkins/includes/trigger-token.inc
-jenkins/includes/github-token.inc
+out/
