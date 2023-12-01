@@ -30,7 +30,7 @@ lxc config device add v1 eth0 nic \
     ipv4.address=192.0.2.2,192.0.2.3 \
     ipv6.address=2001:db8::2,2001:db8::3
 
-cat <<EOF | lxc config set v1 cloud-init.network-config -
+lxc config set v1 cloud-init.network-config - << EOF
 network:
   version: 2
   ethernets:
