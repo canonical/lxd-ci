@@ -76,21 +76,21 @@ lxc profile device add default eth0 nic nictype=sriov parent="${parentNIC}" name
 # Launch a few VMs.
 # Do this first before containers to ensure VF free search handles VFs unbound from host.
 echo "==> VM on default VLAN"
-lxc init images:ubuntu/20.04/cloud v1 --vm
+lxc init ubuntu-daily:22.04 v1 --vm
 lxc start v1
 
 echo "==> VM on default VLAN with filtering"
-lxc init images:ubuntu/20.04/cloud v2 --vm
+lxc init ubuntu-daily:22.04 v2 --vm
 lxc config device override v2 eth0 security.mac_filtering=true
 lxc start v2
 
 echo "==> VM on alternate VLAN"
-lxc init images:ubuntu/20.04/cloud v3 --vm
+lxc init ubuntu-daily:22.04 v3 --vm
 lxc config device override v3 eth0 vlan=4000
 lxc start v3
 
 echo "==> VM on alternate VLAN with filtering"
-lxc init images:ubuntu/20.04/cloud v4 --vm
+lxc init ubuntu-daily:22.04 v4 --vm
 lxc config device override v4 eth0 vlan=4000 security.mac_filtering=true
 lxc start v4
 
@@ -109,21 +109,21 @@ lxc delete -f v2 v3 v4
 
 # Launch a few containers.
 echo "==> Container on default VLAN"
-lxc init images:ubuntu/20.04/cloud c1
+lxc init ubuntu-daily:22.04 c1
 lxc start c1
 
 echo "==> Container on default VLAN with filtering"
-lxc init images:ubuntu/20.04/cloud c2
+lxc init ubuntu-daily:22.04 c2
 lxc config device override c2 eth0 security.mac_filtering=true
 lxc start c2
 
 echo "==> Container on alternate VLAN"
-lxc init images:ubuntu/20.04/cloud c3
+lxc init ubuntu-daily:22.04 c3
 lxc config device override c3 eth0 vlan=4000
 lxc start c3
 
 echo "==> Container on alternate VLAN with filtering"
-lxc init images:ubuntu/20.04/cloud c4
+lxc init ubuntu-daily:22.04 c4
 lxc config device override c4 eth0 vlan=4000 security.mac_filtering=true
 lxc start c4
 
