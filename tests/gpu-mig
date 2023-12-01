@@ -2,28 +2,30 @@
 set -eu
 
 waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
+	set +x
+	for i in $( # Wait up to 60s.
+		seq 60
+	); do
+		if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
+			return 0 # Success.
+		fi
 
-    sleep 1
-  done
+		sleep 1
+	done
 
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
+	echo "snapd not seeded after ${i}s"
+	return 1 # Failed.
 )
 
 cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
+	echo ""
+	if [ "${FAIL}" = "1" ]; then
+		echo "Test failed"
+		exit 1
+	fi
 
-    echo "Test passed"
-    exit 0
+	echo "Test passed"
+	exit 0
 }
 
 FAIL=1
@@ -37,7 +39,7 @@ curl -s http://canonical-lxd.stgraber.org/config/snapd.sh | sh
 
 # Install LXD
 while [ -e /usr/bin/lxd ]; do
-    apt-get remove --purge --yes lxd lxd-client lxcfs liblxc1
+	apt-get remove --purge --yes lxd lxd-client lxcfs liblxc1
 done
 apt-get remove --purge cloud-init --yes
 snap remove lxd || true
