@@ -26,7 +26,7 @@ lxc info --resources
 
 # Launch test instances
 for i in $(seq 1 4); do
-	lxc init ubuntu:20.04 "v${i}" --vm -c security.secureboot=false
+	lxc init ubuntu-daily:22.04 "v${i}" --vm -c security.secureboot=false
 	if [ "${1}" = "nvidia" ]; then
 		lxc config device add "v${i}" vgpu gpu gputype=mdev pci=0000:07:00.0 mdev=nvidia-468
 	fi
