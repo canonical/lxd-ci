@@ -1,47 +1,16 @@
 #!/bin/sh
 set -eux
 
-waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
-)
-
-cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
-
-    echo "Test passed"
-    exit 0
-}
-
 poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
-FAIL=1
-trap cleanup EXIT HUP INT TERM
-
-# Refresh apt
-apt-get update
-
-# Wait for snapd seeding
-waitSnapdSeed
 
 # Install LXD
-snap remove lxd || true
-snap install lxd --channel=latest/edge
+install_lxd
 snap set lxd ceph.external=true
-apt-get install --no-install-recommends --yes ceph-common
 lxd waitready --timeout=300
+
+# Install dependencies
+apt-get update
+apt-get install --no-install-recommends --yes ceph-common
 
 # Configure LXD
 lxc project switch default
@@ -82,4 +51,5 @@ done
 lxc project switch default
 lxc project delete test
 
+# shellcheck disable=SC2034
 FAIL=0
