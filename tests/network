@@ -16,18 +16,7 @@ ip a
 # Configure LXD
 lxc storage create default zfs
 lxc profile device add default root disk path=/ pool=default
-
-cat <<EOF | lxc profile set default cloud-init.user-data -
-#cloud-config
-packages:
-  - curl
-write_files:
-  - content: |
-     #!/bin/sh
-     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
-    path: /var/lib/cloud/scripts/per-boot/ready.sh
-    permissions: "0755"
-EOF
+setupCloudInitReady default
 
 # Launch instances with physical NICs
 echo "==> VM on default VLAN with physical"
