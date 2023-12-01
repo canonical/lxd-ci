@@ -21,7 +21,7 @@ lxc project switch default
 lxc storage create default zfs
 setupCloudInitReady default
 
-instanceImage="ubuntu:22.04"
+instanceImage="ubuntu-daily:22.04"
 
 ovn_basic_tests() {
     lxc network create lxdbr0 \
