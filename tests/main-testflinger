@@ -1,0 +1,97 @@
+#!/bin/bash
+set -eux
+
+lxd_snap_channel="${1}"
+shift 1
+
+runner="testflinger"
+pids=""
+
+run_test() {
+    local serie="${1}"
+    local kernel="${2}"
+    local test_file="${3}"
+    local lxd_snap_channel="${4}"
+    shift 4
+
+    local test_name out_dir log_file lxd_snap_channel_name
+    test_name="$(basename "${test_file}")"
+    out_dir="out/${runner}/${lxd_snap_channel_name}"
+    log_file="${out_dir}/${serie}-${kernel}-${test_name}.log"
+    lxd_snap_channel_name="$(echo "${lxd_snap_channel}" | sed 's/[./]/-/g')"
+    mkdir -p "${out_dir}/"
+    "./bin/${runner}-run" "${serie}" "${kernel}" "${test_file}" "${lxd_snap_channel}" "${@}" > "${log_file}" &
+    pids="$! ${pids}"
+
+    # Avoid sending too many simultaneous requests
+    sleep 10
+}
+
+# cgroup
+run_test jammy default tests/cgroup "${lxd_snap_channel}"
+# XXX: disable test with Jammy's GA kernel configured for cgroup1
+#      https://github.com/canonical/lxd-ci/issues/7
+#run_test jammy cgroup1 tests/cgroup "${lxd_snap_channel}"
+#run_test jammy swapaccount tests/cgroup "${lxd_snap_channel}"
+run_test focal default tests/cgroup "${lxd_snap_channel}"
+#run_test focal swapaccount tests/cgroup "${lxd_snap_channel}"
+
+# cluster
+#run_test jammy default tests/cluster "${lxd_snap_channel}" 3 "5.0/stable" "${lxd_snap_channel}"
+
+# cpu-vm
+run_test jammy default tests/cpu-vm "${lxd_snap_channel}"
+
+# devlxd-vm
+run_test jammy default tests/devlxd-vm "${lxd_snap_channel}"
+
+# docker
+# XXX: unable to pull docker image due to rate limiting done by docker hub
+#run_test jammy default tests/docker "${lxd_snap_channel}"
+
+# gpu
+# XXX: requires nvidia graphic card to be present in the host and to
+# know which PCI address it has
+#run_test jammy default tests/gpu-container "${lxd_snap_channel}"
+# XXX: requires a specific nvidia graphic card to be present in the host
+#run_test jammy default tests/gpu-mig "${lxd_snap_channel}"
+# XXX: requires nvidia graphic card to be present in the host and a
+# compatible driver to be installed
+#run_test jammy default tests/gpu-vm "${lxd_snap_channel}" nvidia
+
+# interception
+# XXX: doesn't work on 5.0 or earlier but there is no extension advertised
+if echo "${lxd_snap_channel}" | grep -qE "^(latest|5\.[1-9].)/"; then
+    run_test jammy default tests/interception "${lxd_snap_channel}"
+fi
+
+# network
+run_test jammy default tests/network "${lxd_snap_channel}"
+run_test jammy default tests/network-bridge-firewall "${lxd_snap_channel}"
+#run_test jammy hwe tests/network-bridge-firewall "${lxd_snap_channel}"
+run_test jammy default tests/network-ovn "${lxd_snap_channel}"
+run_test jammy default tests/network-routed "${lxd_snap_channel}"
+# XXX: requires SR-IOV capable NIC
+#run_test jammy default tests/network-sriov "${lxd_snap_channel}"
+
+# pylxd
+run_test jammy default tests/pylxd "${lxd_snap_channel}"
+
+# storage
+run_test jammy default tests/storage-buckets "${lxd_snap_channel}"
+run_test jammy default tests/storage-disks-vm "${lxd_snap_channel}"
+run_test jammy default tests/storage-vm "${lxd_snap_channel}"
+run_test jammy default tests/storage-volume-vm "${lxd_snap_channel}"
+
+# vm-nesting
+run_test jammy default tests/vm-nesting "${lxd_snap_channel}"
+#run_test jammy hwe tests/vm-nesting "${lxd_snap_channel}"
+
+# Wait for all tests to finish
+errors=0
+for pid in ${pids}; do
+    echo "Waiting on ${pid}"
+    wait "${pid}" || errors="$((errors + 1))"
+done
+
+echo "All done, errors: ${errors}"
