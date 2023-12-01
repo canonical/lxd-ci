@@ -69,6 +69,18 @@ write_files:
 EOF
 }
 
+# enableSRIOV: enable SR-IOV on a NIC.
+enableNICSRIOV() (
+  set +x
+  parentNIC="${1}"
+  numVFS="${2:-"7"}"
+
+  echo "${numVFS}" > "/sys/class/net/${parentNIC}/device/sriov_numvfs"
+  ip link set "${parentNIC}" up
+  sleep 10
+  ethtool "${parentNIC}"
+)
+
 # install_lxd: install LXD from a specific channel or `latest/edge` if none is provided.
 install_lxd() (
     # Wait for snapd seeding
