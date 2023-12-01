@@ -35,8 +35,8 @@ do
 	fi
 
 	echo "==> Create VM"
-	lxc init images:ubuntu/20.04 v1 --vm -s "${poolName}"
-	lxc init images:ubuntu/20.04 v2 --vm -s "${poolName}"
+	lxc init ubuntu-daily:22.04 v1 --vm -s "${poolName}"
+	lxc init ubuntu-daily:22.04 v2 --vm -s "${poolName}"
 
 	echo "==> Create custom block volume and attach it to VM"
 	lxc storage volume create "${poolName}" vol1 --type=block size=10MB
