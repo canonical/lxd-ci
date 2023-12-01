@@ -135,7 +135,7 @@ do
 	lxc storage volume delete "${poolName}" images --project=default
 
 	echo "==> Deleting VM"
-	lxc rm v1
+	lxc delete v1
 
 	echo "==> Deleting storage pool and volumes"
 	lxc storage volume rm "${poolName}" vol1
