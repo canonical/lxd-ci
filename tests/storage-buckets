@@ -1,16 +1,19 @@
 #!/bin/sh
 set -eux
 
-poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
-
 # Install LXD
 install_lxd
-snap set lxd ceph.external=true
-lxd waitready --timeout=300
 
-# Install dependencies
-apt-get update
-apt-get install --no-install-recommends --yes ceph-common
+poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
+
+if echo "${poolDriverList}" | grep -qwF "ceph"; then
+  snap set lxd ceph.external=true
+  lxd waitready --timeout=300
+
+  # Install dependencies
+  apt-get update
+  apt-get install --no-install-recommends --yes ceph-common
+fi
 
 # Configure LXD
 lxc project switch default
