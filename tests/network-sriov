@@ -1,7 +1,13 @@
 #!/bin/sh
 set -eu
 
+# Install LXD
+install_lxd
+
 parentNIC="${1:-"enp5s0"}"
+
+# Enable SR-IOV on nic and bring up
+enableNICSRIOV "${parentNIC}"
 
 # Check that all instances have an IPv4 and IPv6 address
 networkTests() {
@@ -61,15 +67,6 @@ networkTests() {
 
     return 0
 }
-
-# Install LXD
-install_lxd
-
-# Enable SR-IOV on nic and bring up
-echo 7 > "/sys/class/net/${parentNIC}/device/sriov_numvfs"
-ip link set "${parentNIC}" up
-sleep 10
-ethtool "${parentNIC}"
 
 # Configure LXD
 lxc storage create default zfs
@@ -143,4 +140,5 @@ lxc profile device remove default eth0
 lxc profile device remove default root
 lxc storage delete default
 
+# shellcheck disable=SC2034
 FAIL=0
