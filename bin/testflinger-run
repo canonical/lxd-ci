@@ -62,7 +62,7 @@ test_data:
     \$SCP "\${_script}" "ubuntu@\${DEVICE_IP}:test-script"
 
     # Run the test
-    \$SSH "ubuntu@\${DEVICE_IP}" -- sudo sh test-script
+    \$SSH "ubuntu@\${DEVICE_IP}" -- sudo bash test-script
 EOF
 }
 
