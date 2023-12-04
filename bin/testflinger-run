@@ -46,7 +46,7 @@ test_data:
     # Setup custom kernel
     if [ "${kernel}" != "default" ]; then
         echo "==> Installing custom kernel: ${kernel}" >&2
-        ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "ubuntu@\${DEVICE_IP}" sudo sh /dev/stdin "${kernel}" < "bin/custom-kernel" || true
+        ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "ubuntu@\${DEVICE_IP}" sudo bash /dev/stdin "${kernel}" < "bin/custom-kernel" || true
         sleep 5
 
         if ! command -v nc > /dev/null; then
