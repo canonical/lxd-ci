@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 export DEBIAN_FRONTEND="noninteractive"
 for i in $(echo "${1}" | tr ',' ' '); do
 case "$i" in
