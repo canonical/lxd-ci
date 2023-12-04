@@ -90,6 +90,7 @@ install_lxd() (
     snap install lxd --channel="${LXD_SNAP_CHANNEL:-"latest/edge"}"
     snap list lxd
     uname -a
+    cat /proc/cmdline
     lxd waitready --timeout=300
 )
 
