@@ -115,4 +115,11 @@ case "$i" in
     esac
 done
 
+# Since we are doing a reboot, might as well also turn off mitigations and have a faster testbed
+echo "===> Disabling all mitigations"
+
+# shellcheck disable=SC2016
+echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} mitigations=off"' > /etc/default/grub.d/99-mitigations.cfg
+update-grub
+
 reboot
