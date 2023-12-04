@@ -41,6 +41,8 @@ case "$i" in
         echo "MODULES=dep" > /etc/initramfs-tools/conf.d/modules.conf
         apt-get update
         apt-get dist-upgrade --yes
+
+        # shellcheck disable=SC1091
         . /etc/os-release
 
         FLAVOR="generic"
