@@ -9,4 +9,4 @@ test_name="$(basename "${script}")"
 
 echo "==> Running the job ${test_name} against ${lxd_snap_channel}" >&2
 sed -e "1 a LXD_SNAP_CHANNEL=${lxd_snap_channel}" -e "1 r bin/helpers" "${script}" > "${_script}"
-exec sh "${_script}"
+exec bash "${_script}"
