@@ -1,49 +1,15 @@
 #!/bin/bash
 set -eux
 
-waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
-)
-
-cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
-
-    echo "Test passed"
-    exit 0
-}
-
-FAIL=1
-trap cleanup EXIT HUP INT TERM
-
-# Wait for snapd seeding.
-waitSnapdSeed
-
 # Install LXD.
-snap remove lxd || true
-snap install lxd --channel=latest/edge
-lxd waitready --timeout=300
+install_lxd
 
 # Configure LXD.
 lxc project switch default
 lxc storage create default zfs size=30GiB
 lxc network create lxdbr0
 
-instanceImage="ubuntu:22.04"
-snapChannel="latest/edge"
+instanceImage="ubuntu-daily:22.04"
 
 function parallel() {
 	seq "$1" | xargs -P "$1" -I "{}" "${@:2}"
@@ -114,7 +80,7 @@ delete 10
 init 5 --vm
 start 5
 wait 5
-cmd 5 "snap wait system seed.loaded && snap refresh lxd --channel $snapChannel"
+cmd 5 "snap wait system seed.loaded && snap refresh lxd --channel ${LXD_SNAP_CHANNEL:-"latest/edge"}"
 cmd 5 "lxd init --auto"
 cmd 5 "systemctl reload snap.lxd.daemon"
 cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=5GiB"
@@ -128,7 +94,7 @@ device_add 5 vhost-net unix-char source=/dev/vhost-net
 device_add 5 vhost-vsock unix-char source=/dev/vhost-vsock
 device_add 5 vsock unix-char source=/dev/vsock
 start 5
-cmd 5 "snap wait system seed.loaded && snap refresh lxd --channel $snapChannel"
+cmd 5 "snap wait system seed.loaded && snap refresh lxd --channel ${LXD_SNAP_CHANNEL:-"latest/edge"}"
 cmd 5 "lxd init --auto"
 cmd 5 "systemctl reload snap.lxd.daemon"
 cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=5GiB"
@@ -137,4 +103,5 @@ delete 5
 lxc network delete lxdbr0
 lxc storage delete default
 
+# shellcheck disable=SC2034
 FAIL=0

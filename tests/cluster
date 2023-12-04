@@ -1,5 +1,7 @@
-#!/bin/sh -eu
-PREFIX="cluster-$(uuidgen)"
+#!/bin/sh
+set -eu
+
+PREFIX="cluster-$$"
 
 if [ -z "${1:-""}" ] || [ -z "${2:-""}" ] || [ -z "${3:-""}" ]; then
     echo "Usage: ${0} <count> <source channel> <destination channel>"
@@ -31,21 +33,11 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 # Launch the container
-lxc launch images:ubuntu/jammy "${PREFIX}-1" -c security.nesting=true
+lxc launch ubuntu-daily:22.04 "${PREFIX}-1" -c security.nesting=true
 
 sleep 10
 
-lxc file push - "${PREFIX}-1"/etc/apt/sources.list << EOF
-deb http://us.archive.ubuntu.com/ubuntu jammy main universe
-deb http://us.archive.ubuntu.com/ubuntu jammy-updates main universe
-deb http://us.archive.ubuntu.com/ubuntu jammy-security main universe
-EOF
-
-lxc exec "${PREFIX}-1" -- apt-get update
-lxc exec "${PREFIX}-1" -- apt-get install --no-install-recommends snapd fuse3 curl --yes
-lxc exec "${PREFIX}-1" -- snap install core20
-lxc exec "${PREFIX}-1" -- snap install core22
-lxc exec "${PREFIX}-1" -- snap install lxd --channel="$2"
+lxc exec "${PREFIX}-1" -- snap refresh lxd --channel="$2"
 
 for i in $(seq 2 "$1"); do
     lxc copy "${PREFIX}-1" "${PREFIX}-$i"
@@ -54,7 +46,6 @@ done
 
 for i in $(seq "$1"); do
     sleep 10
-
 
     # Configure the cluster
     if [ "$i" = "1" ]; then
@@ -92,8 +83,8 @@ lxc exec "${PREFIX}-1" -- lxc cluster list
 
 # Test fan networking (intra fan from container and host, as well as external NAT comms)
 echo "==> Test fan networking"
-lxc exec "${PREFIX}-1" -- lxc launch images:ubuntu/focal u1
-lxc exec "${PREFIX}-1" -- lxc launch images:ubuntu/focal u2
+lxc exec "${PREFIX}-1" -- lxc launch ubuntu-daily:22.04 u1
+lxc exec "${PREFIX}-1" -- lxc launch ubuntu-daily:22.04 u2
 
 echo "==> Wait for addresses"
 sleep 10
@@ -121,3 +112,6 @@ sleep 5m
 echo "==> Validating the cluster"
 lxc exec "${PREFIX}-1" -- lxc info
 lxc exec "${PREFIX}-1" -- lxc cluster list
+
+# shellcheck disable=SC2034
+FAIL=0

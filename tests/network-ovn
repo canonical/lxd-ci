@@ -1,86 +1,11 @@
 #!/bin/sh
 set -eux
 
-waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
-)
-
-waitInstanceReady() (
-  set +x
-  # shellcheck disable=SC3043
-  local maxWait=90
-  # shellcheck disable=SC3043
-  local instName="$1"
-  # shellcheck disable=SC3043
-  local instProj="${2:-}"
-  if [ -z "${instProj}" ]; then
-    # Find the currently selected project.
-    instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
-  fi
-  for _ in $(seq "${maxWait}"); do
-    if lxc info --project "${instProj}" "${instName}" | grep -qF "Status: READY"; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "Instance ${instName} (${instProj}) not ready after ${maxWait}s"
-  lxc list --project "${instProj}" "${instName}"
-  return 1 # Failed.
-)
-
-setupCloudInitReady() {
-  # shellcheck disable=SC3043
-  local instProj="${1}"
-  # shellcheck disable=SC3043
-  local profile="${2:-default}"
-
-  cat <<EOF | lxc profile set "${profile}" --project "${instProj}" cloud-init.user-data -
-#cloud-config
-write_files:
-  - content: |
-     #!/bin/sh
-     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
-    path: /var/lib/cloud/scripts/per-boot/ready.sh
-    permissions: "0755"
-EOF
-}
-
-cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
-
-    echo "Test passed"
-    exit 0
-}
-
-FAIL=1
-trap cleanup EXIT HUP INT TERM
-
 # Refresh apt
 apt-get update
 
-# Wait for snapd seeding
-waitSnapdSeed
-
 # Install LXD
-snap remove lxd || true
-snap install lxd --channel=latest/edge
-lxd waitready --timeout=300
+install_lxd
 
 # Install dependencies
 apt-get install --no-install-recommends --yes ovn-host ovn-central bind9-dnsutils jq
@@ -96,7 +21,7 @@ lxc project switch default
 lxc storage create default zfs
 setupCloudInitReady default
 
-instanceImage="ubuntu:22.04"
+instanceImage="ubuntu-daily:22.04"
 
 ovn_basic_tests() {
     lxc network create lxdbr0 \
@@ -2107,8 +2032,8 @@ ovn_leases_tests() {
 
 # Allow for running a specific set of tests.
 if [ "$#" -gt 0 ]; then
-  TEST_CURRENT="ovn_${1}_tests"
-  ${TEST_CURRENT}
+    TEST_CURRENT="ovn_${1}_tests"
+    ${TEST_CURRENT}
 else
     # Otherwise run full suite.
     ovn_basic_tests
@@ -2125,4 +2050,5 @@ fi
 lxc profile device remove default root
 lxc storage delete default
 
+# shellcheck disable=SC2034
 FAIL=0

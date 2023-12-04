@@ -1,0 +1,58 @@
+#!/bin/sh
+set -eux
+
+serie="${1}"
+kernel="${2}"
+script="${3}"
+lxd_snap_channel="${4}"
+shift 4
+_script="$(mktemp)"
+test_name="$(basename "${script}")"
+
+testflinger_yaml_job() {
+    cat << EOF
+job_queue: anything
+provision_data:
+  distro: ${serie}
+test_data:
+  test_cmds: |
+    #!/bin/bash
+    set -eux
+    export SSH_OPTS="-q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=30 -o ServerAliveCountMax=3"
+    SCP="scp \$SSH_OPTS"
+    SSH="ssh -n \$SSH_OPTS"
+
+    # Get lxd-ci scripts
+    git clone https://github.com/canonical/lxd-ci.git
+    cd lxd-ci
+
+    echo "Desired kernel: ${kernel}"
+
+    # Copy test script to DUT
+    _script="\$(mktemp)"
+    sed -e "1 a LXD_SNAP_CHANNEL=${lxd_snap_channel}" -e "1 r bin/helpers" "${script}" > "\${_script}"
+    \$SCP "\${_script}" "ubuntu@\${DEVICE_IP}:test-script"
+
+    # Run the test
+    \$SSH "ubuntu@\${DEVICE_IP}" -- sudo sh test-script
+EOF
+}
+
+setup_testflinger() {
+    # Test connectivity
+    if ! wget --method HEAD -qO /dev/null https://testflinger.canonical.com/agents; then
+        echo "Failed to connect to testflinger.canonical.com, make sure you are connected to the VPN" >&2
+        exit 1
+    fi
+
+    command -v testflinger >/dev/null && return
+
+    echo "Installing testflinger snap" >&2
+    snap install testflinger-cli
+}
+
+setup_testflinger
+
+# Submit the job
+echo "==> Running the job ${test_name} against ${lxd_snap_channel}" >&2
+testflinger_yaml_job | testflinger submit --poll -

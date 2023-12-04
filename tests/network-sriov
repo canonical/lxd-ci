@@ -1,55 +1,17 @@
 #!/bin/sh
 set -eu
 
+# Install LXD
+install_lxd
+
 parentNIC="${1:-"enp5s0"}"
 
-waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
-)
-
-waitVMAgent() (
-  set +x
-  # shellcheck disable=SC3043
-  local vmName="$1"
-  for i in $(seq 90) # Wait up to 90s.
-  do
-    if lxc info "${vmName}" | grep -qF 127.0.0.1; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "VM ${vmName} agent not running after ${i}s"
-  return 1 # Failed.
-)
-
-cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
-
-    echo "Test passed"
-    exit 0
-}
-
+# Enable SR-IOV on nic and bring up
+enableNICSRIOV "${parentNIC}"
 
 # Check that all instances have an IPv4 and IPv6 address
 networkTests() {
-    # shellcheck disable=SC3043
-    local FAIL=0
+    FAIL=0
 
     echo "=> Performing network tests"
     for url in $(lxc query "/1.0/instances" | jq -r .[]); do
@@ -106,24 +68,6 @@ networkTests() {
     return 0
 }
 
-FAIL=1
-trap cleanup EXIT HUP INT TERM
-
-# Wait for snapd seeding
-waitSnapdSeed
-
-# Install LXD
-snap remove lxd || true
-snap install lxd --channel=latest/edge
-apt-get install --no-install-recommends --yes jq
-lxd waitready --timeout=300
-
-# Enable SR-IOV on nic and bring up
-echo 7 > "/sys/class/net/${parentNIC}/device/sriov_numvfs"
-ip link set "${parentNIC}" up
-sleep 10
-ethtool "${parentNIC}"
-
 # Configure LXD
 lxc storage create default zfs
 lxc profile device add default root disk path=/ pool=default
@@ -132,21 +76,21 @@ lxc profile device add default eth0 nic nictype=sriov parent="${parentNIC}" name
 # Launch a few VMs.
 # Do this first before containers to ensure VF free search handles VFs unbound from host.
 echo "==> VM on default VLAN"
-lxc init images:ubuntu/20.04/cloud v1 --vm
+lxc init ubuntu-daily:22.04 v1 --vm
 lxc start v1
 
 echo "==> VM on default VLAN with filtering"
-lxc init images:ubuntu/20.04/cloud v2 --vm
+lxc init ubuntu-daily:22.04 v2 --vm
 lxc config device override v2 eth0 security.mac_filtering=true
 lxc start v2
 
 echo "==> VM on alternate VLAN"
-lxc init images:ubuntu/20.04/cloud v3 --vm
+lxc init ubuntu-daily:22.04 v3 --vm
 lxc config device override v3 eth0 vlan=4000
 lxc start v3
 
 echo "==> VM on alternate VLAN with filtering"
-lxc init images:ubuntu/20.04/cloud v4 --vm
+lxc init ubuntu-daily:22.04 v4 --vm
 lxc config device override v4 eth0 vlan=4000 security.mac_filtering=true
 lxc start v4
 
@@ -165,21 +109,21 @@ lxc delete -f v2 v3 v4
 
 # Launch a few containers.
 echo "==> Container on default VLAN"
-lxc init images:ubuntu/20.04/cloud c1
+lxc init ubuntu-daily:22.04 c1
 lxc start c1
 
 echo "==> Container on default VLAN with filtering"
-lxc init images:ubuntu/20.04/cloud c2
+lxc init ubuntu-daily:22.04 c2
 lxc config device override c2 eth0 security.mac_filtering=true
 lxc start c2
 
 echo "==> Container on alternate VLAN"
-lxc init images:ubuntu/20.04/cloud c3
+lxc init ubuntu-daily:22.04 c3
 lxc config device override c3 eth0 vlan=4000
 lxc start c3
 
 echo "==> Container on alternate VLAN with filtering"
-lxc init images:ubuntu/20.04/cloud c4
+lxc init ubuntu-daily:22.04 c4
 lxc config device override c4 eth0 vlan=4000 security.mac_filtering=true
 lxc start c4
 
@@ -196,4 +140,5 @@ lxc profile device remove default eth0
 lxc profile device remove default root
 lxc storage delete default
 
+# shellcheck disable=SC2034
 FAIL=0

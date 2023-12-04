@@ -1,115 +1,49 @@
 #!/bin/sh
 set -eux
 
+# Install LXD
+install_lxd
+
 parentNIC="${1:-"enp5s0"}"
 
-waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
-)
-
-waitInstanceReady() (
-  set +x
-  # shellcheck disable=SC3043
-  local instName="$1"
-  for i in $(seq 90) # Wait up to 90s.
-  do
-    if lxc info "${instName}" | grep -qF "Status: READY"; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "Instance ${instName} not ready after ${i}s"
-  return 1 # Failed.
-)
-
-cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
-
-    echo "Test passed"
-    exit 0
-}
-
-FAIL=1
-trap cleanup EXIT HUP INT TERM
-
-# Wait for snapd seeding
-waitSnapdSeed
-
-# Install LXD
-snap remove lxd || true
-snap install lxd --channel=latest/edge
-apt-get install --no-install-recommends --yes jq
-lxd waitready --timeout=300
-
 # Enable SR-IOV on nic and bring up
-echo 7 > "/sys/class/net/${parentNIC}/device/sriov_numvfs"
-ip link set "${parentNIC}" up
-sleep 10
-ethtool "${parentNIC}"
-ip a
+enableNICSRIOV "${parentNIC}"
 
 # Configure LXD
 lxc storage create default zfs
 lxc profile device add default root disk path=/ pool=default
-
-cat <<EOF | lxc profile set default cloud-init.user-data -
-#cloud-config
-packages:
-  - curl
-write_files:
-  - content: |
-     #!/bin/sh
-     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
-    path: /var/lib/cloud/scripts/per-boot/ready.sh
-    permissions: "0755"
-EOF
+setupCloudInitReady default
 
 # Launch instances with physical NICs
 echo "==> VM on default VLAN with physical"
-lxc init images:ubuntu/22.04/cloud v1-physical --vm -c limits.cpu=3
+lxc init ubuntu-daily:22.04 v1-physical --vm -c limits.cpu=3
 lxc config device add v1-physical eth0 nic nictype=physical parent="${parentNIC}v1" name=eth0
 lxc start v1-physical
 
 echo "==> Container on default VLAN with physical"
-lxc init images:ubuntu/22.04/cloud c1-physical
+lxc init ubuntu-daily:22.04 c1-physical
 lxc config device add c1-physical eth0 nic nictype=physical parent="${parentNIC}v2" name=eth0
 lxc start c1-physical
 
 # Launch instances with macvlan NICs
 echo "==> VM on default VLAN with macvlan"
-lxc init images:ubuntu/22.04/cloud v1-macvlan --vm -c limits.cpu=3
+lxc init ubuntu-daily:22.04 v1-macvlan --vm -c limits.cpu=3
 lxc config device add v1-macvlan eth0 nic nictype=macvlan parent="${parentNIC}" name=eth0
 lxc start v1-macvlan
 
 echo "==> Container on default VLAN with macvlan"
-lxc init images:ubuntu/22.04/cloud c1-macvlan
+lxc init ubuntu-daily:22.04 c1-macvlan
 lxc config device add c1-macvlan eth0 nic nictype=macvlan parent="${parentNIC}" name=eth0
 lxc start c1-macvlan
 
 # Launch instances with sriov NICs
 echo "==> VM on default VLAN with sriov"
-lxc init images:ubuntu/22.04/cloud v1-sriov --vm -c limits.cpu=3
+lxc init ubuntu-daily:22.04 v1-sriov --vm -c limits.cpu=3
 lxc config device add v1-sriov eth0 nic nictype=sriov parent="${parentNIC}" name=eth0
 lxc start v1-sriov
 
 echo "==> Container on default VLAN with sriov"
-lxc init images:ubuntu/22.04/cloud c1-sriov
+lxc init ubuntu-daily:22.04 c1-sriov
 lxc config device add c1-sriov eth0 nic nictype=sriov parent="${parentNIC}" name=eth0
 lxc start c1-sriov
 
@@ -276,4 +210,5 @@ lxc profile device remove default root
 lxc storage delete default
 lxc network delete lxdbr0
 
+# shellcheck disable=SC2034
 FAIL=0

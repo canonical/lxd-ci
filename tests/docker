@@ -1,48 +1,13 @@
-#!/bin/sh -eux
-CNAME="docker-$(uuidgen)"
+#!/bin/sh
+set -eux
 
-waitSnapdSeed() (
-  set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
-  return 1 # Failed.
-)
-
-cleanup() {
-    echo ""
-    if [ "${FAIL}" = "1" ]; then
-        echo "Test failed"
-        exit 1
-    fi
-
-    echo "Test passed"
-    exit 0
-}
-
-FAIL=1
-trap cleanup EXIT HUP INT TERM
-
-# Wait for snapd seeding
-waitSnapdSeed
+CNAME="docker-$$"
 
 # Install LXD
-snap remove lxd || true
-snap install lxd --channel=latest/edge
-apt-get install --no-install-recommends --yes jq
-lxd waitready --timeout=300
-
-lxd init --auto
-set -x
+install_lxd
 
 # Create the container
-lxc launch images:ubuntu/bionic "${CNAME}" -c security.nesting=true "$@"
+lxc launch ubuntu-daily:22.04 "${CNAME}" -c security.nesting=true "$@"
 
 (
 cat << EOF
@@ -52,9 +17,8 @@ sleep 10
 set -eux
 
 # Install distro docker
-apt-get update --yes --force-yes
-apt-get install --no-install-recommends --yes --force-yes apparmor docker.io wget
-systemctl start apparmor
+apt-get update
+apt-get install --no-install-recommends --yes --force-yes docker.io
 
 # Stop the distro docker
 systemctl stop docker.service
@@ -85,4 +49,6 @@ EOF
 ) | lxc exec "${CNAME}" -- sh -eux
 
 lxc delete --force "${CNAME}"
+
+# shellcheck disable=SC2034
 FAIL=0
