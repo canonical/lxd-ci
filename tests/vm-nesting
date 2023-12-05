@@ -40,7 +40,7 @@ function start() {
 	done
 
 	echo "Start ${instances[*]}"
-	lxc start -f "${instances[@]}"
+	lxc start "${instances[@]}"
 }
 
 function wait() {
