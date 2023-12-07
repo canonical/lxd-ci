@@ -61,6 +61,13 @@ do
         waitVMAgent v1
         lxc exec v1 -- cat /root/foo.txt | grep -Fx "foo"
 
+        echo "==> Checking VM can be copied with snapshots"
+        lxc copy v1 v2
+        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
+        lxc start v2
+        waitVMAgent v2
+        lxc delete -f v2
+
         echo "==> Checking running copied VM snapshot"
         lxc copy v1/snap0 v2
         lxc start v2
