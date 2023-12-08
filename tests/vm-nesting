@@ -88,6 +88,7 @@ delete 5
 
 # Test 5 containers each with one nested VM.
 init 5
+conf 5 security.devlxd.images=true
 conf 5 security.nesting=true
 device_add 5 kvm unix-char source=/dev/kvm
 device_add 5 vhost-net unix-char source=/dev/vhost-net
