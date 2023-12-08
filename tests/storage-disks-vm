@@ -109,11 +109,13 @@ waitVMAgent v1
 [ "$(lxc exec v1  -- stat /mnt/foo2 -c '%u:%g')" = "65534:65534" ] || false
 
 # Check security.secureboot setting is applied to running VM at next start up.
-lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot enabled"
-lxc profile set default security.secureboot=false
-lxc restart -f v1
-waitVMAgent v1
-lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot disabled"
+if lxc exec v1 -- mount | grep -qwF /boot/efi; then
+  lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot enabled"
+  lxc profile set default security.secureboot=false
+  lxc restart -f v1
+  waitVMAgent v1
+  lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot disabled"
+fi
 
 if hasNeededAPIExtension disk_io_bus; then
   # Remove disk device restrictions and add a NVMe disk
