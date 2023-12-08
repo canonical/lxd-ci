@@ -36,7 +36,9 @@ do
         echo "==> Check /dev/disk/by-id"
         lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root
         lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part1
-        lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part15
+        if lxc exec v1 -- mount | grep -qwF /boot/efi; then
+            lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part15
+        fi
 
         echo "==> Check config drive is readonly"
         # Check 9p config drive share is exported readonly.
