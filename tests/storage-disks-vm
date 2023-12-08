@@ -10,6 +10,7 @@ set -x
 echo "==> Setup share directory"
 # Create directory for use as basis for restricted disk source tests.
 testRoot="/opt/lxd-test-restricted"
+[ -d "${testRoot}" ] && rm -rf "${testRoot}"
 mkdir "${testRoot}"
 
 # Create directory for use as allowed disk source path prefix in project.
