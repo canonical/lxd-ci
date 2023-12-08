@@ -13,13 +13,15 @@ run_test() {
     local lxd_snap_channel="${4}"
     shift 4
 
-    local test_name out_dir log_file lxd_snap_channel_name
+    local test_name out_dir log_file lxd_snap_channel_name status
     test_name="$(basename "${test_file}")"
     lxd_snap_channel_name="$(echo "${lxd_snap_channel}" | sed 's/[./]/-/g')"
     out_dir="out/${runner}/${lxd_snap_channel_name}"
     log_file="${out_dir}/${serie}-${kernel}-${test_name}.log"
     mkdir -p "${out_dir}/"
-    "./bin/${runner}-run" "${serie}" "${kernel}" "${test_file}" "${lxd_snap_channel}" "${@}" > "${log_file}" || echo "FAILED: ${@}" >> "/tmp/fail-${lxd_snap_channel_name}.log"
+    status=PASSED
+    "./bin/${runner}-run" "${serie}" "${kernel}" "${test_file}" "${lxd_snap_channel}" "${*}" > "${log_file}" || status=FAILED
+    echo "${status}: ${serie} ${kernel} ${test_file} ${lxd_snap_channel} ${*}" >> "/tmp/${lxd_snap_channel_name}.log"
 }
 
 # cgroup
