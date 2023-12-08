@@ -16,9 +16,9 @@ run_test() {
 
     local test_name out_dir log_file lxd_snap_channel_name
     test_name="$(basename "${test_file}")"
+    lxd_snap_channel_name="$(echo "${lxd_snap_channel}" | sed 's/[./]/-/g')"
     out_dir="out/${runner}/${lxd_snap_channel_name}"
     log_file="${out_dir}/${serie}-${kernel}-${test_name}.log"
-    lxd_snap_channel_name="$(echo "${lxd_snap_channel}" | sed 's/[./]/-/g')"
     mkdir -p "${out_dir}/"
     "./bin/${runner}-run" "${serie}" "${kernel}" "${test_file}" "${lxd_snap_channel}" "${@}" > "${log_file}" &
     pids="$! ${pids}"
@@ -81,7 +81,7 @@ run_test jammy default tests/pylxd "${lxd_snap_channel}"
 run_test jammy default tests/storage-buckets "${lxd_snap_channel}"
 run_test jammy default tests/storage-disks-vm "${lxd_snap_channel}"
 run_test jammy default tests/storage-vm "${lxd_snap_channel}"
-run_test jammy default tests/storage-volume-vm "${lxd_snap_channel}"
+run_test jammy default tests/storage-volumes-vm "${lxd_snap_channel}"
 
 # vm-nesting
 run_test jammy default tests/vm-nesting "${lxd_snap_channel}"
