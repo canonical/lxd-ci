@@ -40,13 +40,18 @@ waitInstanceReady() (
     # Find the currently selected project.
     instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
   fi
-  for _ in $(seq "${maxWait}"); do
-    if lxc info --project "${instProj}" "${instName}" | grep -qF "Status: READY"; then
-      return 0 # Success.
-    fi
 
-    sleep 1
-  done
+  if hasNeededAPIExtension instance_ready_state; then
+    for _ in $(seq "${maxWait}"); do
+      if lxc info --project "${instProj}" "${instName}" | grep -qF "Status: READY"; then
+        return 0 # Success.
+      fi
+
+      sleep 1
+    done
+  elif lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" cloud-init status --wait >/dev/null; then
+    return 0 # Success.
+  fi
 
   echo "Instance ${instName} (${instProj}) not ready after ${maxWait}s"
   lxc list --project "${instProj}" "${instName}"
@@ -55,6 +60,11 @@ waitInstanceReady() (
 
 # setupCloudInitReady: setup a cloud-init script to signal readiness.
 setupCloudInitReady() {
+  if ! hasNeededAPIExtension instance_ready_state; then
+    echo "Missing needed extention for instance readiness, will wait for cloud-init instead"
+    return 0
+  fi
+
   instProj="${1}"
   profile="${2:-default}"
 
