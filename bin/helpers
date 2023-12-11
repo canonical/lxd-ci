@@ -131,5 +131,6 @@ cleanup() {
     exit 0
 }
 
+export DEBIAN_FRONTEND=noninteractive
 FAIL=1
 trap cleanup EXIT HUP INT TERM
