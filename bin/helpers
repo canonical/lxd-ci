@@ -69,6 +69,11 @@ enableNICSRIOV() (
   parentNIC="${1}"
   numVFS="${2:-"7"}"
 
+  if ! [ -d "/sys/class/net/${parentNIC}" ]; then
+      echo "${parentNIC} is not present, wrong name?"
+      return 1
+  fi
+
   echo "${numVFS}" > "/sys/class/net/${parentNIC}/device/sriov_numvfs"
   ip link set "${parentNIC}" up
   sleep 10
