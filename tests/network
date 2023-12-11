@@ -1,8 +1,15 @@
 #!/bin/sh
 set -eux
 
+if uname -r | grep -- "-kvm$"; then
+    echo "The -kvm kernel flavor does not have the required extra modules needed by this test."
+    # shellcheck disable=SC2034
+    FAIL=0
+    exit 0
+fi
+
 # Install dependencies
-install_deps jq
+install_deps jq "linux-modules-extra-$(uname -r)"
 
 # Install LXD
 install_lxd
