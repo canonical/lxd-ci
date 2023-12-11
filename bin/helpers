@@ -81,7 +81,7 @@ install_lxd() (
     waitSnapdSeed
 
     snap remove lxd || true
-    snap install lxd --channel="${LXD_SNAP_CHANNEL:-"latest/edge"}"
+    snap install lxd --channel="${LXD_SNAP_CHANNEL}"
     snap list lxd
     uname -a
     cat /proc/cmdline
