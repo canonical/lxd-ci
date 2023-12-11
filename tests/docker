@@ -1,10 +1,13 @@
 #!/bin/sh
 set -eux
 
-CNAME="docker-$$"
-
 # Install LXD
 install_lxd
+
+# Configure LXD
+lxd init --auto
+
+CNAME="docker-$$"
 
 # Create the container
 lxc launch ubuntu-daily:22.04 "${CNAME}" -c security.nesting=true "$@"
