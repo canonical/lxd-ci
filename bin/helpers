@@ -80,7 +80,14 @@ install_lxd() (
     # Wait for snapd seeding
     waitSnapdSeed
 
-    snap remove lxd || true
+    # Prior to removal, snap takes a snapshot of the user data. This is
+    # slow and IO intensive so best skipped if possible by a purge.
+    if [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${PURGE_LXD:-}" ]; then
+        snap remove --purge lxd || true
+    else
+        snap remove lxd || true
+    fi
+
     snap install lxd --channel="${LXD_SNAP_CHANNEL}"
     snap list lxd
     uname -a
