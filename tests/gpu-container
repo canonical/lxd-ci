@@ -17,8 +17,9 @@ deb [arch=${ARCH}] http://archive.ubuntu.com/ubuntu/ ${DISTRO}-updates restricte
 EOF
     fi
 fi
-apt-get update
-apt-get install --yes nvidia-utils-525 nvidia-driver-525
+
+# Install dependencies
+INSTALL_RECOMMENDS=yes install_deps nvidia-utils-525 nvidia-driver-525
 
 # Install LXD
 install_lxd
