@@ -4,6 +4,9 @@ set -eux
 # Install LXD
 install_lxd
 
+# Configure LXD
+lxd init --auto
+
 PREFIX="cluster-$$"
 
 if [ -z "${1:-""}" ] || [ -z "${2:-""}" ] || [ -z "${3:-""}" ]; then
