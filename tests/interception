@@ -1,11 +1,8 @@
 #!/bin/sh
 set -eu
 
-# Refresh apt
-apt-get update
-
 # Install dependencies
-apt-get install --no-install-recommends --yes attr
+install_deps attr
 
 # Install LXD
 install_lxd
@@ -57,7 +54,7 @@ if hasNeededAPIExtension container_syscall_intercept_mount; then
     truncate -s 10G loop.img
     LOOP=$(losetup -f --show loop.img)
     lxc config device add c1 loop unix-block source="${LOOP}" path=/dev/sda
-    lxc exec c1 -- mkfs.ext4 -f /dev/sda
+    lxc exec c1 -- mkfs.ext4 -F /dev/sda
     ! lxc exec c1 -- mount /dev/sda /mnt || false
     lxc config set c1 security.syscalls.intercept.mount=true
 

@@ -1,11 +1,8 @@
 #!/bin/sh
 set -eux
 
-# Refresh apt
-apt-get update
-
 # Install dependencies
-apt-get install --no-install-recommends --yes jq
+install_deps jq
 
 # Install LXD
 install_lxd
@@ -87,7 +84,7 @@ lxc start v1
 waitVMAgent v1
 
 # Configure to use the proxy
-lxc exec v1 -- snap wait system seed.loaded || true
+lxc exec v1 -- snap wait system seed.loaded
 lxc exec v1 -- snap remove --purge lxd || true
 lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec v1 -- /snap/bin/lxd init --auto

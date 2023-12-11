@@ -85,13 +85,41 @@ enableNICSRIOV() (
   ethtool "${parentNIC}"
 )
 
+# install_deps: install dependencies if needed.
+install_deps() (
+    PKGS="${*}"
+    missing=""
+    PKGS_LIST="$(dpkg --get-selections | awk '{print $1}')"
+    for pkg in ${PKGS}; do
+        grep -qxF "${pkg}" <<< "${PKGS_LIST}" && continue
+        missing="${missing} ${pkg}"
+        break
+    done
+
+    if [ "${missing}" != "" ]; then
+        apt-get update
+        if [ "${INSTALL_RECOMMENDS:-"no"}" = "yes" ]; then
+            apt-get install --yes ${PKGS}
+        else
+            apt-get install --no-install-recommends --yes ${PKGS}
+        fi
+    fi
+)
+
 # install_lxd: install LXD from a specific channel or `latest/edge` if none is provided.
 install_lxd() (
     # Wait for snapd seeding
     waitSnapdSeed
 
-    snap remove lxd || true
-    snap install lxd --channel="${LXD_SNAP_CHANNEL:-"latest/edge"}"
+    # Prior to removal, snap takes a snapshot of the user data. This is
+    # slow and IO intensive so best skipped if possible by a purge.
+    if [ -n "${GITHUB_ACTIONS:-}" ] || [ -n "${PURGE_LXD:-}" ]; then
+        snap remove --purge lxd || true
+    else
+        snap remove lxd || true
+    fi
+
+    snap install lxd --channel="${LXD_SNAP_CHANNEL}"
     snap list lxd
     uname -a
     cat /proc/cmdline
@@ -134,5 +162,6 @@ cleanup() {
     exit 0
 }
 
+export DEBIAN_FRONTEND=noninteractive
 FAIL=1
 trap cleanup EXIT HUP INT TERM

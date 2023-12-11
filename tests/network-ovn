@@ -1,14 +1,11 @@
 #!/bin/sh
 set -eux
 
-# Refresh apt
-apt-get update
+# Install dependencies
+install_deps ovn-host ovn-central bind9-dnsutils jq
 
 # Install LXD
 install_lxd
-
-# Install dependencies
-apt-get install --no-install-recommends --yes ovn-host ovn-central bind9-dnsutils jq
 
 # Configure OVN.
 ovs-vsctl set open_vswitch . \
