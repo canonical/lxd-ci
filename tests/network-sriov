@@ -76,21 +76,21 @@ lxc profile device add default eth0 nic nictype=sriov parent="${parentNIC}" name
 # Launch a few VMs.
 # Do this first before containers to ensure VF free search handles VFs unbound from host.
 echo "==> VM on default VLAN"
-lxc init ubuntu-daily:22.04 v1 --vm
+lxc init ubuntu-daily:23.10 v1 --vm
 lxc start v1
 
 echo "==> VM on default VLAN with filtering"
-lxc init ubuntu-daily:22.04 v2 --vm
+lxc init ubuntu-daily:23.10 v2 --vm
 lxc config device override v2 eth0 security.mac_filtering=true
 lxc start v2
 
 echo "==> VM on alternate VLAN"
-lxc init ubuntu-daily:22.04 v3 --vm
+lxc init ubuntu-daily:23.10 v3 --vm
 lxc config device override v3 eth0 vlan=4000
 lxc start v3
 
 echo "==> VM on alternate VLAN with filtering"
-lxc init ubuntu-daily:22.04 v4 --vm
+lxc init ubuntu-daily:23.10 v4 --vm
 lxc config device override v4 eth0 vlan=4000 security.mac_filtering=true
 lxc start v4
 
