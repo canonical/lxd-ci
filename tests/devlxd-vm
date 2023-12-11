@@ -1,11 +1,8 @@
 #!/bin/sh
 set -eux
 
-# Refresh apt
-apt-get update
-
 # Install dependencies
-apt-get install --no-install-recommends --yes jq
+install_deps jq
 
 # Install LXD
 install_lxd
