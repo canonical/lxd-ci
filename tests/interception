@@ -1,11 +1,8 @@
 #!/bin/sh
 set -eu
 
-# Refresh apt
-apt-get update
-
 # Install dependencies
-apt-get install --no-install-recommends --yes attr
+install_deps attr
 
 # Install LXD
 install_lxd
