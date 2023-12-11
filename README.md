@@ -1,4 +1,4 @@
-# Running tests
+# Running tests on OpenStack (ProdStack)
 
 The tests need to be run from PS6's LXD bastion `lxd-bastion-ps6.internal`. Once connected, the proper environment can be loaded with:
 
@@ -9,7 +9,7 @@ pe
 Then to run all the tests on OpenStack VMs:
 
 ```
-./tests/main.sh
+./tests/main-openstack
 ```
 
 Or to run individual tests (`tests/pylxd` against `latest/edge`):
