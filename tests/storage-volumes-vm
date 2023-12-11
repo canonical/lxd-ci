@@ -1,12 +1,11 @@
 #!/bin/sh
 set -eux
 
+# Install dependencies
+install_deps genisoimage
+
 # Install LXD
 install_lxd
-
-# Install dependencies
-apt-get update
-apt-get install --no-install-recommends --yes genisoimage
 
 poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
 
