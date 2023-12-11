@@ -1,3 +1,20 @@
+# Running tests locally
+
+To run a test locally (directly where you invoke it), use the `bin/local-run` helper:
+
+```
+./bin/local-run tests/interception latest/edge
+```
+
+For faster repeated runs, you might want to tell `snap` that it can purge the LXD snap
+without taking any snapshot:
+
+```
+export PURGE_LXD=1
+./bin/local-run tests/interception latest/edge
+```
+
+
 # Running tests on OpenStack (ProdStack)
 
 The tests need to be run from PS6's LXD bastion `lxd-bastion-ps6.internal`. Once connected, the proper environment can be loaded with:
