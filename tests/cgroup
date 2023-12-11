@@ -1,11 +1,8 @@
 #!/bin/sh
 set -eu
 
-# Refresh apt
-apt-get update
-
 # Install dependencies
-apt-get install --no-install-recommends --yes jq iperf3
+install_deps jq iperf3
 
 # Install LXD
 install_lxd
