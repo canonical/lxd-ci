@@ -75,6 +75,23 @@ enableNICSRIOV() (
   ethtool "${parentNIC}"
 )
 
+# install_deps: install dependencies if needed.
+install_deps() (
+    PKGS="${*}"
+    missing=""
+    PKGS_LIST="$(dpkg --get-selections | awk '{print $1}')"
+    for pkg in ${PKGS}; do
+        grep -qxF "${pkg}" <<< "${PKGS_LIST}" && continue
+        missing="${missing} ${pkg}"
+        break
+    done
+
+    if [ "${missing}" != "" ]; then
+        apt-get update
+        apt-get install --no-install-recommends --yes ${PKGS}
+    fi
+)
+
 # install_lxd: install LXD from a specific channel or `latest/edge` if none is provided.
 install_lxd() (
     # Wait for snapd seeding
