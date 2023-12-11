@@ -1,3 +1,4 @@
+# shellcheck disable=SC2148
 
 # waitSnapdSeed: wait for snapd to be seeded.
 waitSnapdSeed() (
@@ -61,27 +62,6 @@ waitInstanceReady() (
   lxc list --project "${instProj}" "${instName}"
   return 1 # Failed.
 )
-
-# setupCloudInitReady: setup a cloud-init script to signal readiness.
-setupCloudInitReady() {
-  if ! hasNeededAPIExtension instance_ready_state; then
-    echo "Missing needed extention for instance readiness, will wait for cloud-init instead"
-    return 0
-  fi
-
-  instProj="${1}"
-  profile="${2:-default}"
-
-  lxc profile set "${profile}" --project "${instProj}" cloud-init.user-data - << EOF
-#cloud-config
-write_files:
-  - content: |
-     #!/bin/sh
-     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
-    path: /var/lib/cloud/scripts/per-boot/ready.sh
-    permissions: "0755"
-EOF
-}
 
 # enableSRIOV: enable SR-IOV on a NIC.
 enableNICSRIOV() (
