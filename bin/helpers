@@ -74,6 +74,11 @@ enableNICSRIOV() (
       return 1
   fi
 
+  if ! [ -e "/sys/class/net/${parentNIC}/device/sriov_numvfs" ]; then
+      echo "${parentNIC} does not support SRIOV VFs"
+      return 1
+  fi
+
   echo "${numVFS}" > "/sys/class/net/${parentNIC}/device/sriov_numvfs"
   ip link set "${parentNIC}" up
   sleep 10
