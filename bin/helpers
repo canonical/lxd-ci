@@ -1,3 +1,4 @@
+# shellcheck disable=SC2148
 
 # waitSnapdSeed: wait for snapd to be seeded.
 waitSnapdSeed() (
@@ -18,15 +19,21 @@ waitSnapdSeed() (
 waitVMAgent() (
   set +x
   vmName="${1}"
+  instProj="${2:-}"
+  if [ -z "${instProj}" ]; then
+    # Find the currently selected project.
+    instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
+  fi
+
   for i in $(seq 90); do
-    if lxc info "${vmName}" | grep -qF 127.0.0.1; then
+    if lxc info --project "${instProj}" "${vmName}" | grep -qF 127.0.0.1; then
       return 0 # Success.
     fi
 
     sleep 1
   done
 
-  echo "VM ${vmName} agent not running after ${i}s"
+  echo "VM ${vmName} (${instProj}) agent not running after ${i}s"
   return 1 # Failed.
 )
 
@@ -40,34 +47,21 @@ waitInstanceReady() (
     # Find the currently selected project.
     instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
   fi
-  for _ in $(seq "${maxWait}"); do
-    if lxc info --project "${instProj}" "${instName}" | grep -qF "Status: READY"; then
-      return 0 # Success.
-    fi
 
-    sleep 1
-  done
+  # For VMs, wait for the agent to be connected before trying to exec into it
+  if lxc info --project "${instProj}" "${instName}" | grep -qxF 'Type: virtual-machine'; then
+      waitVMAgent "${instName}" "${instProj}"
+  fi
+
+  state="$(lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" systemctl is-system-running --wait || true)"
+  if [ "${state}" = "running" ]; then
+    return 0 # Success.
+  fi
 
   echo "Instance ${instName} (${instProj}) not ready after ${maxWait}s"
   lxc list --project "${instProj}" "${instName}"
   return 1 # Failed.
 )
-
-# setupCloudInitReady: setup a cloud-init script to signal readiness.
-setupCloudInitReady() {
-  instProj="${1}"
-  profile="${2:-default}"
-
-  lxc profile set "${profile}" --project "${instProj}" cloud-init.user-data - << EOF
-#cloud-config
-write_files:
-  - content: |
-     #!/bin/sh
-     exec curl --unix-socket /dev/lxd/sock lxd/1.0 -X PATCH -d '{"state":"Ready"}'
-    path: /var/lib/cloud/scripts/per-boot/ready.sh
-    permissions: "0755"
-EOF
-}
 
 # enableSRIOV: enable SR-IOV on a NIC.
 enableNICSRIOV() (

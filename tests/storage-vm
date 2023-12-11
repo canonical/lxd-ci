@@ -28,7 +28,7 @@ do
         fi
 
         echo "==> Create VM and boot"
-        lxc init images:ubuntu/22.04/cloud v1 --vm -s "${poolName}"
+        lxc init ubuntu-daily:22.04 v1 --vm -s "${poolName}"
         lxc start v1
         waitVMAgent v1
         lxc info v1
@@ -36,7 +36,9 @@ do
         echo "==> Check /dev/disk/by-id"
         lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root
         lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part1
-        lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part2
+        if lxc exec v1 -- mount | grep -qwF /boot/efi; then
+            lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part15
+        fi
 
         echo "==> Check config drive is readonly"
         # Check 9p config drive share is exported readonly.
@@ -206,7 +208,7 @@ do
         truncate -s 5m "/tmp/lxd-test-${poolName}/lxd-test-block"
 
         echo "==> Checking disk device hotplug support"
-        lxc launch images:ubuntu/22.04/cloud v1 --vm -s "${poolName}"
+        lxc launch ubuntu-daily:22.04 v1 --vm -s "${poolName}"
         waitVMAgent v1
 
         # Hotplug disks
@@ -248,7 +250,7 @@ do
 
         echo "==> Change volume.size on pool and create VM"
         lxc storage set "${poolName}" volume.size 6GiB
-        lxc init images:ubuntu/22.04/cloud v1 --vm -s "${poolName}"
+        lxc init ubuntu-daily:22.04 v1 --vm -s "${poolName}"
         lxc start v1
         waitVMAgent v1
         lxc info v1
@@ -263,7 +265,7 @@ do
         if [ "${poolDriver}" = "lvm" ]; then
                 echo "==> Change volume.block.filesystem on pool and create VM"
                 lxc storage set "${poolName}" volume.block.filesystem xfs
-                lxc init images:ubuntu/22.04/cloud v1 --vm -s "${poolName}"
+                lxc init ubuntu-daily:22.04 v1 --vm -s "${poolName}"
                 lxc start v1
                 waitVMAgent v1
                 lxc info v1
@@ -280,7 +282,7 @@ do
         echo "==> Create VM from profile with small disk size"
         lxc profile copy default vmsmall
         lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=7GiB
-        lxc init images:ubuntu/22.04/cloud v1 --vm -p vmsmall
+        lxc init ubuntu-daily:22.04 v1 --vm -p vmsmall
         lxc start v1
         waitVMAgent v1
         lxc info v1
@@ -370,7 +372,7 @@ do
         lxc profile delete vmsmall
 
         echo "==> Checking VM Generation UUID with QEMU"
-        lxc init images:ubuntu/22.04/cloud v1 --vm -s "${poolName}"
+        lxc init ubuntu-daily:22.04 v1 --vm -s "${poolName}"
         lxc start v1
         waitVMAgent v1
         lxc info v1

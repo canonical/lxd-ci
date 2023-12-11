@@ -4,7 +4,7 @@ set -eux
 # Install LXD
 install_lxd
 
-parentNIC="${1:-"enp5s0"}"
+parentNIC="${1:-"$(ip route | awk '/^default/ {print $5}')"}"
 
 # Enable SR-IOV on nic and bring up
 enableNICSRIOV "${parentNIC}"
@@ -12,7 +12,6 @@ enableNICSRIOV "${parentNIC}"
 # Configure LXD
 lxc storage create default zfs
 lxc profile device add default root disk path=/ pool=default
-setupCloudInitReady default
 
 # Launch instances with physical NICs
 echo "==> VM on default VLAN with physical"

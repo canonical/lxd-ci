@@ -57,7 +57,7 @@ if hasNeededAPIExtension container_syscall_intercept_mount; then
     truncate -s 10G loop.img
     LOOP=$(losetup -f --show loop.img)
     lxc config device add c1 loop unix-block source="${LOOP}" path=/dev/sda
-    lxc exec c1 -- mkfs.ext4 /dev/sda
+    lxc exec c1 -- mkfs.ext4 -f /dev/sda
     ! lxc exec c1 -- mount /dev/sda /mnt || false
     lxc config set c1 security.syscalls.intercept.mount=true
 
@@ -83,6 +83,11 @@ if hasNeededAPIExtension container_syscall_intercept_mount; then
     else
         echo "Skipping mount fuse tests as the container_syscall_intercept_mount_fuse API extension is missing"
     fi
+
+    ## cleanup
+    lxc delete -f c1
+    losetup -d "${LOOP}"
+    rm -f loop.img
 else
     echo "Skipping mount tests as the container_syscall_intercept_mount API extension is missing"
 fi

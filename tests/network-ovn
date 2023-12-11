@@ -19,7 +19,6 @@ ovs-vsctl set open_vswitch . \
 # Configure LXD.
 lxc project switch default
 lxc storage create default zfs
-setupCloudInitReady default
 
 instanceImage="ubuntu-daily:22.04"
 
@@ -148,7 +147,6 @@ ovn_basic_tests() {
         -c restricted=true
 
     lxc profile device add default root disk path=/ pool=default --project testovn
-    setupCloudInitReady testovn
 
     # Test we cannot create network in restricted project with no defined uplinks.
     ! lxc network create ovn-virtual-network --project testovn || false

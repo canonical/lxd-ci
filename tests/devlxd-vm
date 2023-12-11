@@ -87,7 +87,9 @@ lxc start v1
 waitVMAgent v1
 
 # Configure to use the proxy
-lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL:-"latest/edge"}"
+lxc exec v1 -- snap wait system seed.loaded || true
+lxc exec v1 -- snap remove --purge lxd || true
+lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec v1 -- /snap/bin/lxd init --auto
 lxc exec v1 -- /snap/bin/lxc launch ubuntu-daily:22.04 v1v1 --vm
 sleep 30
