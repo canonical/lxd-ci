@@ -152,6 +152,11 @@ runsMinimumKernel() (
 
 # cleanup: report if the test passed or not and return the appropriate return code.
 cleanup() {
+    # Run any extra cleanup function
+    if command -v extra_cleanup > /dev/null; then
+      extra_cleanup || true
+    fi
+
     echo ""
     if [ "${FAIL}" = "1" ]; then
         echo "Test failed"
