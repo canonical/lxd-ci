@@ -88,7 +88,11 @@ install_deps() (
 
     if [ "${missing}" != "" ]; then
         apt-get update
-        apt-get install --no-install-recommends --yes ${PKGS}
+        if [ "${INSTALL_RECOMMENDS:-"no"}" = "yes" ]; then
+            apt-get install --yes ${PKGS}
+        else
+            apt-get install --no-install-recommends --yes ${PKGS}
+        fi
     fi
 )
 
