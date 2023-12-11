@@ -47,15 +47,13 @@ waitInstanceReady() (
     instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
   fi
 
-  if hasNeededAPIExtension instance_ready_state; then
-    for _ in $(seq "${maxWait}"); do
-      if lxc info --project "${instProj}" "${instName}" | grep -qF "Status: READY"; then
-        return 0 # Success.
-      fi
+  # For VMs, wait for the agent to be connected before trying to exec into it
+  if lxc info --project "${instProj}" "${instName}" | grep -qxF 'Type: virtual-machine'; then
+      waitVMAgent "${instName}" "${instProj}"
+  fi
 
-      sleep 1
-    done
-  elif lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" cloud-init status --wait >/dev/null; then
+  state="$(lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" systemctl is-system-running --wait || true)"
+  if [ "${state}" = "running" ]; then
     return 0 # Success.
   fi
 
