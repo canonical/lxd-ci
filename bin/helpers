@@ -18,15 +18,21 @@ waitSnapdSeed() (
 waitVMAgent() (
   set +x
   vmName="${1}"
+  instProj="${2:-}"
+  if [ -z "${instProj}" ]; then
+    # Find the currently selected project.
+    instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
+  fi
+
   for i in $(seq 90); do
-    if lxc info "${vmName}" | grep -qF 127.0.0.1; then
+    if lxc info --project "${instProj}" "${vmName}" | grep -qF 127.0.0.1; then
       return 0 # Success.
     fi
 
     sleep 1
   done
 
-  echo "VM ${vmName} agent not running after ${i}s"
+  echo "VM ${vmName} (${instProj}) agent not running after ${i}s"
   return 1 # Failed.
 )
 
