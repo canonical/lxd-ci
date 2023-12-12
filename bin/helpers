@@ -55,6 +55,7 @@ waitInstanceBooted() (
   waitInstanceReady "${instName}" "${instProj}"
 
   # Then wait for the boot sequence to complete.
+  sleep 1
   state="$(lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" systemctl is-system-running --wait || true)"
   if [ "${state}" = "running" ]; then
     return 0 # Success.
