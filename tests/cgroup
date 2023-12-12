@@ -60,6 +60,8 @@ lxc config set c1 limits.cpu=2-2
 [ "$(lxc exec c1 -- nproc)" = "1" ]
 
 lxc config unset c1 limits.cpu
+# XXX: avoid a race (https://github.com/canonical/lxd/issues/12659)
+sleep 2
 [ "$(lxc exec c1 -- nproc)" = "$(nproc)" ]
 
 lxc config set c1 limits.cpu.priority 5
