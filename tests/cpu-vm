@@ -21,7 +21,7 @@ lxc storage create "${poolName}" "${poolDriver}"
 
 echo "==> Create ephemeral VM and boot"
 lxc launch ubuntu-daily:22.04 v1 --vm -s "${poolName}" --ephemeral
-waitVMAgent v1
+waitInstanceReady v1
 lxc info v1
 
 # Get number of CPUs
