@@ -69,7 +69,7 @@ lxc config device set v1 d1 source="${testRoot}/allowed1" shift=true
 # Check adding a disk with a source path that is allowed.
 lxc config device set v1 d1 source="${testRoot}/allowed1" shift=false
 lxc start v1
-waitVMAgent v1
+waitInstanceReady v1
 lxc exec v1 -- ls -l /mnt/foo1
 lxc stop -f v1
 
@@ -81,7 +81,7 @@ lxc config device set v1 d1 source="${testRoot}/allowed1/not-allowed2"
 # Check relative symlink inside allowed parent path is allowed.
 lxc config device set v1 d1 source="${testRoot}/allowed1/foolink" path=/mnt/foolink
 lxc start v1
-waitVMAgent v1
+waitInstanceReady v1
 [ "$(lxc exec v1  -- stat /mnt/foolink -c '%u:%g')" = "65534:65534" ] || false
 lxc stop -f v1
 
@@ -105,7 +105,7 @@ lxc config set v1 raw.idmap="both 1000 1000"
 # Check single entry raw.idmap has taken effect on disk share.
 lxc config device set v1 d1 source="${testRoot}/allowed1" path=/mnt
 lxc start v1 || (lxc info --show-log c1 ; false)
-waitVMAgent v1
+waitInstanceReady v1
 [ "$(lxc exec v1  -- stat /mnt/foo1 -c '%u:%g')" = "1000:1000" ] || false
 [ "$(lxc exec v1  -- stat /mnt/foo2 -c '%u:%g')" = "65534:65534" ] || false
 
@@ -114,7 +114,7 @@ if lxc exec v1 -- mount | grep -qwF /boot/efi; then
   lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot enabled"
   lxc profile set default security.secureboot=false
   lxc restart -f v1
-  waitVMAgent v1
+  waitInstanceReady v1
   lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot disabled"
 fi
 
@@ -129,7 +129,7 @@ if hasNeededAPIExtension disk_io_bus; then
   # Add a NVMe disk and check if a NVMe controller is added to the VM
   lxc config device add v1 nvme-ssd disk source="${loopdev}" io.bus=nvme
   lxc start v1
-  waitVMAgent v1
+  waitInstanceReady v1
   lxc exec v1 -- lspci | grep -F "QEMU NVM Express Controller"
 else
   echo 'Skipping NVME test due to missing extension: "disk_io_bus"'
