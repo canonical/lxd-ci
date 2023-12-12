@@ -90,6 +90,7 @@ enableNICSRIOV() (
 
 # install_deps: install dependencies if needed.
 install_deps() (
+    set +x
     PKGS="${*}"
     missing=""
     PKGS_LIST="$(dpkg --get-selections | awk '{print $1}')"
