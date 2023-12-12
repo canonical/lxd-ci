@@ -47,16 +47,19 @@ echo "==> Testing with no GPU"
 # Validate with one GPU
 echo "==> Testing with one GPU"
 lxc config device add c1 gpu0 gpu id=0
+sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
 
 # Validate with all remove
 echo "==> Testing with no GPU"
 lxc config device remove c1 gpu0
+sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "0" ] || false
 
 # Validate with all GPUs
 echo "==> Testing with all GPUs"
 lxc config device add c1 gpus gpu
+sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
 
 # Test nvidia runtime
@@ -72,6 +75,7 @@ lxc exec c1 -- nvidia-smi
 echo "==> Testing PCI address selection"
 lxc config device remove c1 gpus
 lxc config device add c1 gpu1 gpu pci=0000:06:00.0
+sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
 lxc exec c1 -- nvidia-smi
 
@@ -79,6 +83,7 @@ lxc exec c1 -- nvidia-smi
 echo "==> Testing PCI vendor selection"
 lxc config device remove c1 gpu1
 lxc config device add c1 gpus gpu vendorid=10de
+sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
 lxc exec c1 -- nvidia-smi
 
@@ -86,6 +91,7 @@ lxc exec c1 -- nvidia-smi
 echo "==> Testing PCI vendor and product selection"
 lxc config device remove c1 gpus
 lxc config device add c1 gpus gpu vendorid=10de productid=27b8
+sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
 lxc exec c1 -- nvidia-smi
 
