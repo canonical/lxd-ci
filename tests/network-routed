@@ -52,7 +52,7 @@ EOF
 lxc start v1
 
 # Wait for VM to start.
-waitVMAgent v1
+waitInstanceReady v1
 sleep 10
 
 # Test ping to/from VM NIC.
