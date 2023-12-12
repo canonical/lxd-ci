@@ -38,7 +38,7 @@ lxc profile device add default eth0 nic network=lxdbr0 name=eth0
 # Launch a test container
 echo "==> Launching a test container"
 lxc launch ubuntu-daily:22.04 c1
-sleep 10
+waitInstanceReady c1
 
 # Confirm no GPU
 echo "==> Testing with no GPU"
@@ -65,6 +65,7 @@ echo "==> Testing nvidia runtime"
 lxc stop c1
 lxc config set c1 nvidia.runtime true
 lxc start c1
+waitInstanceReady c1
 lxc exec c1 -- nvidia-smi
 
 # Test with PCI addresses
