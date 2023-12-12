@@ -36,12 +36,12 @@ waitInstanceReady() (
       sleep 1
   done
 
-  echo "Instance ${instName} (${instProj}) agent not running after ${i}s"
+  echo "Instance ${instName} (${instProj}) not ready after ${maxWait}s"
   return 1 # Failed.
 )
 
-# waitInstanceReady: waits for the instance to be ready.
-waitInstanceReady() (
+# waitInstanceBooted: waits for the instance to be ready and fully booted.
+waitInstanceBooted() (
   set +x
   maxWait=90
   instName="$1"
@@ -51,14 +51,8 @@ waitInstanceReady() (
     instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
   fi
 
-  # Wait for the instance to report a valid number of processes.
-  processes=0
-  for _ in $(seq "${maxWait}"); do
-      processes="$(lxc info --project "${instProj}" "${instName}" | awk '{if ($1 == "Processes:") print $2}')"
-      if [ "${processes}" -gt 0 ]; then
-          break
-      fi
-  done
+  # Wait for the instance to be ready
+  waitInstanceReady "${instName}" "${instProj}"
 
   # Then wait for the boot sequence to complete.
   state="$(lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" systemctl is-system-running --wait || true)"
@@ -66,7 +60,7 @@ waitInstanceReady() (
     return 0 # Success.
   fi
 
-  echo "Instance ${instName} (${instProj}) not ready after ${maxWait}s"
+  echo "Instance ${instName} (${instProj}) not booted after ${maxWait}s"
   lxc list --project "${instProj}" "${instName}"
   return 1 # Failed.
 )
