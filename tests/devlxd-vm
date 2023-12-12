@@ -19,7 +19,7 @@ lxc storage create "${poolName}" "${poolDriver}"
 
 echo "==> Create VM and boot"
 lxc launch ubuntu-daily:22.04 v1 --vm -s "${poolName}"
-waitVMAgent v1
+waitInstanceReady v1
 lxc info v1
 
 echo "==> Checking devlxd is working"
@@ -33,7 +33,7 @@ lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta
 # Run sync before forcefully restarting the VM otherwise the filesystem will be corrupted.
 lxc exec v1 -- "sync"
 lxc restart -f v1
-waitVMAgent v1
+waitInstanceReady v1
 
 # devlxd should be running after restart
 lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0 | jq
@@ -50,7 +50,7 @@ echo "==> Checking devlxd is not working"
 
 lxc exec v1 -- "sync"
 lxc restart -f v1
-waitVMAgent v1
+waitInstanceReady v1
 
 # devlxd should not be running after restart
 ! lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0 || false
@@ -81,7 +81,7 @@ sleep 5
 
 # Test nested VM functionality.
 lxc start v1
-waitVMAgent v1
+waitInstanceReady v1
 
 # Configure to use the proxy
 lxc exec v1 -- snap wait system seed.loaded

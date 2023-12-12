@@ -30,7 +30,7 @@ do
         echo "==> Create VM and boot"
         lxc init ubuntu-daily:22.04 v1 --vm -s "${poolName}"
         lxc start v1
-        waitVMAgent v1
+        waitInstanceReady v1
         lxc info v1
 
         echo "==> Check /dev/disk/by-id"
@@ -60,20 +60,20 @@ do
 
         echo "==> Checking restore VM snapshot"
         lxc restore v1 snap0
-        waitVMAgent v1
+        waitInstanceReady v1
         lxc exec v1 -- cat /root/foo.txt | grep -Fx "foo"
 
         echo "==> Checking VM can be copied with snapshots"
         lxc copy v1 v2
         [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
         lxc start v2
-        waitVMAgent v2
+        waitInstanceReady v2
         lxc delete -f v2
 
         echo "==> Checking running copied VM snapshot"
         lxc copy v1/snap0 v2
         lxc start v2
-        waitVMAgent v2
+        waitInstanceReady v2
         lxc exec v2 -- cat /root/foo.txt | grep -Fx "foo"
 
         echo "==> Checking VM snapshot copy root disk size is 10GiB"
@@ -95,7 +95,7 @@ do
         lxc stop v1 -f
         ! pgrep -af "${uuid}" || false
         lxc start v1
-        waitVMAgent v1
+        waitInstanceReady v1
 
         echo "==> Testing VM non-optimized export/import (while running to check config.mount is excluded)"
         lxc exec v1 -- fsfreeze --freeze /
@@ -104,7 +104,7 @@ do
         lxc import "/tmp/lxd-test-${poolName}.tar.gz"
         rm "/tmp/lxd-test-${poolName}.tar.gz"
         lxc start v1
-        waitVMAgent v1
+        waitInstanceReady v1
 
         echo "==> Testing VM optimized export/import (while running to check config.mount is excluded)"
         lxc exec v1 -- fsfreeze --freeze /
@@ -113,14 +113,14 @@ do
         lxc import "/tmp/lxd-test-${poolName}-optimized.tar.gz"
         rm "/tmp/lxd-test-${poolName}-optimized.tar.gz"
         lxc start v1
-        waitVMAgent v1
+        waitInstanceReady v1
 
         echo "==> Increasing VM root disk size for next boot"
         lxc config device set v1 root size=11GiB
         lxc config get v1 volatile.root.apply_quota | grep true
         lxc stop -f v1
         lxc start v1
-        waitVMAgent v1
+        waitInstanceReady v1
 
         echo "==> Checking VM root disk size is 11GiB"
         [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "11" ]
@@ -144,7 +144,7 @@ do
         lxc config device add v1 block1ro disk source="/tmp/lxd-test-${poolName}/lxd-test-block" readonly=true
         lxc config device add v1 block1rw disk source="/tmp/lxd-test-${poolName}/lxd-test-block"
         lxc start v1
-        waitVMAgent v1
+        waitInstanceReady v1
 
         echo "==> Testing VM lxd-agent drive mounts"
         # Check there is only 1 mount for each directory disk and that it is mounted with the appropriate options.
@@ -209,7 +209,7 @@ do
 
         echo "==> Checking disk device hotplug support"
         lxc launch ubuntu-daily:22.04 v1 --vm -s "${poolName}"
-        waitVMAgent v1
+        waitInstanceReady v1
 
         # Hotplug disks
         lxc storage volume create "${poolName}" vol1 --type=block size=10MB
@@ -252,7 +252,7 @@ do
         lxc storage set "${poolName}" volume.size 6GiB
         lxc init ubuntu-daily:22.04 v1 --vm -s "${poolName}"
         lxc start v1
-        waitVMAgent v1
+        waitInstanceReady v1
         lxc info v1
 
         echo "==> Checking VM root disk size is 6GiB"
@@ -267,7 +267,7 @@ do
                 lxc storage set "${poolName}" volume.block.filesystem xfs
                 lxc init ubuntu-daily:22.04 v1 --vm -s "${poolName}"
                 lxc start v1
-                waitVMAgent v1
+                waitInstanceReady v1
                 lxc info v1
 
                 echo "==> Checking VM config disk filesyste is XFS"
@@ -284,7 +284,7 @@ do
         lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=7GiB
         lxc init ubuntu-daily:22.04 v1 --vm -p vmsmall
         lxc start v1
-        waitVMAgent v1
+        waitInstanceReady v1
         lxc info v1
 
         echo "==> Checking VM root disk size is 7GiB"
@@ -304,7 +304,7 @@ do
 
         lxc copy v1 v2 -s "${poolName}2"
         lxc start v2
-        waitVMAgent v2
+        waitInstanceReady v2
         lxc info v2
 
         echo "==> Checking copied VM root disk size is 7GiB"
@@ -321,7 +321,7 @@ do
         lxc storage create "${poolName}2" "${dstPoolDriver}" size=20GiB
         lxc copy v1 v2 -s "${poolName}2"
         lxc start v2
-        waitVMAgent v2
+        waitInstanceReady v2
         lxc info v2
 
         echo "==> Checking copied VM root disk size is 7GiB"
@@ -332,7 +332,7 @@ do
         lxc config device override v1 root size=11GiB
         lxc copy v1 v2 -s "${poolName}2"
         lxc start v2
-        waitVMAgent v2
+        waitInstanceReady v2
         lxc info v2
 
         echo "==> Checking copied VM root disk size is 11GiB"
@@ -342,7 +342,7 @@ do
 
         echo "==> Publishing larger VM"
         lxc start v1 # Start to ensure cloud-init grows filesystem before publish.
-        waitVMAgent v1
+        waitInstanceReady v1
         lxc info v1
         lxc stop -f v1
         lxc publish v1 --alias vmbig
@@ -356,7 +356,7 @@ do
         lxc storage unset "${poolName}" volume.size
         lxc init vmbig v1 --vm -s "${poolName}"
         lxc start v1
-        waitVMAgent v1
+        waitInstanceReady v1
         lxc info v1
 
         echo "==> Checking new VM root disk size is 11GiB"
@@ -374,7 +374,7 @@ do
         echo "==> Checking VM Generation UUID with QEMU"
         lxc init ubuntu-daily:22.04 v1 --vm -s "${poolName}"
         lxc start v1
-        waitVMAgent v1
+        waitInstanceReady v1
         lxc info v1
 
         # Check that the volatile.uuid.generation setting is applied to the QEMU process.

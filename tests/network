@@ -52,12 +52,12 @@ lxc start c1-sriov
 # Wait for VMs to start.
 echo "==> Waiting for VMs to start"
 
-waitInstanceReady c1-physical
-waitInstanceReady c1-macvlan
-waitInstanceReady c1-sriov
-waitInstanceReady v1-physical
-waitInstanceReady v1-macvlan
-waitInstanceReady v1-sriov
+waitInstanceBooted c1-physical
+waitInstanceBooted c1-macvlan
+waitInstanceBooted c1-sriov
+waitInstanceBooted v1-physical
+waitInstanceBooted v1-macvlan
+waitInstanceBooted v1-sriov
 
 # Check that all instances have an IPv4 and IPv6 address
 networkTests() {
@@ -188,7 +188,7 @@ lxc config device set v1-physical eth0 nictype=bridged parent=lxdbr0 network= mt
 lxc start v1-physical
 
 # Wait for lxd-agent to rename the interface.
-waitInstanceReady v1-physical
+waitInstanceBooted v1-physical
 
 # Interface "eth0" should exist in the VM with the correct MTU.
 lxc exec v1-physical -- test -d /sys/class/net/eth0

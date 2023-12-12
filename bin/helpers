@@ -15,30 +15,33 @@ waitSnapdSeed() (
   return 1 # Failed.
 )
 
-# waitVMAgent: waits for the VM agent to be running.
-waitVMAgent() (
+# waitInstanceReady: waits for the instance to be ready (processes count > 1).
+waitInstanceReady() (
   set +x
-  vmName="${1}"
+  maxWait=90
+  instName="${1}"
   instProj="${2:-}"
   if [ -z "${instProj}" ]; then
     # Find the currently selected project.
     instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
   fi
 
-  for i in $(seq 90); do
-    if lxc info --project "${instProj}" "${vmName}" | grep -qF 127.0.0.1; then
-      return 0 # Success.
-    fi
-
-    sleep 1
+  # Wait for the instance to report more than one process.
+  processes=0
+  for _ in $(seq "${maxWait}"); do
+      processes="$(lxc info --project "${instProj}" "${instName}" | awk '{if ($1 == "Processes:") print $2}')"
+      if [ "${processes}" -gt 1 ]; then
+          return 0 # Success.
+      fi
+      sleep 1
   done
 
-  echo "VM ${vmName} (${instProj}) agent not running after ${i}s"
+  echo "Instance ${instName} (${instProj}) not ready after ${maxWait}s"
   return 1 # Failed.
 )
 
-# waitInstanceReady: waits for the instance to be ready.
-waitInstanceReady() (
+# waitInstanceBooted: waits for the instance to be ready and fully booted.
+waitInstanceBooted() (
   set +x
   maxWait=90
   instName="$1"
@@ -48,17 +51,17 @@ waitInstanceReady() (
     instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
   fi
 
-  # For VMs, wait for the agent to be connected before trying to exec into it
-  if lxc info --project "${instProj}" "${instName}" | grep -qxF 'Type: virtual-machine'; then
-      waitVMAgent "${instName}" "${instProj}"
-  fi
+  # Wait for the instance to be ready
+  waitInstanceReady "${instName}" "${instProj}"
 
+  # Then wait for the boot sequence to complete.
+  sleep 1
   state="$(lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" systemctl is-system-running --wait || true)"
   if [ "${state}" = "running" ]; then
     return 0 # Success.
   fi
 
-  echo "Instance ${instName} (${instProj}) not ready after ${maxWait}s"
+  echo "Instance ${instName} (${instProj}) not booted after ${maxWait}s"
   lxc list --project "${instProj}" "${instName}"
   return 1 # Failed.
 )

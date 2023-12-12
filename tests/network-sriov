@@ -95,10 +95,10 @@ lxc config device override v4 eth0 vlan=4000 security.mac_filtering=true
 lxc start v4
 
 # Wait for VMs to start.
-waitVMAgent v1
-waitVMAgent v2
-waitVMAgent v3
-waitVMAgent v4
+waitInstanceReady v1
+waitInstanceReady v2
+waitInstanceReady v3
+waitInstanceReady v4
 
 lxc list
 networkTests
