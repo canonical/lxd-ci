@@ -35,6 +35,18 @@ lxc profile device add default root disk path=/ pool=default
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0 name=eth0
 
+# Consult available resources
+total_gpu="$(lxc query /1.0/resources | jq -r '.gpu.total')"
+total_nvidia_gpu="$(lxc query /1.0/resources | jq -r '.gpu.cards | .[] | select(.driver == "nvidia") | .pci_address' | wc -l)"
+first_card_pci_slot="$(lxc query /1.0/resources | jq -r '.gpu.cards | .[] | select(.driver == "nvidia") | .pci_address' | head -n1)"
+first_card_product_id="$(lxc query /1.0/resources | jq -r ".gpu.cards | .[] | select(.pci_address == \"${first_card_pci_slot}\") | .product_id")"
+total_nvidia_gpu_with_product_id="$(lxc query /1.0/resources | jq -r ".gpu.cards | .[] | select(.product_id == \"${first_card_product_id}\") | .product_id" | wc -l)"
+
+# Check if available resources are sufficient
+[ "${total_gpu}" -gt 1 ]
+[ "${total_nvidia_gpu}" -ge 1 ]
+[ "${total_nvidia_gpu_with_product_id}" -ge 1 ]
+
 # Launch a test container
 echo "==> Launching a test container"
 lxc launch ubuntu-daily:22.04 c1
@@ -57,10 +69,10 @@ sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "0" ] || false
 
 # Validate with all GPUs
-echo "==> Testing with all GPUs"
+echo "==> Testing with all NVIDIA GPUs"
 lxc config device add c1 gpus gpu
 sleep 1
-[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_gpu}" ] || false
 
 # Test nvidia runtime
 echo "==> Testing nvidia runtime"
@@ -74,7 +86,7 @@ lxc exec c1 -- nvidia-smi
 # Test with PCI addresses
 echo "==> Testing PCI address selection"
 lxc config device remove c1 gpus
-lxc config device add c1 gpu1 gpu pci=0000:06:00.0
+lxc config device add c1 gpu1 gpu pci="${first_card_pci_slot}"
 sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
 lxc exec c1 -- nvidia-smi
@@ -84,15 +96,15 @@ echo "==> Testing PCI vendor selection"
 lxc config device remove c1 gpu1
 lxc config device add c1 gpus gpu vendorid=10de
 sleep 1
-[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_nvidia_gpu}" ] || false
 lxc exec c1 -- nvidia-smi
 
 # Test with vendor and product
 echo "==> Testing PCI vendor and product selection"
 lxc config device remove c1 gpus
-lxc config device add c1 gpus gpu vendorid=10de productid=27b8
+lxc config device add c1 gpus gpu vendorid=10de productid="${first_card_product_id}"
 sleep 1
-[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_nvidia_gpu_with_product_id}" ] || false
 lxc exec c1 -- nvidia-smi
 
 # shellcheck disable=SC2034
