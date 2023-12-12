@@ -62,10 +62,10 @@ ovn_basic_tests() {
     lxc start 4u
 
     echo "==> Wait for addresses"
-    waitInstanceReady u1
-    waitInstanceReady u2
-    waitInstanceReady u3
-    waitInstanceReady 4u
+    waitInstanceBooted u1
+    waitInstanceBooted u2
+    waitInstanceBooted u3
+    waitInstanceBooted 4u
     lxc list
 
     echo "==> Testing connectivity"
@@ -123,8 +123,8 @@ ovn_basic_tests() {
     lxc start u2
 
     echo "==> Wait for new addresses"
-    waitInstanceReady u2
-    waitInstanceReady u3
+    waitInstanceBooted u2
+    waitInstanceBooted u3
     lxc list
 
     U2_IPV4="$(lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
@@ -218,7 +218,7 @@ ovn_basic_tests() {
     lxc start u1 --project testovn
 
     # Test external IPs allocated and published using dnat.
-    waitInstanceReady u1 testovn
+    waitInstanceBooted u1 testovn
     U1_EXT_IPV4="$(lxc list u1 --project testovn -c4 --format=csv | cut -d' ' -f1)"
     U1_EXT_IPV6="$(lxc list u1 --project testovn -c6 --format=csv | cut -d' ' -f1)"
     ovn-nbctl --bare --format=csv --column=external_ip,logical_ip,type find nat | grep "${U1_EXT_IPV4},${U1_EXT_IPV4},dnat_and_snat"
@@ -413,8 +413,8 @@ ovn_basic_tests() {
     lxc start u3
 
     echo "==> Wait for addresses"
-    waitInstanceReady u2 testovn
-    waitInstanceReady u3 testovn
+    waitInstanceBooted u2 testovn
+    waitInstanceBooted u3 testovn
     lxc list
 
     echo "==> Testing connectivity"
@@ -529,7 +529,7 @@ ovn_basic_tests() {
 
     # Check connectivity back to uplink bridge without SNAT address specified.
     lxc launch "${instanceImage}" u1 -n ovn-virtual-network -s default
-    waitInstanceReady u1
+    waitInstanceBooted u1
     lxc exec u1 -- ping -nc1 -w5 192.0.2.1
     lxc exec u1 -- ping -nc1 -w5 2001:db8:1:1::1
 
@@ -699,7 +699,7 @@ ovn_forward_tests() {
 
     # Create instance connected to ovn-virtual-network.
     lxc launch "${instanceImage}" u1 -n ovn-virtual-network -s default
-    waitInstanceReady u1
+    waitInstanceBooted u1
     lxc list
     U1_IPV4="$(lxc list u1 -c4 --format=csv | cut -d' ' -f1)"
     U1_IPV6="$(lxc list u1 -c6 --format=csv | cut -d' ' -f1)"
@@ -743,7 +743,7 @@ EOF
 
     # Check TCP port forward of port 53 to a different host.
     lxc launch "${instanceImage}" u2 -n ovn-virtual-network -s default
-    waitInstanceReady u2
+    waitInstanceBooted u2
     lxc list
     U2_IPV4="$(lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
     U2_IPV6="$(lxc list u2 -c6 --format=csv | cut -d' ' -f1)"
@@ -901,7 +901,7 @@ ovn_load_balancer_tests() {
 
     # Create instance connected to ovn-virtual-network.
     lxc launch "${instanceImage}" u1 -n ovn-virtual-network -s default
-    waitInstanceReady u1
+    waitInstanceBooted u1
     lxc list
     U1_IPV4="$(lxc list u1 -c4 --format=csv | cut -d' ' -f1)"
     U1_IPV6="$(lxc list u1 -c6 --format=csv | cut -d' ' -f1)"
@@ -963,7 +963,7 @@ EOF
 
     # Check changing DNS TCP forwarding towards u2.
     lxc launch "${instanceImage}" u2 -n ovn-virtual-network -s default
-    waitInstanceReady u2
+    waitInstanceBooted u2
     lxc list
     U2_IPV4="$(lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
     U2_IPV6="$(lxc list u2 -c6 --format=csv | cut -d' ' -f1)"
@@ -1099,8 +1099,8 @@ ovn_peering_tests() {
         ipv6.routes.external=2001:db8:1:2::2/128
     lxc start ovn1 --project=ovn1
     lxc launch "${instanceImage}" ovn2 -n ovn2 -s default --project=ovn2
-    waitInstanceReady ovn1 ovn1
-    waitInstanceReady ovn2 ovn2
+    waitInstanceBooted ovn1 ovn1
+    waitInstanceBooted ovn2 ovn2
 
     # Add IPs from routes to ovn1 instance.
     lxc exec ovn1 --project=ovn1 -- ip a add 198.51.100.1/32 dev eth0
@@ -1168,7 +1168,7 @@ ovn_peering_tests() {
     ovn-nbctl list address_set | grep -F 2001:db8:1:2::2/128
 
     # Check security policies prevent spoofed packets using peer connection.
-    waitInstanceReady ovn1 ovn1
+    waitInstanceBooted ovn1 ovn1
     ovn1NICIPv4="$(lxc list ovn1 -c4 --format=csv --project=ovn1 | cut -d' ' -f1)"
     ovn1NICIPv6="$(lxc list ovn1 -c6 --format=csv --project=ovn1 | cut -d' ' -f1)"
     ovn2NICIPv4="$(lxc list ovn2 -c4 --format=csv --project=ovn2 | cut -d' ' -f1)"
@@ -1235,7 +1235,7 @@ ovn_peering_tests() {
     lxc delete -f ovn1 --project=ovn1 # Remove as we cleared its DHCP config.
     lxc network set ovn1 ipv4.address=192.0.2.1/24 ipv6.address=2001:db8:1:1::1/64 --project=ovn1
     lxc launch "${instanceImage}" ovn1 -n ovn1 -s default --project=ovn1
-    waitInstanceReady ovn1 ovn1
+    waitInstanceBooted ovn1 ovn1
     ovn1NICIPv4="$(lxc list ovn1 -c4 --format=csv --project=ovn1 | cut -d' ' -f1)"
     ovn1NICIPv6="$(lxc list ovn1 -c6 --format=csv --project=ovn1 | cut -d' ' -f1)"
     lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -4 -w5 "${ovn1NICIPv4}"
@@ -1374,7 +1374,7 @@ ovn_dhcp_reservation_tests() {
 
     # Launch new dynamic IP instance and check its not allocated the reserved IP.
     lxc launch "${instanceImage}" u2 -s default -n ovn1
-    waitInstanceReady u2
+    waitInstanceBooted u2
     lxc list
     U2_IPV4="$(lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
     [ "${U2_IPV4}" != "10.10.11.2" ] || false
@@ -1476,8 +1476,8 @@ ovn_nested_vlan_tests() {
     lxc exec u1 -- ip netns exec vlan_nesting2 ip address add fd42:4242:4242:1011::11/64 dev eth0.2 nodad
     lxc exec u1 -- ip netns exec vlan_nesting2 ip link set eth0.2 up
 
-    waitInstanceReady u1
-    waitInstanceReady u2
+    waitInstanceBooted u1
+    waitInstanceBooted u2
     lxc list
     lxc exec u1 -- ip netns exec vlan_nesting1 ip address
     lxc exec u1 -- ip netns exec vlan_nesting2 ip address
@@ -1557,8 +1557,8 @@ ovn_acl_tests() {
     lxc launch "${instanceImage}" c2 -n ovn0 -s default
 
     echo "==> Wait for addresses"
-    waitInstanceReady c1
-    waitInstanceReady c2
+    waitInstanceBooted c1
+    waitInstanceBooted c2
     lxc list
 
     # Check per-NIC ACL rules added.
@@ -1709,7 +1709,7 @@ ovn_acl_tests() {
     lxc start c1
 
     echo "==> Wait for addresses"
-    waitInstanceReady c1
+    waitInstanceBooted c1
     lxc list
 
     # Ping to c1 instance from c2 should be blocked.
@@ -1849,8 +1849,8 @@ ovn_acl_tests() {
     lxc start c1
 
     echo "==> Wait for addresses"
-    waitInstanceReady c1
-    waitInstanceReady c2
+    waitInstanceBooted c1
+    waitInstanceBooted c2
     lxc list
 
     # Check c2 can ping external.
@@ -1907,8 +1907,8 @@ ovn_l3only_tests() {
     lxc launch "${instanceImage}" u1 -s default -n ovn1
     lxc launch "${instanceImage}" u2 -s default -n ovn1
 
-    waitInstanceReady u1
-    waitInstanceReady u2
+    waitInstanceBooted u1
+    waitInstanceBooted u2
     lxc list
 
     U1_IPV4="$(lxc list u1 -c4 --format=csv | cut -d' ' -f1)"
