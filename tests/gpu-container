@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+# testflinger_queue: rockman
+
 # Install required components from "restricted" pocket
 if ! grep -v '^#' /etc/apt/sources.list | grep -qwFm1 restricted; then
     ARCH="$(dpkg --print-architecture)"
