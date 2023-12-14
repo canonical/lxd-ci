@@ -29,6 +29,14 @@ install_lxd
 # Check that NVIDIA is installed
 nvidia-smi
 
+extra_cleanup() {
+  lxc delete -f c1
+  lxc profile device remove default root
+  lxc profile device remove default eth0
+  lxc storage delete default
+  lxc network delete lxdbr0
+}
+
 # Configure LXD
 lxc storage create default zfs
 lxc profile device add default root disk path=/ pool=default
