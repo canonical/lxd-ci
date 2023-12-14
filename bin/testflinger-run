@@ -23,7 +23,7 @@ test_data:
     SSH="ssh -n \$SSH_OPTS"
 
     # Get lxd-ci scripts
-    git clone https://github.com/canonical/lxd-ci.git
+    git clone --depth 1 https://github.com/canonical/lxd-ci.git
     cd lxd-ci
 
     # wait for a machine to be ready
