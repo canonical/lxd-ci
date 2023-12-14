@@ -9,9 +9,13 @@ shift 4
 _script="$(mktemp)"
 test_name="$(basename "${script}")"
 
+# Look in the test script if there is a suggested queue
+queue="$(awk '/^# testflinger_queue:/ {print $3}' "${script}")"
+queue="${queue:-anything}"
+
 testflinger_yaml_job() {
     cat << EOF
-job_queue: anything
+job_queue: ${queue}
 provision_data:
   distro: ${serie}
 test_data:
