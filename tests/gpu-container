@@ -21,7 +21,7 @@ EOF
 fi
 
 # Install dependencies
-INSTALL_RECOMMENDS=yes install_deps nvidia-utils-525 nvidia-driver-525
+INSTALL_RECOMMENDS=yes install_deps jq nvidia-utils-525 nvidia-driver-525
 
 # Install LXD
 install_lxd
