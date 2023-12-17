@@ -20,6 +20,11 @@ EOF
     fi
 fi
 
+if mokutil --sb-state | grep -Fx "SecureBoot enabled"; then
+  echo "SecureBoot needs to be disabled to avoid a prompt to register custom MOK (Machine-Owner Key) during DKMS" >&2
+  exit 1
+fi
+
 # Install dependencies
 INSTALL_RECOMMENDS=yes install_deps jq nvidia-utils-525 nvidia-driver-525
 
