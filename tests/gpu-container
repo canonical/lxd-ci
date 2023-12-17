@@ -26,7 +26,9 @@ if mokutil --sb-state | grep -Fx "SecureBoot enabled"; then
 fi
 
 # Install dependencies
-INSTALL_RECOMMENDS=yes install_deps jq nvidia-utils-525 nvidia-driver-525
+install_deps jq ubuntu-drivers-common
+RECOMMENDED_DRIVER="$(ubuntu-drivers devices 2>/dev/null | awk '/nvidia-driver-.*recommended$/ {print $3}')"
+INSTALL_RECOMMENDS=yes install_deps "${RECOMMENDED_DRIVER}"
 
 # Install LXD
 install_lxd
