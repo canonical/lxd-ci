@@ -3,6 +3,11 @@ set -eux
 
 # testflinger_queue: torchtusk
 
+if mokutil --sb-state | grep -Fx "SecureBoot enabled"; then
+  echo "SecureBoot needs to be disabled to avoid a prompt to register custom MOK (Machine-Owner Key) during DKMS" >&2
+  exit 1
+fi
+
 # Install dependencies
 install_deps jq ubuntu-drivers-common
 RECOMMENDED_DRIVER="$(ubuntu-drivers devices 2>/dev/null | awk '/nvidia-driver-.*recommended$/ {print $3}')"
