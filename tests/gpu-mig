@@ -43,6 +43,7 @@ lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0 name=eth0
 
 # Consult available resources
+identical_nvidia_gpus="$(lxc query /1.0/resources | jq -r '.gpu.cards | .[] | select(.driver == "nvidia") | .product_id' | sort | uniq --repeated)"
 first_card_pci_slot="$(lxc query /1.0/resources | jq -r '.gpu.cards | .[] | select(.driver == "nvidia") | .pci_address' | head -n1)"
 first_card_product_id="$(lxc query /1.0/resources | jq -r ".gpu.cards | .[] | select(.pci_address == \"${first_card_pci_slot}\") | .product_id")"
 
@@ -82,9 +83,16 @@ lxc start nvidia-mig4
 lxc exec nvidia-mig4 -- nvidia-smi
 
 lxc stop nvidia-mig4
-# XXX: the pci address is only required if there are multiple identical cards to supplement the the vendorid/productid
-lxc config device add nvidia-mig4 gpu1 gpu gputype=mig mig.uuid="$UUID1" vendorid=10de productid="${first_card_product_id}" pci="${first_card_pci_slot}"
-lxc config device add nvidia-mig4 gpu2 gpu gputype=mig mig.uuid="$UUID2" vendorid=10de productid="${first_card_product_id}" pci="${first_card_pci_slot}"
+if [ -n "${identical_nvidia_gpus}" ]; then
+  # XXX: if there are multiple identical cards the vendorid/productid combo isn't enough to identify the GPU so a
+  #      PCI address would be needed as well but that's already been tested before
+  echo "Skipping vendorid/productid assignment test due to multiple NVIDIA GPUs with the same productid"
+  lxc config device add nvidia-mig4 gpu1 gpu gputype=mig mig.uuid="$UUID1" pci="${first_card_pci_slot}"
+  lxc config device add nvidia-mig4 gpu2 gpu gputype=mig mig.uuid="$UUID2" pci="${first_card_pci_slot}"
+else
+  lxc config device add nvidia-mig4 gpu1 gpu gputype=mig mig.uuid="$UUID1" vendorid=10de productid="${first_card_product_id}"
+  lxc config device add nvidia-mig4 gpu2 gpu gputype=mig mig.uuid="$UUID2" vendorid=10de productid="${first_card_product_id}"
+fi
 lxc start nvidia-mig4
 lxc exec nvidia-mig4 -- nvidia-smi
 
