@@ -96,6 +96,9 @@ fi
 lxc start nvidia-mig4
 lxc exec nvidia-mig4 -- nvidia-smi
 
+# Make sure all 3 MIG devices are there (gpu{0,1,2})
+[ "$(lxc exec nvidia-mig4 -- nvidia-smi -L | grep -cwF MIG)" -eq 3 ]
+
 # Wait for them to start and list
 lxc list
 
