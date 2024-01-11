@@ -1,8 +1,40 @@
 #!/bin/sh
-set -eu
+set -eux
+
+# testflinger_queue: torchtusk
+
+if mokutil --sb-state | grep -Fx "SecureBoot enabled"; then
+  echo "SecureBoot needs to be disabled to avoid a prompt to register custom MOK (Machine-Owner Key) during DKMS" >&2
+  exit 1
+fi
+
+# Install dependencies
+install_deps jq ubuntu-drivers-common
+RECOMMENDED_DRIVER="$(ubuntu-drivers devices 2>/dev/null | awk '/nvidia-driver-.*recommended$/ {print $3}')"
+INSTALL_RECOMMENDS=yes install_deps "${RECOMMENDED_DRIVER}"
 
 # Install LXD
 install_lxd
+
+# Check that NVIDIA is installed
+nvidia-smi
+
+extra_cleanup() {
+  lxc delete -f nvidia-mig1
+  lxc delete -f nvidia-mig2
+  lxc delete -f nvidia-mig3
+  lxc delete -f nvidia-mig4
+
+  # Cleanup MIG
+  nvidia-smi mig -dci
+  nvidia-smi mig -dgi
+  nvidia-smi -mig 0
+
+  lxc profile device remove default root
+  lxc profile device remove default eth0
+  lxc storage delete default
+  lxc network delete lxdbr0
+}
 
 # Configure LXD
 lxc storage create default zfs
@@ -10,11 +42,10 @@ lxc profile device add default root disk path=/ pool=default
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0 name=eth0
 
-# Confirm GPU is online
-nvidia-smi
-
-# LXD resource API
-lxc info --resources
+# Consult available resources
+identical_nvidia_gpus="$(lxc query /1.0/resources | jq -r '.gpu.cards | .[] | select(.driver == "nvidia") | .product_id' | sort | uniq --repeated)"
+first_card_pci_slot="$(lxc query /1.0/resources | jq -r '.gpu.cards | .[] | select(.driver == "nvidia") | .pci_address' | head -n1)"
+first_card_product_id="$(lxc query /1.0/resources | jq -r ".gpu.cards | .[] | select(.pci_address == \"${first_card_pci_slot}\") | .product_id")"
 
 # Setup MIG
 nvidia-smi -mig 1
@@ -35,13 +66,13 @@ UUID4="$(echo "$UUIDS" | sed -n '4p')"
 
 # Launch test containers
 lxc init ubuntu-daily:22.04 nvidia-mig1 -c nvidia.runtime=true
-lxc config device add nvidia-mig1 gpu0 gpu gputype=mig mig.uuid="$UUID1" pci=07:00.0
+lxc config device add nvidia-mig1 gpu0 gpu gputype=mig mig.uuid="$UUID1" pci="${first_card_pci_slot}"
 lxc init ubuntu-daily:22.04 nvidia-mig2 -c nvidia.runtime=true
-lxc config device add nvidia-mig2 gpu0 gpu gputype=mig mig.uuid="$UUID2" pci=07:00.0
+lxc config device add nvidia-mig2 gpu0 gpu gputype=mig mig.uuid="$UUID2" pci="${first_card_pci_slot}"
 lxc init ubuntu-daily:22.04 nvidia-mig3 -c nvidia.runtime=true
-lxc config device add nvidia-mig3 gpu0 gpu gputype=mig mig.uuid="$UUID3" pci=07:00.0
+lxc config device add nvidia-mig3 gpu0 gpu gputype=mig mig.uuid="$UUID3" pci="${first_card_pci_slot}"
 lxc init ubuntu-daily:22.04 nvidia-mig4 -c nvidia.runtime=true
-lxc config device add nvidia-mig4 gpu0 gpu gputype=mig mig.uuid="$UUID4" pci=07:00.0
+lxc config device add nvidia-mig4 gpu0 gpu gputype=mig mig.uuid="$UUID4" pci="${first_card_pci_slot}"
 lxc start nvidia-mig1
 lxc exec nvidia-mig1 -- nvidia-smi
 lxc start nvidia-mig2
@@ -52,10 +83,21 @@ lxc start nvidia-mig4
 lxc exec nvidia-mig4 -- nvidia-smi
 
 lxc stop nvidia-mig4
-lxc config device add nvidia-mig4 gpu1 gpu gputype=mig mig.uuid="$UUID1" vendorid=10de productid=20f1
-lxc config device add nvidia-mig4 gpu2 gpu gputype=mig mig.uuid="$UUID2" vendorid=10de productid=20f1
+if [ -n "${identical_nvidia_gpus}" ]; then
+  # XXX: if there are multiple identical cards the vendorid/productid combo isn't enough to identify the GPU so a
+  #      PCI address would be needed as well but that's already been tested before
+  echo "Skipping vendorid/productid assignment test due to multiple NVIDIA GPUs with the same productid"
+  lxc config device add nvidia-mig4 gpu1 gpu gputype=mig mig.uuid="$UUID1" pci="${first_card_pci_slot}"
+  lxc config device add nvidia-mig4 gpu2 gpu gputype=mig mig.uuid="$UUID2" pci="${first_card_pci_slot}"
+else
+  lxc config device add nvidia-mig4 gpu1 gpu gputype=mig mig.uuid="$UUID1" vendorid=10de productid="${first_card_product_id}"
+  lxc config device add nvidia-mig4 gpu2 gpu gputype=mig mig.uuid="$UUID2" vendorid=10de productid="${first_card_product_id}"
+fi
 lxc start nvidia-mig4
 lxc exec nvidia-mig4 -- nvidia-smi
+
+# Make sure all 3 MIG devices are there (gpu{0,1,2})
+[ "$(lxc exec nvidia-mig4 -- nvidia-smi -L | grep -cwF MIG)" -eq 3 ]
 
 # Wait for them to start and list
 lxc list
