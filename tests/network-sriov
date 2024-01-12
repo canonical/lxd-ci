@@ -6,6 +6,9 @@ set -eux
 # Install LXD
 install_lxd
 
+# Install dependencies
+install_deps jq
+
 parentNIC="${1}"
 
 # Enable SR-IOV on nic and bring up
