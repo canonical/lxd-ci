@@ -76,6 +76,14 @@ networkTests() {
             echo "FAIL: DNS resolution: ${name}"
             FAIL=1
         fi
+
+        # TCP connectivity
+        if lxc exec "${name}" -- nc -zv archive.ubuntu.com 80 >/dev/null 2>&1; then
+            echo "PASS: TCP connectivity: ${name}"
+        else
+            echo "FAIL: TCP connectivity: ${name}"
+            FAIL=1
+        fi
     done
 
     if [ "${FAIL}" = "1" ]; then
