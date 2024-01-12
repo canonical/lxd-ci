@@ -3,6 +3,12 @@ set -eux
 
 # testflinger_queue: luma
 
+# Check if IOMMU is configured
+if [ -n "$(find /sys/kernel/iommu_groups/ -empty)" ]; then
+    echo "System not IOMMU ready, hint: \"./bin/custom-kernel iommu\"" >&2
+    exit 1
+fi
+
 # Install LXD
 install_lxd
 
