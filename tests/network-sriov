@@ -70,7 +70,7 @@ networkTests() {
         fi
 
         # DNS resolution
-        if lxc exec "${name}" -- getent hosts linuxcontainers.org >/dev/null 2>&1 || lxc exec "${name}" -- ping -c1 -W1 linuxcontainers.org >/dev/null 2>&1; then
+        if lxc exec "${name}" -- getent hosts archive.ubuntu.com >/dev/null 2>&1; then
             echo "PASS: DNS resolution: ${name}"
         else
             echo "FAIL: DNS resolution: ${name}"
