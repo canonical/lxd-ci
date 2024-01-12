@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eux
 
+# testflinger_queue: luma
+
 # Install LXD
 install_lxd
 
