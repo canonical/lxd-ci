@@ -145,7 +145,10 @@ lxc config device override c4 eth0 vlan=4000 security.mac_filtering=true
 lxc start c4
 
 # Wait for containers to start.
-sleep 30s
+waitInstanceReady c1
+waitInstanceReady c2
+waitInstanceReady c3
+waitInstanceReady c4
 
 lxc list
 networkTests
