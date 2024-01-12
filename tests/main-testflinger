@@ -71,7 +71,7 @@ run_test jammy hwe tests/network-bridge-firewall "${lxd_snap_channel}"
 run_test jammy default tests/network-ovn "${lxd_snap_channel}"
 run_test jammy default tests/network-routed "${lxd_snap_channel}"
 # XXX: requires SR-IOV capable NIC
-#run_test jammy default tests/network-sriov "${lxd_snap_channel}"
+run_test jammy default tests/network-sriov "${lxd_snap_channel}"
 
 # pylxd
 run_test jammy default tests/pylxd "${lxd_snap_channel}"
