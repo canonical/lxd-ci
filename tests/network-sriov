@@ -9,7 +9,13 @@ install_lxd
 # Install dependencies
 install_deps jq
 
-parentNIC="${1}"
+parentNIC="${1:-}"
+
+if [ -z "${parentNIC}" ]; then
+  # Consult available resources
+  first_sriov_nic="$(lxc query /1.0/resources | jq -r '[.network.cards | .[] | select(.sriov != null) | .ports][0] | .[0].id')"
+  parentNIC="${first_sriov_nic}"
+fi
 
 # Enable SR-IOV on nic and bring up
 enableNICSRIOV "${parentNIC}"
