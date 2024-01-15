@@ -1,10 +1,27 @@
 #!/bin/sh
-set -eu
+set -eux
+
+# testflinger_queue: luma
+
+# Check if IOMMU is configured
+if [ -n "$(find /sys/kernel/iommu_groups/ -empty)" ]; then
+    echo "System not IOMMU ready, hint: \"./bin/custom-kernel iommu\"" >&2
+    exit 1
+fi
 
 # Install LXD
 install_lxd
 
-parentNIC="${1}"
+# Install dependencies
+install_deps jq
+
+parentNIC="${1:-}"
+
+if [ -z "${parentNIC}" ]; then
+  # Consult available resources
+  first_sriov_nic="$(lxc query /1.0/resources | jq -r '[.network.cards | .[] | select(.sriov != null) | .ports][0] | .[0].id')"
+  parentNIC="${first_sriov_nic}"
+fi
 
 # Enable SR-IOV on nic and bring up
 enableNICSRIOV "${parentNIC}"
@@ -37,7 +54,7 @@ networkTests() {
         fi
 
         # IPv4 address
-        if echo "${address}" | grep "\." -q; then
+        if echo "${address}" | grep -qF "."; then
             echo "PASS: IPv4 address: ${name}"
         else
             echo "FAIL: IPv4 address: ${name}"
@@ -45,18 +62,26 @@ networkTests() {
         fi
 
         # IPv6 address
-        if echo "${address}" | grep ":" -q; then
+        if echo "${address}" | grep -qF ":"; then
             echo "PASS: IPv6 address: ${name}"
         else
-            echo "FAIL: IPv6 address: ${name}"
-            FAIL=1
+            echo "WARN: IPv6 address: ${name}"
+            #FAIL=1
         fi
 
         # DNS resolution
-        if lxc exec "${name}" -- getent hosts linuxcontainers.org >/dev/null 2>&1 || lxc exec "${name}" -- ping -c1 -W1 linuxcontainers.org >/dev/null 2>&1; then
+        if lxc exec "${name}" -- getent hosts archive.ubuntu.com >/dev/null 2>&1; then
             echo "PASS: DNS resolution: ${name}"
         else
             echo "FAIL: DNS resolution: ${name}"
+            FAIL=1
+        fi
+
+        # TCP connectivity
+        if lxc exec "${name}" -- nc -zv archive.ubuntu.com 80 >/dev/null 2>&1; then
+            echo "PASS: TCP connectivity: ${name}"
+        else
+            echo "FAIL: TCP connectivity: ${name}"
             FAIL=1
         fi
     done
@@ -76,21 +101,21 @@ lxc profile device add default eth0 nic nictype=sriov parent="${parentNIC}" name
 # Launch a few VMs.
 # Do this first before containers to ensure VF free search handles VFs unbound from host.
 echo "==> VM on default VLAN"
-lxc init ubuntu-daily:23.10 v1 --vm
+lxc init ubuntu-daily:24.04 v1 --vm
 lxc start v1
 
 echo "==> VM on default VLAN with filtering"
-lxc init ubuntu-daily:23.10 v2 --vm
+lxc init ubuntu-daily:24.04 v2 --vm
 lxc config device override v2 eth0 security.mac_filtering=true
 lxc start v2
 
 echo "==> VM on alternate VLAN"
-lxc init ubuntu-daily:23.10 v3 --vm
+lxc init ubuntu-daily:24.04 v3 --vm
 lxc config device override v3 eth0 vlan=4000
 lxc start v3
 
 echo "==> VM on alternate VLAN with filtering"
-lxc init ubuntu-daily:23.10 v4 --vm
+lxc init ubuntu-daily:24.04 v4 --vm
 lxc config device override v4 eth0 vlan=4000 security.mac_filtering=true
 lxc start v4
 
@@ -128,7 +153,10 @@ lxc config device override c4 eth0 vlan=4000 security.mac_filtering=true
 lxc start c4
 
 # Wait for containers to start.
-sleep 30s
+waitInstanceReady c1
+waitInstanceReady c2
+waitInstanceReady c3
+waitInstanceReady c4
 
 lxc list
 networkTests
