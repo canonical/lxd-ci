@@ -10,7 +10,7 @@ lxd init --auto
 CNAME="docker-$$"
 
 # Create the container
-lxc launch ubuntu-daily:22.04 "${CNAME}" -c security.nesting=true "$@"
+lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" "${CNAME}" -c security.nesting=true "$@"
 
 (
 cat << EOF

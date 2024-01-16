@@ -88,10 +88,10 @@ lxc project create test-auditor -c features.profiles=false
 
 # Create containers in all projects
 echo "==> Creating some instances in those projects"
-lxc launch ubuntu-daily:22.04 a1 --project test-admin
-lxc launch ubuntu-daily:22.04 a2 --project test-operator
-lxc launch ubuntu-daily:22.04 a3 --project test-user
-lxc launch ubuntu-daily:22.04 a4 --project test-auditor
+lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" a1 --project test-admin
+lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" a2 --project test-operator
+lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" a3 --project test-user
+lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" a4 --project test-auditor
 
 echo "==> Configuring rbac-user for access to projects"
 bhttp --raw --agent /var/snap/bhttp/common/rbac-test.admin https://services.stgraber.org/rbac/api/rbac/v1/resource > resources.json
@@ -138,10 +138,10 @@ lxc snapshot a3 --project test-user
 
 # Validate create permissions
 echo "==> Validate create permissions"
-lxc launch ubuntu-daily:22.04 a5 --project test-admin
-lxc launch ubuntu-daily:22.04 a6 --project test-operator
-! lxc launch ubuntu-daily:22.04 a7 --project test-user || false
-! lxc launch ubuntu-daily:22.04 a8 --project test-auditor || false
+lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" a5 --project test-admin
+lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" a6 --project test-operator
+! lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" a7 --project test-user || false
+! lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" a8 --project test-auditor || false
 
 # Validate project permissions
 echo "==> Validate project permissions"

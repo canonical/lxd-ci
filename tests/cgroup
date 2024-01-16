@@ -23,7 +23,7 @@ set -x
 
 # Start a container with no limits
 echo "=> Start a container with no limits"
-lxc launch ubuntu-daily:22.04 c1
+lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" c1
 
 echo "==> Validate default values"
 [ "$(lxc exec c1 -- nproc)" = "$(nproc)" ]
