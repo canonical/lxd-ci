@@ -56,12 +56,19 @@ do
 
         echo "foo" | lxc exec v1 -- tee /root/foo.txt
         lxc exec v1 -- sync
+        # Add file to the VM's filesystem volume.
+        nsenter --mount=/run/snapd/ns/lxd.mnt touch "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo"
         lxc snapshot v1
+        # Remove the file from filesytem volume after snapshot.
+        nsenter --mount=/run/snapd/ns/lxd.mnt rm "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo"
 
         echo "==> Checking restore VM snapshot"
         lxc restore v1 snap0
         waitInstanceReady v1
         lxc exec v1 -- cat /root/foo.txt | grep -Fx "foo"
+
+        echo "==> Checking VM filesystem volume was restored too"
+        nsenter --mount=/run/snapd/ns/lxd.mnt [ -f "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo" ]
 
         echo "==> Checking VM can be copied with snapshots"
         lxc copy v1 v2
