@@ -453,7 +453,6 @@ packages:
     - cloud
 
   - packages:
-    - gentoo-kernel-bin
     - syslog-ng
     - sys-power/acpid
     action: install
