@@ -3,6 +3,9 @@ set -eux
 
 # testflinger_queue: hardhat
 
+# Install dependencies
+install_deps jq
+
 # Install LXD
 install_lxd
 
