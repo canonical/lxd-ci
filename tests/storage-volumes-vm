@@ -2,7 +2,9 @@
 set -eux
 
 # Install dependencies
-install_deps genisoimage
+if hasNeededAPIExtension custom_volume_iso; then
+  install_deps genisoimage
+fi
 
 # Install LXD
 install_lxd
@@ -66,17 +68,21 @@ do
 	rm vol1.tar.gz
 	rm vol1-optimized.tar.gz
 
-	echo "==> Import custom ISO volume"
-	tmp_iso_dir="$(mktemp -d)"
-	echo foo > "${tmp_iso_dir}/foo"
-	genisoimage -o vol5.iso "${tmp_iso_dir}"
-	rm -f "${tmp_iso_dir}/foo"
-	echo bar > "${tmp_iso_dir}/bar"
-	genisoimage -o vol6.iso "${tmp_iso_dir}"
-	rm -rf "${tmp_iso_dir}"
-	lxc storage volume import "${poolName}" vol5.iso vol5
-	lxc storage volume import "${poolName}" vol6.iso vol6
-	rm -f vol5.iso vol6.iso
+    if hasNeededAPIExtension custom_volume_iso; then
+	  echo "==> Import custom ISO volume"
+	  tmp_iso_dir="$(mktemp -d)"
+	  echo foo > "${tmp_iso_dir}/foo"
+	  genisoimage -o vol5.iso "${tmp_iso_dir}"
+	  rm -f "${tmp_iso_dir}/foo"
+	  echo bar > "${tmp_iso_dir}/bar"
+	  genisoimage -o vol6.iso "${tmp_iso_dir}"
+	  rm -rf "${tmp_iso_dir}"
+	  lxc storage volume import "${poolName}" vol5.iso vol5
+	  lxc storage volume import "${poolName}" vol6.iso vol6
+	  rm -f vol5.iso vol6.iso
+    else
+	  echo "==> Skipping custom ISO volume tests, not supported"
+    fi
 
 	echo "==> Attach custom block volumes to VM"
 	# Both volumes can be attached at the same time. The VM will have /dev/sdb and /dev/sdc.
@@ -84,11 +90,15 @@ do
 	lxc storage volume attach "${poolName}" vol2 v1
 	lxc storage volume attach "${poolName}" vol3 v1
 
-	echo "==> Attach custom ISO volumes to VM"
-	lxc storage volume attach "${poolName}" vol5 v1
-	lxc storage volume attach "${poolName}" vol6 v1
-	lxc storage volume attach "${poolName}" vol5 v2
-	lxc storage volume attach "${poolName}" vol6 v2
+    if hasNeededAPIExtension custom_volume_iso; then
+	  echo "==> Attach custom ISO volumes to VM"
+	  lxc storage volume attach "${poolName}" vol5 v1
+	  lxc storage volume attach "${poolName}" vol6 v1
+	  lxc storage volume attach "${poolName}" vol5 v2
+	  lxc storage volume attach "${poolName}" vol6 v2
+    else
+	  echo "==> Skipping custom ISO volume tests, not supported"
+    fi
 
 	echo "==> Start VM and check content"
 	lxc start v1
@@ -101,19 +111,23 @@ do
 	# shellcheck disable=2016
 	lxc exec v1 -- /bin/sh -c 'mount /dev/sdc /mnt && [ $(cat /mnt/bar) = foo ] && umount /mnt'
 
-	# mount ISOs and check content
-	# shellcheck disable=2016
-	lxc exec v1 -- /bin/sh -c 'mount /dev/sr0 /mnt && [ $(cat /mnt/foo) = foo ] && ! touch /mnt/foo && umount /mnt'
-	# shellcheck disable=2016
-	lxc exec v1 -- /bin/sh -c 'mount /dev/sr1 /mnt && [ $(cat /mnt/bar) = bar ] && ! touch /mnt/bar && umount /mnt'
+    if hasNeededAPIExtension custom_volume_iso; then
+	  # mount ISOs and check content
+	  # shellcheck disable=2016
+	  lxc exec v1 -- /bin/sh -c 'mount /dev/sr0 /mnt && [ $(cat /mnt/foo) = foo ] && ! touch /mnt/foo && umount /mnt'
+	  # shellcheck disable=2016
+	  lxc exec v1 -- /bin/sh -c 'mount /dev/sr1 /mnt && [ $(cat /mnt/bar) = bar ] && ! touch /mnt/bar && umount /mnt'
 
-	# concurrent readonly ISO mounts
-	# shellcheck disable=2016
-	lxc exec v1 -- /bin/sh -c 'mount /dev/sr0 /mnt && [ $(cat /mnt/foo) = foo ] && ! touch /mnt/foo'
-	# shellcheck disable=2016
-	lxc exec v2 -- /bin/sh -c 'mount /dev/sr0 /mnt && [ $(cat /mnt/foo) = foo ] && ! touch /mnt/foo'
-	lxc exec v1 -- umount /mnt
-	lxc exec v2 -- umount /mnt
+	  # concurrent readonly ISO mounts
+	  # shellcheck disable=2016
+	  lxc exec v1 -- /bin/sh -c 'mount /dev/sr0 /mnt && [ $(cat /mnt/foo) = foo ] && ! touch /mnt/foo'
+	  # shellcheck disable=2016
+	  lxc exec v2 -- /bin/sh -c 'mount /dev/sr0 /mnt && [ $(cat /mnt/foo) = foo ] && ! touch /mnt/foo'
+	  lxc exec v1 -- umount /mnt
+	  lxc exec v2 -- umount /mnt
+    else
+	  echo "==> Skipping custom ISO volume tests, not supported"
+    fi
 
 	echo "==> Detaching volumes"
 	lxc exec v1 -- "sync"
@@ -121,7 +135,7 @@ do
 	lxc delete -f v2
 	lxc storage volume detach "${poolName}" vol2 v1
 	lxc storage volume detach "${poolName}" vol3 v1
-	lxc storage volume detach "${poolName}" vol6 v1
+	lxc storage volume detach "${poolName}" vol6 v1 || true  # optional ISO
 
 	echo "==> Publishing VM to image"
 	lxc storage volume create "${poolName}" images --project=default
@@ -142,8 +156,8 @@ do
 	lxc storage volume rm "${poolName}" vol2
 	lxc storage volume rm "${poolName}" vol3
 	lxc storage volume rm "${poolName}" vol4
-	lxc storage volume rm "${poolName}" vol5
-	lxc storage volume rm "${poolName}" vol6
+	lxc storage volume rm "${poolName}" vol5 || true  # optional ISO
+	lxc storage volume rm "${poolName}" vol6 || true  # optional ISO
 	lxc storage rm "${poolName}"
 done
 
