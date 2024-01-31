@@ -1,6 +1,8 @@
 #!/bin/bash
 set -eux
 
+# testflinger_queue: ficet
+
 # Install LXD.
 install_lxd
 
