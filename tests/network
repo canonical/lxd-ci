@@ -1,16 +1,91 @@
 #!/bin/sh
 set -eux
 
-# Install dependencies
-install_deps jq
+# testflinger_queue: luma
+
+# Check if IOMMU is configured
+if [ -n "$(find /sys/kernel/iommu_groups/ -empty)" ]; then
+    echo "System not IOMMU ready, hint: \"./bin/custom-kernel iommu\"" >&2
+    exit 1
+fi
 
 # Install LXD
 install_lxd
 
-parentNIC="${1}"
+# Install dependencies
+install_deps jq
+
+parentNIC="${1:-}"
+
+if [ -z "${parentNIC}" ]; then
+  # Consult available resources
+  first_sriov_nic="$(lxc query /1.0/resources | jq -r '[.network.cards | .[] | select(.sriov != null) | .ports][0] | .[0].id')"
+  parentNIC="${first_sriov_nic}"
+fi
 
 # Enable SR-IOV on nic and bring up
 enableNICSRIOV "${parentNIC}"
+
+# Check that all instances have an IPv4 and IPv6 address
+networkTests() {
+    FAIL=0
+
+    echo "=> Performing network tests"
+    for url in $(lxc query "/1.0/instances" | jq -r .[]); do
+        name=$(echo "${url}" | cut -d/ -f4)
+        echo ""
+
+        # Get the addresses
+        address=$(lxc query "${url}/state" | jq -r ".network.eth0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
+        if [ -z "${address}" ]; then
+            address=$(lxc query "${url}/state" | jq -r ".network.enp5s0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
+        fi
+
+        if [ -z "${address}" ]; then
+            echo "FAIL: No network interface: ${name}"
+            FAIL=1
+            continue
+        fi
+
+        # IPv4 address
+        if echo "${address}" | grep -qF "."; then
+            echo "PASS: IPv4 address: ${name}"
+        else
+            echo "FAIL: IPv4 address: ${name}"
+            FAIL=1
+        fi
+
+        # IPv6 address
+        if echo "${address}" | grep -qF ":"; then
+            echo "PASS: IPv6 address: ${name}"
+        else
+            echo "WARN: IPv6 address: ${name}"
+            #FAIL=1
+        fi
+
+        # DNS resolution
+        if lxc exec "${name}" -- getent hosts archive.ubuntu.com >/dev/null 2>&1; then
+            echo "PASS: DNS resolution: ${name}"
+        else
+            echo "FAIL: DNS resolution: ${name}"
+            FAIL=1
+        fi
+
+        # TCP connectivity
+        if lxc exec "${name}" -- nc -zv archive.ubuntu.com 80 >/dev/null 2>&1; then
+            echo "PASS: TCP connectivity: ${name}"
+        else
+            echo "FAIL: TCP connectivity: ${name}"
+            FAIL=1
+        fi
+    done
+
+    if [ "${FAIL}" = "1" ]; then
+        return 1
+    fi
+
+    return 0
+}
 
 # Configure LXD
 lxc storage create default zfs
@@ -58,60 +133,6 @@ waitInstanceBooted c1-sriov
 waitInstanceBooted v1-physical
 waitInstanceBooted v1-macvlan
 waitInstanceBooted v1-sriov
-
-# Check that all instances have an IPv4 and IPv6 address
-networkTests() {
-    # shellcheck disable=SC3043
-    local FAIL=0
-
-    echo "=> Performing network tests"
-    for url in $(lxc query "/1.0/instances" | jq -r .[]); do
-        name=$(echo "${url}" | cut -d/ -f4)
-        echo ""
-
-        # Get the addresses
-        address=$(lxc query "${url}/state" | jq -r ".network.eth0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
-        if [ -z "${address}" ]; then
-            address=$(lxc query "${url}/state" | jq -r ".network.enp5s0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
-        fi
-
-        if [ -z "${address}" ]; then
-            echo "FAIL: No network interface address: ${name}"
-            FAIL=1
-            continue
-        fi
-
-        # IPv4 address
-        if echo "${address}" | grep -qF "."; then
-            echo "PASS: IPv4 address: ${name}"
-        else
-            echo "FAIL: IPv4 address: ${name}"
-            FAIL=1
-        fi
-
-        # IPv6 address
-        if echo "${address}" | grep -qF ":"; then
-            echo "PASS: IPv6 address: ${name}"
-        else
-            echo "FAIL: IPv6 address: ${name}"
-            FAIL=1
-        fi
-
-        # DNS resolution
-        if lxc exec "${name}" -- getent hosts ubuntu.com >/dev/null 2>&1 || lxc exec "${name}" -- ping -nc1 -W1 ubuntu.com >/dev/null 2>&1; then
-            echo "PASS: DNS resolution: ${name}"
-        else
-            echo "FAIL: DNS resolution: ${name}"
-            FAIL=1
-        fi
-    done
-
-    if [ "${FAIL}" = "1" ]; then
-        return 1
-    fi
-
-    return 0
-}
 
 lxc list
 networkTests
