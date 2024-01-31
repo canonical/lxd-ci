@@ -33,8 +33,9 @@ run_test jammy swapaccount tests/cgroup "${lxd_snap_channel}"
 run_test focal default tests/cgroup "${lxd_snap_channel}"
 run_test focal swapaccount tests/cgroup "${lxd_snap_channel}"
 
-# cluster
-#run_test jammy default tests/cluster "${lxd_snap_channel}" 3 "5.0/stable" "${lxd_snap_channel}"
+# cluster (upgrade from XX/stable -> ${lxd_snap_channel})
+cluster_snap_src_channel="$(echo "${lxd_snap_channel}" | cut -d/ -f1)/stable"
+run_test jammy default tests/cluster "${lxd_snap_channel}" 3 "${cluster_snap_src_channel}" "${lxd_snap_channel}"
 
 # cpu-vm
 run_test jammy default tests/cpu-vm "${lxd_snap_channel}"
