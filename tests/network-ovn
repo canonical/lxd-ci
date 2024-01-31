@@ -716,10 +716,10 @@ ovn_forward_tests() {
     lxc network forward create ovn-virtual-network 2001:db8:1:2::1 target_address="${U1_IPV6}"
     sleep 2
 
-    # Check forward is working by pinging it.
+    # Check forward is working by probing TCP/22.
     # Relies on static route (above) rather than neighbour adverts see https://github.com/ovn-org/ovn/issues/124
-    ping -nc1 -4 -w5 192.0.2.1
-    ping -nc1 -6 -w5 2001:db8:1:2::1
+    nc -zv 192.0.2.1 22
+    nc -zv 2001:db8:1:2::1 22
 
     # Check DNS TCP forwarding using default target rule.
     lxc exec u1 -- systemctl mask dnsmasq
