@@ -2041,7 +2041,11 @@ else
     fi
     ovn_peering_tests
     ovn_dhcp_reservation_tests
-    ovn_nested_vlan_tests
+    if hasNeededAPIExtension ovn_nic_nesting; then
+      ovn_nested_vlan_tests
+    else
+      echo "Skipping ovn_nested_vlan_tests, not supported"
+    fi
     ovn_acl_tests
     ovn_l3only_tests
     ovn_leases_tests
