@@ -627,9 +627,11 @@ ovn_forward_tests() {
     lxc network forward create ovn-virtual-network 2001:db8:1:2::1
     ovn-nbctl list load_balancer | grep -cF name | grep -xF 0
 
-    # Check load balancer cannot be created on same listen address as forward.
-    ! lxc network load-balancer create ovn-virtual-network 192.0.2.1 || false
-    ! lxc network load-balancer create ovn-virtual-network 2001:db8:1:2::1 || false
+    if hasNeededAPIExtension network_load_balancer; then
+      # Check load balancer cannot be created on same listen address as forward.
+      ! lxc network load-balancer create ovn-virtual-network 192.0.2.1 || false
+      ! lxc network load-balancer create ovn-virtual-network 2001:db8:1:2::1 || false
+    fi
 
     # Check user config is allowed, but unknown keys are not.
     lxc network forward set ovn-virtual-network 192.0.2.1 user.foo=bar
@@ -2032,7 +2034,11 @@ else
     # Otherwise run full suite.
     ovn_basic_tests
     ovn_forward_tests
-    ovn_load_balancer_tests
+    if hasNeededAPIExtension network_load_balancer; then
+      ovn_load_balancer_tests
+    else
+      echo "Skipping ovn_load_balancer_tests, not supported"
+    fi
     ovn_peering_tests
     ovn_dhcp_reservation_tests
     ovn_nested_vlan_tests
