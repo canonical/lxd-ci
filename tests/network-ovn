@@ -66,6 +66,7 @@ ovn_basic_tests() {
     waitInstanceBooted u2
     waitInstanceBooted u3
     waitInstanceBooted 4u
+    sleep 2
     lxc list
 
     echo "==> Testing connectivity"
