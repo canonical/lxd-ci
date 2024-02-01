@@ -9,7 +9,8 @@ fi
 # Install LXD
 install_lxd
 
-poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
+# XXX: skip ceph for now
+poolDriverList="${1:-dir btrfs lvm lvm-thin zfs}"
 
 # Configure LXD
 lxc project switch default
