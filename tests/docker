@@ -26,7 +26,7 @@ set -eux
 
 # Install distro docker
 apt-get update
-apt-get install --no-install-recommends --yes --force-yes docker.io busybox-static
+apt-get install --no-install-recommends --yes docker.io busybox-static
 
 # Stop the distro docker
 systemctl stop docker.service
