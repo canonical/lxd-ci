@@ -48,8 +48,7 @@ run_test jammy default tests/cpu-vm "${lxd_snap_channel}"
 run_test jammy default tests/devlxd-vm "${lxd_snap_channel}"
 
 # docker
-# XXX: unable to pull docker image due to rate limiting done by docker hub
-#run_test jammy default tests/docker "${lxd_snap_channel}"
+run_test jammy default tests/docker "${lxd_snap_channel}"
 
 # gpu
 # XXX: requires nvidia graphic card to be present in the host
