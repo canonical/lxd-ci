@@ -21,7 +21,7 @@ set -eux
 
 # Install distro docker
 apt-get update
-apt-get install --no-install-recommends --yes --force-yes docker.io
+apt-get install --no-install-recommends --yes --force-yes docker.io busybox-static
 
 # Stop the distro docker
 systemctl stop docker.service
@@ -40,14 +40,22 @@ sleep 5
 # Show docker info (client and daemon version, etc.)
 docker info
 
-# Test whether we can pull a simple Docker image.
-docker pull busybox:latest
-
-# Test whether we can remove a simple Docker image.
-docker rmi busybox:latest
+# Test whether we can build a simple Docker image.
+rm -rf busybox
+mkdir busybox
+cat << EOD > busybox/Dockerfile
+FROM scratch
+ADD echo /
+ENTRYPOINT ["/echo", "Hello world"]
+EOD
+cp "\$(command -v busybox)" busybox/echo
+docker builder build --tag local:hello busybox/
 
 # Run a basic hello-world
-docker run hello-world
+docker run --rm local:hello
+
+# Test whether we can remove a simple Docker image.
+docker image rm local:hello
 EOF
 ) | lxc exec "${CNAME}" -- sh -eux
 
