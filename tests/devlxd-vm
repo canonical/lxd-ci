@@ -79,11 +79,10 @@ lxc stop -f v1
 sleep 5
 [ "$(lxc config get v1 volatile.last_state.ready)" = "false" ]
 
-# Test nested VM functionality.
 lxc start v1
 waitInstanceReady v1
 
-# Configure to use the proxy
+# Test nested VM functionality.
 lxc exec v1 -- snap wait system seed.loaded
 lxc exec v1 -- snap remove --purge lxd || true
 lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
