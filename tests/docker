@@ -29,8 +29,7 @@ apt-get update
 apt-get install --no-install-recommends --yes docker.io busybox-static
 
 # Stop the distro docker
-systemctl stop docker.service
-systemctl stop docker.socket
+systemctl stop docker.service docker.socket
 
 # Download binaries built from current git head of the Docker repo.
 for BIN in docker dockerd docker-containerd docker-containerd-shim docker-init docker-proxy docker-runc; do
