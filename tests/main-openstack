@@ -31,7 +31,8 @@ run_test jammy default tests/cgroup "${lxd_snap_channel}"
 #run_test jammy cgroup1 tests/cgroup "${lxd_snap_channel}"
 run_test jammy swapaccount tests/cgroup "${lxd_snap_channel}"
 run_test focal default tests/cgroup "${lxd_snap_channel}"
-run_test focal swapaccount tests/cgroup "${lxd_snap_channel}"
+# https://github.com/canonical/lxd-ci/issues/7
+#run_test focal swapaccount tests/cgroup "${lxd_snap_channel}"
 
 # cluster (upgrade from XX/stable -> ${lxd_snap_channel})
 cluster_snap_src_channel="$(echo "${lxd_snap_channel}" | cut -d/ -f1)/stable"
