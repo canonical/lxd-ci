@@ -37,14 +37,14 @@ done
 systemctl start docker
 sleep 5
 
+# Show docker info (client and daemon version, etc.)
+docker info
+
 # Test whether we can pull a simple Docker image.
 docker pull busybox:latest
 
 # Test whether we can remove a simple Docker image.
 docker rmi busybox:latest
-
-# Show docker info (client and daemon version, etc.)
-docker info
 
 # Run a basic hello-world
 docker run hello-world
