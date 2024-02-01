@@ -719,6 +719,7 @@ ovn_forward_tests() {
     sleep 2
 
     # Check forward is working by probing TCP/22.
+    # XXX: ping used to work but doesn't anymore due to a regression in OVN in Jammy (22.03.3-0ubuntu0.22.04.1?)
     # Relies on static route (above) rather than neighbour adverts see https://github.com/ovn-org/ovn/issues/124
     nc -zv 192.0.2.1 22
     nc -zv 2001:db8:1:2::1 22
@@ -764,6 +765,9 @@ EOF
 
     lxc network forward port add ovn-virtual-network 192.0.2.1 tcp 53 "${U2_IPV4}"
     lxc network forward port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 "${U2_IPV6}"
+
+    # Allow time for forwarded port to be operational
+    sleep 2
 
     dig a +tcp @192.0.2.1 u2.lxd
     dig aaaa +tcp @2001:db8:1:2::1 u2.lxd
