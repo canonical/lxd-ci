@@ -37,6 +37,8 @@ for BIN in docker dockerd docker-containerd docker-containerd-shim docker-init d
         chmod +x "/usr/bin/\${BIN}"
 done
 
+unset https_proxy
+
 # Start docker again
 systemctl start docker
 sleep 5
