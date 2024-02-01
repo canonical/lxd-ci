@@ -12,6 +12,11 @@ CNAME="docker-$$"
 # Create the container
 lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" "${CNAME}" -c security.nesting=true "$@"
 
+if [ -n "${https_proxy:-""}" ]; then
+  echo "Using https_proxy=${https_proxy} in ${CNAME}"
+  lxc config set "${CNAME}" environment.https_proxy="${https_proxy}"
+fi
+
 (
 cat << EOF
 #!/bin/sh
