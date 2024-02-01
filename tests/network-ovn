@@ -2047,7 +2047,11 @@ else
       echo "Skipping ovn_nested_vlan_tests, not supported"
     fi
     ovn_acl_tests
-    ovn_l3only_tests
+    if hasNeededAPIExtension network_ovn_l3only; then
+      ovn_l3only_tests
+    else
+      echo "Skipping ovn_l3only_tests, not supported"
+    fi
     ovn_leases_tests
 fi
 
