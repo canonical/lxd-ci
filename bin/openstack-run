@@ -21,7 +21,7 @@ _script="$(mktemp)"
 test_name="$(basename "${script}")"
 
 KEY_NAME="ssh-key"
-FLAVOR="$(openstack flavor list -f value -c Name | grep -m1 'cpu8-ram32-disk20\b')"
+FLAVOR="$(openstack flavor list -f value -c Name | grep -m1 'cpu8-ram32-disk50\b')"
 NETWORK="$(openstack network list -f value -c Name | grep -Fm1 "net_stg-lxd-cloud-testing")"
 IMAGE="$(openstack image list -f value -c Name --sort-column Name --sort-descending | grep -m1 "auto-sync/ubuntu-${serie}-.*-amd64-")"
 NAME="lxd-ci-${test_name}-${serie}-$(echo "${lxd_snap_channel}" | sed 's/[./]/-/g')"
@@ -101,7 +101,7 @@ if echo "${IP}" | grep -q ":"; then
 else
     scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "${_script}" "ubuntu@${IP}:test-script"
 fi
-ssh -n -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "ubuntu@${IP}" sudo "https_proxy=http://squid.internal:3128" bash test-script "$@"
+ssh -n -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "ubuntu@${IP}" sudo "https_proxy=http://squid.internal:3128" "PURGE_LXD=1" bash test-script "$@"
 
 # Success
 RET=0

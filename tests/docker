@@ -10,7 +10,12 @@ lxd init --auto
 CNAME="docker-$$"
 
 # Create the container
-lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" "${CNAME}" -c security.nesting=true "$@"
+lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" "${CNAME}" -c security.nesting=true "$@"
+
+if [ -n "${https_proxy:-""}" ]; then
+  echo "Using https_proxy=${https_proxy} in ${CNAME}"
+  lxc config set "${CNAME}" environment.https_proxy="${https_proxy}"
+fi
 
 (
 cat << EOF
@@ -21,33 +26,42 @@ set -eux
 
 # Install distro docker
 apt-get update
-apt-get install --no-install-recommends --yes --force-yes docker.io
+apt-get install --no-install-recommends --yes docker.io busybox-static
 
 # Stop the distro docker
-systemctl stop docker.service
-systemctl stop docker.socket
+systemctl stop docker.service docker.socket
 
 # Download binaries built from current git head of the Docker repo.
 for BIN in docker dockerd docker-containerd docker-containerd-shim docker-init docker-proxy docker-runc; do
-    wget -q "https://master.dockerproject.org/linux/x86_64/\${BIN}" -O "/usr/bin/\${BIN}" && \
+    wget "https://master.dockerproject.org/linux/x86_64/\${BIN}" -O "/usr/bin/\${BIN}" && \
         chmod +x "/usr/bin/\${BIN}"
 done
+
+unset https_proxy
 
 # Start docker again
 systemctl start docker
 sleep 5
 
-# Test whether we can pull a simple Docker image.
-docker pull busybox:latest
-
-# Test whether we can remove a simple Docker image.
-docker rmi busybox:latest
-
 # Show docker info (client and daemon version, etc.)
 docker info
 
+# Test whether we can build a simple Docker image.
+rm -rf busybox
+mkdir busybox
+cat << EOD > busybox/Dockerfile
+FROM scratch
+ADD echo /
+ENTRYPOINT ["/echo", "Hello world"]
+EOD
+cp "\$(command -v busybox)" busybox/echo
+docker builder build --tag local:hello busybox/
+
 # Run a basic hello-world
-docker run hello-world
+docker run --rm local:hello
+
+# Test whether we can remove a simple Docker image.
+docker image rm local:hello
 EOF
 ) | lxc exec "${CNAME}" -- sh -eux
 

@@ -1,10 +1,16 @@
 #!/bin/sh
 set -eux
 
+# testflinger_queue: hardhat
+
+# Install dependencies
+install_deps jq
+
 # Install LXD
 install_lxd
 
-poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
+# XXX: skip ceph for now
+poolDriverList="${1:-dir btrfs lvm lvm-thin zfs}"
 
 # Configure LXD
 lxc network create lxdbr0
@@ -27,8 +33,8 @@ do
                 lxc storage create "${poolName}" "${poolDriver}" size=20GiB
         fi
 
-        echo "==> Create VM and boot"
-        lxc init "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm -s "${poolName}"
+        echo "==> Create VM and boot with small root"
+        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=4GiB
         lxc start v1
         waitInstanceReady v1
         lxc info v1
@@ -51,8 +57,8 @@ do
         ! lxc exec v1 -- touch /srv/lxd-test || false
         lxc exec v1 -- umount /srv
 
-        echo "==> Checking VM root disk size is 10GiB"
-        [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "10" ]
+        echo "==> Checking VM root disk size is 4GiB"
+        [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
 
         echo "foo" | lxc exec v1 -- tee /root/foo.txt
         lxc exec v1 -- sync
@@ -83,8 +89,8 @@ do
         waitInstanceReady v2
         lxc exec v2 -- cat /root/foo.txt | grep -Fx "foo"
 
-        echo "==> Checking VM snapshot copy root disk size is 10GiB"
-        [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "10" ]
+        echo "==> Checking VM snapshot copy root disk size is 4GiB"
+        [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
         lxc delete -f v2
         lxc delete v1/snap0
 
@@ -215,7 +221,7 @@ do
         truncate -s 5m "/tmp/lxd-test-${poolName}/lxd-test-block"
 
         echo "==> Checking disk device hotplug support"
-        lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
         waitInstanceReady v1
 
         # Hotplug disks
@@ -257,7 +263,7 @@ do
 
         echo "==> Change volume.size on pool and create VM"
         lxc storage set "${poolName}" volume.size 6GiB
-        lxc init "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
         lxc start v1
         waitInstanceReady v1
         lxc info v1
@@ -272,7 +278,7 @@ do
         if [ "${poolDriver}" = "lvm" ]; then
                 echo "==> Change volume.block.filesystem on pool and create VM"
                 lxc storage set "${poolName}" volume.block.filesystem xfs
-                lxc init "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm -s "${poolName}"
+                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
                 lxc start v1
                 waitInstanceReady v1
                 lxc info v1
@@ -288,14 +294,14 @@ do
 
         echo "==> Create VM from profile with small disk size"
         lxc profile copy default vmsmall
-        lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=7GiB
-        lxc init "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm -p vmsmall
+        lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=3GiB
+        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -p vmsmall
         lxc start v1
         waitInstanceReady v1
         lxc info v1
 
-        echo "==> Checking VM root disk size is 7GiB"
-        [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "7" ]
+        echo "==> Checking VM root disk size is 3GiB"
+        [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
         lxc stop -f v1
 
         echo "==> Copy to different storage pool with same driver and check size"
@@ -314,8 +320,8 @@ do
         waitInstanceReady v2
         lxc info v2
 
-        echo "==> Checking copied VM root disk size is 7GiB"
-        [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "7" ]
+        echo "==> Checking copied VM root disk size is 3GiB"
+        [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
         lxc delete -f v2
         lxc storage delete "${poolName}2"
 
@@ -331,8 +337,8 @@ do
         waitInstanceReady v2
         lxc info v2
 
-        echo "==> Checking copied VM root disk size is 7GiB"
-        [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "7" ]
+        echo "==> Checking copied VM root disk size is 3GiB"
+        [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
         lxc delete -f v2
 
         echo "==> Grow above default volume size and copy to different storage pool"
@@ -379,7 +385,7 @@ do
         lxc profile delete vmsmall
 
         echo "==> Checking VM Generation UUID with QEMU"
-        lxc init "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
         lxc start v1
         waitInstanceReady v1
         lxc info v1

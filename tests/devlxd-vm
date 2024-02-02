@@ -66,29 +66,32 @@ lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/devi
 lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
 lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q '#cloud-config'
 
-# test instance Ready state
-lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Ready"}' http://custom.socket/1.0
-[ "$(lxc config get v1 volatile.last_state.ready)" = "true" ]
+if hasNeededAPIExtension instance_ready_state; then
+  # test instance Ready state
+  lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Ready"}' http://custom.socket/1.0
+  [ "$(lxc config get v1 volatile.last_state.ready)" = "true" ]
 
-lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Started"}' http://custom.socket/1.0
-[ "$(lxc config get v1 volatile.last_state.ready)" = "false" ]
+  lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Started"}' http://custom.socket/1.0
+  [ "$(lxc config get v1 volatile.last_state.ready)" = "false" ]
 
-lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Ready"}' http://custom.socket/1.0
-[ "$(lxc config get v1 volatile.last_state.ready)" = "true" ]
-lxc stop -f v1
-sleep 5
-[ "$(lxc config get v1 volatile.last_state.ready)" = "false" ]
+  lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Ready"}' http://custom.socket/1.0
+  [ "$(lxc config get v1 volatile.last_state.ready)" = "true" ]
+  lxc stop -f v1
+  sleep 5
+  [ "$(lxc config get v1 volatile.last_state.ready)" = "false" ]
+
+  lxc start v1
+  waitInstanceReady v1
+else
+  echo "Skipping instance Ready state tests, not supported"
+fi
 
 # Test nested VM functionality.
-lxc start v1
-waitInstanceReady v1
-
-# Configure to use the proxy
 lxc exec v1 -- snap wait system seed.loaded
 lxc exec v1 -- snap remove --purge lxd || true
 lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec v1 -- /snap/bin/lxd init --auto
-lxc exec v1 -- /snap/bin/lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" v1v1 --vm
+lxc exec v1 -- /snap/bin/lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1v1 --vm
 sleep 30
 lxc exec v1 -- /snap/bin/lxc info v1v1 | grep -F RUNNING
 

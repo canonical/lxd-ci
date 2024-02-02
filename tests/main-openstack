@@ -31,10 +31,12 @@ run_test jammy default tests/cgroup "${lxd_snap_channel}"
 #run_test jammy cgroup1 tests/cgroup "${lxd_snap_channel}"
 run_test jammy swapaccount tests/cgroup "${lxd_snap_channel}"
 run_test focal default tests/cgroup "${lxd_snap_channel}"
-run_test focal swapaccount tests/cgroup "${lxd_snap_channel}"
+# https://github.com/canonical/lxd-ci/issues/7
+#run_test focal swapaccount tests/cgroup "${lxd_snap_channel}"
 
-# cluster
-#run_test jammy default tests/cluster "${lxd_snap_channel}" 3 "5.0/stable" "${lxd_snap_channel}"
+# cluster (upgrade from XX/stable -> ${lxd_snap_channel})
+cluster_snap_src_channel="$(echo "${lxd_snap_channel}" | cut -d/ -f1)/stable"
+run_test jammy default tests/cluster "${lxd_snap_channel}" 3 "${cluster_snap_src_channel}" "${lxd_snap_channel}"
 
 # cpu-vm
 run_test jammy default tests/cpu-vm "${lxd_snap_channel}"
@@ -43,7 +45,7 @@ run_test jammy default tests/cpu-vm "${lxd_snap_channel}"
 run_test jammy default tests/devlxd-vm "${lxd_snap_channel}"
 
 # docker
-# XXX: unable to pull docker image due to rate limiting done by docker hub
+# XXX: master.dockerproject.org isn't authorized at the proxy level
 #run_test jammy default tests/docker "${lxd_snap_channel}"
 
 # gpu
@@ -63,7 +65,8 @@ if echo "${lxd_snap_channel}" | grep -qE "^(latest|5\.[1-9].)/"; then
 fi
 
 # network
-run_test jammy default tests/network "${lxd_snap_channel}"
+# XXX: requires SR-IOV capable NIC
+#run_test jammy default tests/network "${lxd_snap_channel}"
 run_test jammy default tests/network-bridge-firewall "${lxd_snap_channel}"
 run_test jammy hwe tests/network-bridge-firewall "${lxd_snap_channel}"
 run_test jammy default tests/network-ovn "${lxd_snap_channel}"

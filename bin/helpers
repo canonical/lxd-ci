@@ -3,15 +3,10 @@
 # waitSnapdSeed: wait for snapd to be seeded.
 waitSnapdSeed() (
   set +x
-  for i in $(seq 60); do # Wait up to 60s.
-    if systemctl show snapd.seeded.service --value --property SubState | grep -qx exited; then
-      return 0 # Success.
-    fi
-
-    sleep 1
-  done
-
-  echo "snapd not seeded after ${i}s"
+  if timeout 60 snap wait system seed.loaded; then
+    return 0 # Success.
+  fi
+  echo "snapd not seeded after 60s"
   return 1 # Failed.
 )
 

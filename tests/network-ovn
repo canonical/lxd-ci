@@ -66,6 +66,7 @@ ovn_basic_tests() {
     waitInstanceBooted u2
     waitInstanceBooted u3
     waitInstanceBooted 4u
+    sleep 2
     lxc list
 
     echo "==> Testing connectivity"
@@ -617,9 +618,8 @@ ovn_forward_tests() {
     lxc network set lxdbr0 ipv4.routes=192.0.2.0/24 ipv6.routes=2001:db8:1:2::/64 --project=default
 
     # Add a static route to SNAT address on uplink to OVN network's router (simulating BGP route advert to uplink).
-    ovnIPv4="$(lxc network get ovn-virtual-network volatile.network.ipv4.address)"
+    # XXX: only needed for IPv6 now (see https://github.com/ovn-org/ovn/issues/124)
     ovnIPv6="$(lxc network get ovn-virtual-network volatile.network.ipv6.address)"
-    ip r add 192.0.2.1/32 via "${ovnIPv4}" dev lxdbr0
     ip r add 2001:db8:1:2::1/128 via "${ovnIPv6}" dev lxdbr0
 
     # Check forwards can be created with no target address.
@@ -627,9 +627,11 @@ ovn_forward_tests() {
     lxc network forward create ovn-virtual-network 2001:db8:1:2::1
     ovn-nbctl list load_balancer | grep -cF name | grep -xF 0
 
-    # Check load balancer cannot be created on same listen address as forward.
-    ! lxc network load-balancer create ovn-virtual-network 192.0.2.1 || false
-    ! lxc network load-balancer create ovn-virtual-network 2001:db8:1:2::1 || false
+    if hasNeededAPIExtension network_load_balancer; then
+      # Check load balancer cannot be created on same listen address as forward.
+      ! lxc network load-balancer create ovn-virtual-network 192.0.2.1 || false
+      ! lxc network load-balancer create ovn-virtual-network 2001:db8:1:2::1 || false
+    fi
 
     # Check user config is allowed, but unknown keys are not.
     lxc network forward set ovn-virtual-network 192.0.2.1 user.foo=bar
@@ -716,10 +718,11 @@ ovn_forward_tests() {
     lxc network forward create ovn-virtual-network 2001:db8:1:2::1 target_address="${U1_IPV6}"
     sleep 2
 
-    # Check forward is working by pinging it.
+    # Check forward is working by probing TCP/22.
+    # XXX: ping used to work but doesn't anymore due to a regression in OVN in Jammy (22.03.3-0ubuntu0.22.04.1?)
     # Relies on static route (above) rather than neighbour adverts see https://github.com/ovn-org/ovn/issues/124
-    ping -nc1 -4 -w5 192.0.2.1
-    ping -nc1 -6 -w5 2001:db8:1:2::1
+    nc -zv 192.0.2.1 22
+    nc -zv 2001:db8:1:2::1 22
 
     # Check DNS TCP forwarding using default target rule.
     lxc exec u1 -- systemctl mask dnsmasq
@@ -762,6 +765,9 @@ EOF
 
     lxc network forward port add ovn-virtual-network 192.0.2.1 tcp 53 "${U2_IPV4}"
     lxc network forward port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 "${U2_IPV6}"
+
+    # Allow time for forwarded port to be operational
+    sleep 2
 
     dig a +tcp @192.0.2.1 u2.lxd
     dig aaaa +tcp @2001:db8:1:2::1 u2.lxd
@@ -838,9 +844,8 @@ ovn_load_balancer_tests() {
     lxc network set lxdbr0 ipv4.routes=192.0.2.0/24 ipv6.routes=2001:db8:1:2::/64 --project=default
 
     # Add a static route to SNAT address on uplink to OVN network's router (simulating BGP route advert to uplink).
-    ovnIPv4="$(lxc network get ovn-virtual-network volatile.network.ipv4.address)"
+    # XXX: only needed for IPv6 now (see https://github.com/ovn-org/ovn/issues/124)
     ovnIPv6="$(lxc network get ovn-virtual-network volatile.network.ipv6.address)"
-    ip r add 192.0.2.1/32 via "${ovnIPv4}" dev lxdbr0
     ip r add 2001:db8:1:2::1/128 via "${ovnIPv6}" dev lxdbr0
 
     # Check load balancers can be created.
@@ -2033,12 +2038,24 @@ else
     # Otherwise run full suite.
     ovn_basic_tests
     ovn_forward_tests
-    ovn_load_balancer_tests
+    if hasNeededAPIExtension network_load_balancer; then
+      ovn_load_balancer_tests
+    else
+      echo "Skipping ovn_load_balancer_tests, not supported"
+    fi
     ovn_peering_tests
     ovn_dhcp_reservation_tests
-    ovn_nested_vlan_tests
+    if hasNeededAPIExtension ovn_nic_nesting; then
+      ovn_nested_vlan_tests
+    else
+      echo "Skipping ovn_nested_vlan_tests, not supported"
+    fi
     ovn_acl_tests
-    ovn_l3only_tests
+    if hasNeededAPIExtension network_ovn_l3only; then
+      ovn_l3only_tests
+    else
+      echo "Skipping ovn_l3only_tests, not supported"
+    fi
     ovn_leases_tests
 fi
 

@@ -34,7 +34,8 @@ run_test jammy default tests/cgroup "${lxd_snap_channel}"
 #run_test jammy cgroup1 tests/cgroup "${lxd_snap_channel}"
 run_test jammy swapaccount tests/cgroup "${lxd_snap_channel}"
 run_test focal default tests/cgroup "${lxd_snap_channel}"
-run_test focal swapaccount tests/cgroup "${lxd_snap_channel}"
+# https://github.com/canonical/lxd-ci/issues/7
+#run_test focal swapaccount tests/cgroup "${lxd_snap_channel}"
 
 # cluster (upgrade from XX/stable -> ${lxd_snap_channel})
 cluster_snap_src_channel="$(echo "${lxd_snap_channel}" | cut -d/ -f1)/stable"
@@ -47,8 +48,7 @@ run_test jammy default tests/cpu-vm "${lxd_snap_channel}"
 run_test jammy default tests/devlxd-vm "${lxd_snap_channel}"
 
 # docker
-# XXX: unable to pull docker image due to rate limiting done by docker hub
-#run_test jammy default tests/docker "${lxd_snap_channel}"
+run_test jammy default tests/docker "${lxd_snap_channel}"
 
 # gpu
 # XXX: requires nvidia graphic card to be present in the host
