@@ -32,7 +32,7 @@ apt-get install --no-install-recommends --yes docker.io busybox-static
 systemctl stop docker.service docker.socket
 
 # Download binaries built from current git head of the Docker repo.
-for BIN in docker dockerd docker-containerd docker-containerd-shim docker-init docker-proxy docker-runc; do
+for BIN in docker dockerd docker-init docker-proxy; do
     wget --no-verbose "https://master.dockerproject.org/linux/x86_64/\${BIN}" -O "/usr/bin/\${BIN}" && \
         chmod +x "/usr/bin/\${BIN}"
 done
