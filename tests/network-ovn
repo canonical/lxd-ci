@@ -2063,7 +2063,7 @@ else
     ovn_leases_tests
 fi
 
-lxc profile device remove default root
+lxc profile device get default root type && lxc profile device remove default root
 lxc storage delete default
 
 # shellcheck disable=SC2034
