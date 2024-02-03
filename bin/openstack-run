@@ -101,7 +101,6 @@ if echo "${IP}" | grep -q ":"; then
 else
     scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "${_script}" "ubuntu@${IP}:test-script"
 fi
-ssh -n -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "ubuntu@${IP}" sudo "https_proxy=http://squid.internal:3128" "PURGE_LXD=1" bash test-script "$@"
-
+ssh -n -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "ubuntu@${IP}" sudo "https_proxy=http://squid.internal:3128" "PURGE_LXD=1" TEST_IMG="${TEST_IMG:-}" bash test-script "$@"
 # Success
 RET=0

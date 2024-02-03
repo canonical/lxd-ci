@@ -719,10 +719,14 @@ ovn_forward_tests() {
     sleep 2
 
     # Check forward is working by probing TCP/22.
-    # XXX: ping used to work but doesn't anymore due to a regression in OVN in Jammy (22.03.3-0ubuntu0.22.04.1?)
     # Relies on static route (above) rather than neighbour adverts see https://github.com/ovn-org/ovn/issues/124
     nc -zv 192.0.2.1 22
     nc -zv 2001:db8:1:2::1 22
+
+    # Check forward is working by pinging it.
+    # XXX: ping used to work but doesn't anymore due to a regression in OVN in Jammy (22.03.3-0ubuntu0.22.04.1?)
+    #ping -nc1 -w5 192.0.2.1
+    #ping -nc1 -w5 2001:db8:1:2::1
 
     # Check DNS TCP forwarding using default target rule.
     lxc exec u1 -- systemctl mask dnsmasq
@@ -2059,7 +2063,7 @@ else
     ovn_leases_tests
 fi
 
-lxc profile device remove default root
+lxc profile device get default root type && lxc profile device remove default root
 lxc storage delete default
 
 # shellcheck disable=SC2034
