@@ -154,6 +154,17 @@ runsMinimumKernel() (
     return 0
 )
 
+# createPowerFlexPool: creates a new storage pool using the PowerFlex driver.
+createPowerFlexPool() (
+  lxc storage create "${1}" powerflex \
+    powerflex.pool="${POWERFLEX_POOL}" \
+    powerflex.domain="${POWERFLEX_DOMAIN}" \
+    powerflex.gateway="${POWERFLEX_GATEWAY}" \
+    powerflex.gateway.verify="${POWERFLEX_GATEWAY_VERIFY:-true}" \
+    powerflex.user.name="${POWERFLEX_USER}" \
+    powerflex.user.password="${POWERFLEX_PASSWORD}"
+)
+
 # cleanup: report if the test passed or not and return the appropriate return code.
 cleanup() {
     set +e
