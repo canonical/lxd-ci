@@ -54,6 +54,7 @@ create() {
     openstack server create --key-name "${KEY_NAME}" --flavor "${FLAVOR}" --network "${NETWORK}" --image "${IMAGE}" --user-data ./cloud-init.user-data.yaml --wait "${NAME}"
     IP="$(openstack server show -f value -c addresses "${NAME}" | cut -d\' -f4)"
     [ "${IP}" != "{}" ]
+    [ -n "${IP}" ]
     echo "${NAME}: ${IP}" >&2
 }
 

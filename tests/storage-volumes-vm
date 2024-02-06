@@ -2,9 +2,7 @@
 set -eux
 
 # Install dependencies
-if hasNeededAPIExtension custom_volume_iso; then
-  install_deps genisoimage
-fi
+install_deps genisoimage
 
 # Install LXD
 install_lxd
