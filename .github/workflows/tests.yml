@@ -44,6 +44,15 @@ jobs:
       PURGE_LXD: "1"
     name: System
     runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        track:
+          - "latest/edge"
+          #- "5.0/edge"
+        test:
+          - cgroup
+          - docker
 
     steps:
       - name: Performance tuning
@@ -88,12 +97,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: tests/cgroup
+      - name: tests/${{ matrix.test }} on ${{ matrix.track }}
         run: |
           set -eux
-          sudo --preserve-env=PURGE_LXD ./bin/local-run tests/cgroup latest/edge
-
-      - name: tests/docker
-        run: |
-          set -eux
-          sudo --preserve-env=PURGE_LXD ./bin/local-run tests/docker latest/edge
+          sudo --preserve-env=PURGE_LXD ./bin/local-run tests/${{ matrix.test }} ${{ matrix.track }}
