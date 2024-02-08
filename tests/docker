@@ -1,11 +1,13 @@
 #!/bin/sh
 set -eux
 
-# Install LXD
-install_lxd
+if [ -z "${SKIP_SETUP:-}" ]; then
+  # Install LXD
+  install_lxd
 
-# Configure LXD
-lxd init --auto
+  # Configure LXD
+  lxd init --auto
+fi
 
 CNAME="docker-$$"
 
