@@ -50,9 +50,6 @@ jobs:
         track:
           - "latest/edge"
           #- "5.0/edge"
-        test:
-          - cgroup
-          - docker
 
     steps:
       - name: Performance tuning
@@ -97,7 +94,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: tests/${{ matrix.test }} on ${{ matrix.track }}
+      - name: tests/cgroup (${{ matrix.track }})
         run: |
           set -eux
-          sudo --preserve-env=PURGE_LXD ./bin/local-run tests/${{ matrix.test }} ${{ matrix.track }}
+          sudo --preserve-env=PURGE_LXD ./bin/local-run tests/cgroup "${{ matrix.track }}"
+
+      - name: tests/docker (${{ matrix.track }})
+        run: |
+          set -eux
+          sudo --preserve-env=PURGE_LXD ./bin/local-run tests/docker "${{ matrix.track }}"
