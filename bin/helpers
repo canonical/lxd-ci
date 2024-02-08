@@ -105,6 +105,37 @@ install_deps() (
     fi
 )
 
+# setupInstanceApt: prepare apt in the instance if needed.
+setupInstanceApt() (
+  set +x
+
+  # Only needed if /etc/apt/apt-mirrors.txt is detected in the host
+  [ -e /etc/apt/apt-mirrors.txt ] || return
+
+  instName="$1"
+  instProj="${2:-}"
+  if [ -z "${instProj}" ]; then
+    # Find the currently selected project.
+    instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
+  fi
+
+  # Wait for the instance to be ready
+  waitInstanceReady "${instName}" "${instProj}"
+
+  DISTRO="$(lxc config get --project "${instProj}" "${instName}" image.release)"
+
+  if [ "${DISTRO}" = "noble" ]; then
+    echo "deb822 .sources not yet supported, aborting"
+    exit 1
+  else
+    lxc file push --quiet --mode 0644 --uid 0 --gid 0 --project "${instProj}" /etc/apt/apt-mirrors.txt "${instName}/etc/apt/apt-mirrors.txt"
+    lxc file push --quiet --mode 0644 --uid 0 --gid 0 --project "${instProj}" - "${instName}/etc/apt/sources.list" << EOF
+deb [arch=amd64] mirror+file:/etc/apt/apt-mirrors.txt ${DISTRO} main universe
+deb [arch=amd64] mirror+file:/etc/apt/apt-mirrors.txt ${DISTRO}-updates main universe
+EOF
+  fi
+)
+
 # install_lxd: install LXD from a specific channel or `latest/edge` if none is provided.
 install_lxd() (
     # Wait for snapd seeding
