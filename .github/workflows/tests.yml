@@ -42,6 +42,7 @@ jobs:
   system-tests:
     env:
       PURGE_LXD: "1"
+      SKIP_INTRO: "1"
     name: System
     runs-on: ubuntu-22.04
     strategy:
@@ -94,12 +95,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: |
+          set -eux
+          . bin/helpers
+          install_deps jq iperf3
+
+      - name: Install LXD
+        run: |
+          set -eux
+          . bin/helpers
+          install_lxd "${{ matrix.track }}"
+          lxd init --auto
+
       - name: cgroup
         run: |
           set -eux
-          sudo --preserve-env=PURGE_LXD ./bin/local-run "tests/${{ steps.step_id.name }}" "${{ matrix.track }}"
+          sudo --preserve-env=PURGE_LXD,SKIP_INTRO ./bin/local-run tests/cgroup "${{ matrix.track }}"
 
       - name: docker
         run: |
           set -eux
-          sudo --preserve-env=PURGE_LXD ./bin/local-run "tests/${{ steps.step_id.name }}" "${{ matrix.track }}"
+          sudo --preserve-env=PURGE_LXD,SKIP_INTRO ./bin/local-run tests/docker "${{ matrix.track }}"
