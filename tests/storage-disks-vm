@@ -47,7 +47,7 @@ lxc profile device add default eth0 nic network=lxdbr0
 lxc profile show default
 
 # Create instance and add check relative source paths are not allowed.
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm
+lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm
 ! lxc config device add v1 d1 disk source=foo path=/mnt || false
 
 # Check adding a disk with a source path above the restricted parent source path isn't allowed.
