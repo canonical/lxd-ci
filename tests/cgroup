@@ -25,6 +25,8 @@ set -x
 echo "=> Start a container with no limits"
 lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" c1
 
+setupInstanceApt c1
+
 echo "==> Validate default values"
 [ "$(lxc exec c1 -- nproc)" = "$(nproc)" ]
 [ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "$(grep ^MemTotal /proc/meminfo)" ]
