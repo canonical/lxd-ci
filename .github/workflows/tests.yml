@@ -117,4 +117,9 @@ jobs:
       - name: ${{ matrix.test }} (${{ matrix.track }})
         run: |
           set -eux
-          sudo --preserve-env=PURGE_LXD,TEST_IMG ./bin/local-run tests/${{ matrix.test }} ${{ matrix.track }}
+          if [ "${{ matrix.test }}" = "cluster" ]; then
+            dst_track="${{ matrix.track }}"
+            src_track="$(echo "${dst_track}" | cut -d/ -f1)/stable"
+            EXTRA_ARGS="3 ${src_track} ${{ matrix.track }}"
+          fi
+          sudo --preserve-env=PURGE_LXD,TEST_IMG ./bin/local-run tests/${{ matrix.test }} ${{ matrix.track }} ${EXTRA_ARGS:-}
