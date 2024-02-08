@@ -37,7 +37,7 @@ do
 
         echo "==> Create VM and boot with small root"
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=4GiB
+                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=3GiB
         else
                 lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=8GiB
         fi
@@ -64,8 +64,8 @@ do
         lxc exec v1 -- umount /srv
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM root disk size is 4GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
+                echo "==> Checking VM root disk size is 3GiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
         else
                 echo "==> Checking VM root disk size is 8GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -101,8 +101,8 @@ do
         lxc exec v2 -- cat /root/foo.txt | grep -Fx "foo"
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM snapshot copy root disk size is 4GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
+                echo "==> Checking VM snapshot copy root disk size is 3GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
         else
                 echo "==> Checking VM snapshot copy root disk size is 8GiB"
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -146,7 +146,7 @@ do
 
         echo "==> Increasing VM root disk size for next boot"
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc config device set v1 root size=11GiB
+                lxc config device set v1 root size=4GiB
         else
                 lxc config device set v1 root size=16GiB
         fi
@@ -156,8 +156,8 @@ do
         waitInstanceReady v1
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM root disk size is 11GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "11" ]
+                echo "==> Checking VM root disk size is 4GiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
         else
                 echo "==> Checking VM root disk size is 16GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
@@ -292,7 +292,7 @@ do
 
         echo "==> Change volume.size on pool and create VM"
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc storage set "${poolName}" volume.size 6GiB
+                lxc storage set "${poolName}" volume.size 4GiB
         else
                 # Set to something else than the default of 8GiB.
                 lxc storage set "${poolName}" volume.size 16GiB
@@ -303,8 +303,8 @@ do
         lxc info v1
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM root disk size is 6GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "6" ]
+                echo "==> Checking VM root disk size is 4GiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
         else
                 echo "==> Checking VM root disk size is 16GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
@@ -403,7 +403,7 @@ do
 
         echo "==> Grow above default volume size and copy to different storage pool"
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc config device override v1 root size=11GiB
+                lxc config device override v1 root size=5GiB
         else
                 lxc config device override v1 root size=16GiB
         fi
@@ -413,8 +413,8 @@ do
         lxc info v2
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking copied VM root disk size is 11GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "11" ]
+                echo "==> Checking copied VM root disk size is 5GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "5" ]
         else
                 echo "==> Checking copied VM root disk size is 16GiB"
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
@@ -430,7 +430,7 @@ do
         lxc publish v1 --alias vmbig
         lxc delete -f v1
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc storage set "${poolName}" volume.size 9GiB
+                lxc storage set "${poolName}" volume.size 3GiB
         else
                 lxc storage set "${poolName}" volume.size 8GiB
         fi
@@ -446,8 +446,8 @@ do
         lxc info v1
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking new VM root disk size is 11GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "11" ]
+                echo "==> Checking new VM root disk size is 8GiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
         else
                 echo "==> Checking new VM root disk size is 16GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
