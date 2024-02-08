@@ -94,12 +94,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: tests/cgroup (${{ matrix.track }})
+      - name: cgroup
         run: |
           set -eux
-          sudo --preserve-env=PURGE_LXD ./bin/local-run tests/cgroup "${{ matrix.track }}"
+          sudo --preserve-env=PURGE_LXD ./bin/local-run "tests/${{ steps.step_id.name }}" "${{ matrix.track }}"
 
-      - name: tests/docker (${{ matrix.track }})
+      - name: docker
         run: |
           set -eux
-          sudo --preserve-env=PURGE_LXD ./bin/local-run tests/docker "${{ matrix.track }}"
+          sudo --preserve-env=PURGE_LXD ./bin/local-run "tests/${{ steps.step_id.name }}" "${{ matrix.track }}"
