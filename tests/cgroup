@@ -238,5 +238,8 @@ lxc pause c1
 ! lxc exec c1 bash || false
 lxc start c1
 
+# Cleanup
+lxc delete -f c1
+
 # shellcheck disable=SC2034
 FAIL=0
