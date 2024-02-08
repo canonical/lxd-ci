@@ -30,6 +30,8 @@ do
                 lxc storage create "${poolName}" "${poolDriver}" size=40GiB lvm.use_thinpool=false volume.size=5GB
         elif [ "${poolDriver}" = "lvm-thin" ]; then
                 lxc storage create "${poolName}" lvm size=20GiB volume.size=5GB
+	elif [ "${poolDriver}" = "powerflex" ]; then
+		createPowerFlexPool "${poolName}"
 	else
 		lxc storage create "${poolName}" "${poolDriver}" size=20GB volume.size=5GB
 	fi
@@ -39,11 +41,19 @@ do
 	lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v2 --vm -s "${poolName}"
 
 	echo "==> Create custom block volume and attach it to VM"
-	lxc storage volume create "${poolName}" vol1 --type=block size=10MB
+	if [ "${poolDriver}" != "powerflex" ]; then
+		lxc storage volume create "${poolName}" vol1 --type=block size=10MB
+	else
+		lxc storage volume create "${poolName}" vol1 --type=block size=8GiB
+	fi
 	lxc storage volume attach "${poolName}" vol1 v1
 
 	echo "==> Create custom volume and attach it to VM"
-	lxc storage volume create "${poolName}" vol4 size=10MB
+	if [ "${poolDriver}" != "powerflex" ]; then
+		lxc storage volume create "${poolName}" vol4 size=10MB
+	else
+		lxc storage volume create "${poolName}" vol4 size=8GiB
+	fi
 	lxc storage volume attach "${poolName}" vol4 v1 /foo
 
 	echo "==> Start VM and add content to custom block volume"

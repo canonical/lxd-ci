@@ -36,6 +36,17 @@ Or to run individual tests (`tests/pylxd` against `latest/edge`):
 ./bin/openstack-run jammy default tests/pylxd latest/edge
 ```
 
+# Running Dell PowerFlex VM storage tests
+
+To run the VM storage tests on the Dell PowerFlex driver, provide the following environment variables:
+
+* `POWERFLEX_POOL`: Name of the PowerFlex storage pool
+* `POWERFLEX_DOMAIN`: Name of the PowerFlex domain
+* `POWERFLEX_GATEWAY`: Address of the PowerFlex HTTP gateway
+* `POWERFLEX_GATEWAY_VERIFY`: Whether to verify the HTTP gateway's certificate. The default is `true`.
+* `POWERFLEX_USER`: Name of the PowerFlex user
+* `POWERFLEX_PASSWORD`: Password of the PowerFlex user
+
 # Infrastructure managed by IS
 
 The PS6 environment has inbound and outbound firewalling applied at the network edge. In order to access some external sites here are the firewall rules we added to firewall maintained by IS:
