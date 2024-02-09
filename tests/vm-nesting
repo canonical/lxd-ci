@@ -46,7 +46,9 @@ function start() {
 }
 
 function wait() {
-	parallel "$1" bash -c "while true; do if lxc shell t{}; then break; fi; sleep 1; done"
+	for i in $(seq "$1"); do
+		waitInstanceReady "t${i}"
+	done
 }
 
 function copy() {
