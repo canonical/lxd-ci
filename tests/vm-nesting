@@ -91,7 +91,6 @@ else
 	cmd 5 "snap wait system seed.loaded && snap refresh lxd --channel ${LXD_SNAP_CHANNEL:-"latest/edge"}"
 fi
 cmd 5 "lxd init --auto"
-cmd 5 "systemctl reload snap.lxd.daemon"
 cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=5GiB"
 delete 5
 
@@ -111,7 +110,6 @@ else
 	cmd 5 "snap wait system seed.loaded && snap refresh lxd --channel ${LXD_SNAP_CHANNEL:-"latest/edge"}"
 fi
 cmd 5 "lxd init --auto"
-cmd 5 "systemctl reload snap.lxd.daemon"
 cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=5GiB"
 delete 5
 
