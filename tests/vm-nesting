@@ -91,7 +91,7 @@ else
 	cmd 5 "snap wait system seed.loaded && snap refresh lxd --channel ${LXD_SNAP_CHANNEL:-"latest/edge"}"
 fi
 cmd 5 "lxd init --auto"
-cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=5GiB"
+cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=3GiB"
 delete 5
 
 # Test 5 containers each with one nested VM.
@@ -110,7 +110,7 @@ else
 	cmd 5 "snap wait system seed.loaded && snap refresh lxd --channel ${LXD_SNAP_CHANNEL:-"latest/edge"}"
 fi
 cmd 5 "lxd init --auto"
-cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=5GiB"
+cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=3GiB"
 delete 5
 
 lxc network delete lxdbr0
