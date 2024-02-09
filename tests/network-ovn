@@ -20,6 +20,7 @@ lxc storage create default zfs
 instanceImage="${TEST_IMG:-ubuntu-daily:22.04}"
 
 ovn_basic_tests() {
+    echo "::group::basic"
     lxc network create lxdbr0 \
         ipv4.address=10.10.10.1/24 ipv4.nat=true \
         ipv4.dhcp.ranges=10.10.10.2-10.10.10.199 \
@@ -585,9 +586,12 @@ ovn_basic_tests() {
 
     lxc project switch default
     lxc project delete testovn
+
+    echo "::endgroup::"
 }
 
 ovn_forward_tests() {
+    echo "::group::forward"
     # Create lxdbr0 bridge to act as uplink network.
     lxc network create lxdbr0 \
         ipv4.address=10.10.10.1/24 ipv4.nat=true \
@@ -815,9 +819,12 @@ EOF
     lxc project switch default
     lxc project delete testovn
     lxc network delete lxdbr0
+
+    echo "::endgroup::"
 }
 
 ovn_load_balancer_tests() {
+    echo "::group::load_balancer"
     # Create lxdbr0 bridge to act as uplink network.
     lxc network create lxdbr0 \
         ipv4.address=10.10.10.1/24 ipv4.nat=true \
@@ -1039,9 +1046,12 @@ EOF
     lxc project switch default
     lxc project delete testovn
     lxc network delete lxdbr0
+
+    echo "::endgroup::"
 }
 
 ovn_peering_tests() {
+    echo "::group::peering"
     # Create two projects to test cross-project peering.
     lxc project create ovn1 \
         -c features.images=false \
@@ -1346,9 +1356,12 @@ ovn_peering_tests() {
 
     lxc project delete ovn1
     lxc project delete ovn2
+
+    echo "::endgroup::"
 }
 
 ovn_dhcp_reservation_tests() {
+    echo "::group::dhcp_reservation"
     lxc network create lxdbr0 \
         ipv4.address=10.10.10.1/24 ipv4.nat=true \
         ipv4.dhcp.ranges=10.10.10.2-10.10.10.199 \
@@ -1425,9 +1438,12 @@ ovn_dhcp_reservation_tests() {
 
     lxc network delete ovn1
     lxc network delete lxdbr0
+
+    echo "::endgroup::"
 }
 
 ovn_nested_vlan_tests() {
+    echo "::group::nested_vlan"
     lxc network create lxdbr0 \
         ipv4.address=10.10.10.1/24 ipv4.nat=true \
         ipv4.dhcp.ranges=10.10.10.2-10.10.10.199 \
@@ -1510,9 +1526,12 @@ ovn_nested_vlan_tests() {
     lxc delete -f u1 u2
     lxc network delete ovn1
     lxc network delete lxdbr0
+
+    echo "::endgroup::"
 }
 
 ovn_acl_tests() {
+    echo "::group::acl"
     # Create uplink network with a special DNS record lxdbr0.test pointing to the bridge addresses.
     lxc network create lxdbr0 \
         ipv4.address=10.10.10.1/24 ipv4.nat=true \
@@ -1882,9 +1901,12 @@ ovn_acl_tests() {
 
     lxc network delete lxdbr0 --project default
     lxc network acl delete icmp --project default
+
+    echo "::endgroup::"
 }
 
 ovn_l3only_tests() {
+    echo "::group::l3only"
     lxc network create lxdbr0 \
         ipv4.address=10.10.10.1/24 ipv4.nat=true \
         ipv4.dhcp.ranges=10.10.10.2-10.10.10.199 \
@@ -1944,6 +1966,8 @@ ovn_l3only_tests() {
     lxc delete -f u1 u2
     lxc network delete ovn1
     lxc network delete lxdbr0
+
+    echo "::endgroup::"
 }
 
 # countDynamicLeases is a helper function that counts dynamic leases of the instance within
@@ -1974,6 +1998,7 @@ hasLeaseIP(){
 }
 
 ovn_leases_tests() {
+    	echo "::group::leases"
         lxc network create lxdbr0 \
             ipv4.address=10.10.10.1/24 ipv4.nat=true \
             ipv4.dhcp.ranges=10.10.10.2-10.10.10.199 \
@@ -2032,6 +2057,8 @@ ovn_leases_tests() {
         # Cleanup.
         lxc network delete ovn0
         lxc network delete lxdbr0
+
+    echo "::endgroup::"
 }
 
 # Allow for running a specific set of tests.
