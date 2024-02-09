@@ -1128,7 +1128,7 @@ ovn_peering_tests() {
     lxc exec ovn1 --project=ovn1 -- ip a add 2001:db8:1:2::2/128 dev eth0
 
     echo "==> Test that pinging internal addresses between networks doesn't work without peering"
-    sleep 5
+    sleep 20
     ! lxc exec ovn1 --project=ovn1 -- ping -nc1 -4 -w5 "${ovn2NetIPv4}" || false
     ! lxc exec ovn1 --project=ovn1 -- ping -nc1 -6 -w5 "${ovn2NetIPv6}" || false
     ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 198.51.100.1 || false
