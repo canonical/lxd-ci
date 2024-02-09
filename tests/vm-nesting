@@ -11,6 +11,15 @@ lxc project switch default
 lxc storage create default zfs size=30GiB
 lxc network create lxdbr0
 
+# Cleanup
+extra_cleanup() {
+    instCount="$(lxc list -f csv -c n t | wc -l)"
+    [ "$instCount" -gt 0 ] && delete "${instCount}"
+
+    lxc network delete lxdbr0
+    lxc storage delete default
+}
+
 instanceImage="${TEST_IMG:-ubuntu-minimal-daily:22.04}"
 
 function parallel() {
@@ -111,10 +120,6 @@ else
 fi
 cmd 5 "lxd init --auto"
 cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=3GiB"
-delete 5
-
-lxc network delete lxdbr0
-lxc storage delete default
 
 # shellcheck disable=SC2034
 FAIL=0
