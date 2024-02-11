@@ -434,10 +434,6 @@ do
         else
                 echo "==> Publishing larger VM (16GiB)"
         fi
-        lxc start v1 # Start to ensure cloud-init grows filesystem before publish.
-        waitInstanceReady v1
-        lxc info v1
-        lxc stop -f v1
         lxc publish v1 --alias vmbig
         lxc delete -f v1
         if [ "${poolDriver}" != "powerflex" ]; then
