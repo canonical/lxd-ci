@@ -183,6 +183,7 @@ cleanup() {
     exit 0
 }
 
+@@LXD_SNAP_CHANNEL@@
 export DEBIAN_FRONTEND=noninteractive
 FAIL=1
 trap cleanup EXIT HUP INT TERM
