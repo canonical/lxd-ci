@@ -62,7 +62,7 @@ test_data:
 
     # Copy test script to DUT
     _script="\$(mktemp)"
-    sed -e "1 a LXD_SNAP_CHANNEL=${lxd_snap_channel}" -e "1 r bin/helpers" "${script}" > "\${_script}"
+    sed "1 r bin/helpers" "${script}" | sed "s|^@@LXD_SNAP_CHANNEL@@$|LXD_SNAP_CHANNEL=${lxd_snap_channel}|" > "\${_script}"
     \$SCP "\${_script}" "ubuntu@\${DEVICE_IP}:test-script"
 
     # Run the test
