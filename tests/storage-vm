@@ -35,10 +35,11 @@ do
                 lxc storage create "${poolName}" "${poolDriver}" size=20GiB
         fi
 
-        echo "==> Create VM and boot with small root"
         if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Create VM and boot with small root (3GiB)"
                 lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=3GiB
         else
+                echo "==> Create VM and boot with small root (8GiB)"
                 lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=8GiB
         fi
         lxc start v1
@@ -144,10 +145,11 @@ do
         lxc start v1
         waitInstanceReady v1
 
-        echo "==> Increasing VM root disk size for next boot"
         if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Increasing VM root disk size for next boot (4GiB)"
                 lxc config device set v1 root size=4GiB
         else
+                echo "==> Increasing VM root disk size for next boot (16GiB)"
                 lxc config device set v1 root size=16GiB
         fi
         lxc config get v1 volatile.root.apply_quota | grep true
@@ -290,11 +292,11 @@ do
         echo "==> Deleting VM"
         lxc delete -f v1
 
-        echo "==> Change volume.size on pool and create VM"
         if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Change volume.size on pool from default of 10GiB to 4GiB and create VM"
                 lxc storage set "${poolName}" volume.size 4GiB
         else
-                # Set to something else than the default of 8GiB.
+                echo "==> Change volume.size on pool from default of 8GiB to 16GiB and create VM"
                 lxc storage set "${poolName}" volume.size 16GiB
         fi
         lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
@@ -331,11 +333,12 @@ do
                 lxc storage unset "${poolName}" volume.block.filesystem
         fi
 
-        echo "==> Create VM from profile with small disk size"
         lxc profile copy default vmsmall
         if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Create VM from profile with small disk size (3GiB)"
                 lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=3GiB
         else
+                echo "==> Create VM from profile with small disk size (8GiB)"
                 lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=8GiB
         fi
         lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -p vmsmall
@@ -401,10 +404,11 @@ do
         fi
         lxc delete -f v2
 
-        echo "==> Grow above default volume size and copy to different storage pool"
         if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Override volume size from profile (4GiB) to 5GiB and copy to different storage pool"
                 lxc config device override v1 root size=5GiB
         else
+                echo "==> Override volume size from profile (8GiB) to 16GiB and copy to different storage pool"
                 lxc config device override v1 root size=16GiB
         fi
         lxc copy v1 v2 -s "${poolName}2"
@@ -422,7 +426,11 @@ do
         lxc delete -f v2
         lxc storage delete "${poolName}2"
 
-        echo "==> Publishing larger VM"
+        if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Publishing larger VM (5GiB)"
+        else
+                echo "==> Publishing larger VM (16GiB)"
+        fi
         lxc start v1 # Start to ensure cloud-init grows filesystem before publish.
         waitInstanceReady v1
         lxc info v1
@@ -446,10 +454,10 @@ do
         lxc info v1
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking new VM root disk size is 8GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
+                echo "==> Checking new VM root disk size has default volume size of 10GiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "10" ]
         else
-                echo "==> Checking new VM root disk size is 16GiB"
+                echo "==> Checking new VM root disk size has default volume size of 16GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
         fi
 
