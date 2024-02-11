@@ -4,8 +4,8 @@ set -ux
 script="${1}"
 lxd_snap_channel="${2}"
 shift 2
-_script="$(mktemp)"
 test_name="$(basename "${script}")"
+_script="$(mktemp "${test_name}.XXXX")"
 
 echo "==> Running the job ${test_name} against ${lxd_snap_channel}" >&2
 sed -e "1 a LXD_SNAP_CHANNEL=${lxd_snap_channel}" -e "1 r bin/helpers" "${script}" > "${_script}"
