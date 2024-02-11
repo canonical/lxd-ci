@@ -160,13 +160,16 @@ do
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM root disk size is 4GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
+
+                echo "==> Check VM shrink is blocked"
+                ! lxc config device set v1 root size=3GiB || false
         else
                 echo "==> Checking VM root disk size is 16GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
-        fi
 
-        echo "==> Check VM shrink is blocked"
-        ! lxc config device set v1 root size=10GiB || false
+                echo "==> Check VM shrink is blocked"
+                ! lxc config device set v1 root size=8GiB || false
+        fi
 
         echo "==> Checking additional disk device support"
         lxc stop -f v1
