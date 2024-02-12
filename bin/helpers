@@ -171,6 +171,10 @@ cleanup() {
     echo ""
     if [ "${FAIL}" = "1" ]; then
         echo "Test failed"
+
+        # Report current disk usage to diagnose potential out of space issues
+        df -h
+
         exit 1
     fi
 
