@@ -58,18 +58,20 @@ jobs:
           - cpu-vm
           - devlxd-vm
           - docker
+          - interception
           - pylxd
           - network-bridge-firewall
           - network-ovn
           - network-routed
-          #- storage-buckets  # waiting for integration with microceph
+          - storage-buckets
           - storage-disks-vm
           - storage-vm
           - storage-volumes-vm
           - vm-nesting
-        include:
+        exclude:
           - test: interception # not compatible with 5.0/* and no API extension advertised
-            track: "latest/edge"
+            track: "5.0/edge"
+          - test: storage-buckets  # waiting for integration with microceph
 
     steps:
       - name: Performance tuning
