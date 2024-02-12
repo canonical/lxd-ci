@@ -20,8 +20,8 @@ poolName="vmpool$$"
 
 GiB=1073741823
 
-for poolDriver in $poolDriverList
-do
+for poolDriver in $poolDriverList; do
+        echo "::group::${poolDriver}"
         echo "==> Create storage pool using driver ${poolDriver}"
         if [ "${poolDriver}" = "dir" ] || [ "${poolDriver}" = "ceph" ]; then
                 lxc storage create "${poolName}" "${poolDriver}"
@@ -487,6 +487,7 @@ do
 
         echo "==> Deleting storage pool"
         lxc storage delete "${poolName}"
+        echo "::endgroup::"
 done
 
 echo "==> Delete network"
