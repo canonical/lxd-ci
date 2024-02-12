@@ -16,12 +16,11 @@ poolDriverList="${1:-dir btrfs lvm lvm-thin zfs}"
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 
-poolName="vmpool$$"
-
 GiB=1073741823
 
 for poolDriver in $poolDriverList; do
         echo "::group::${poolDriver}"
+        poolName="vmpool-${poolDriver}-$$"
         echo "==> Create storage pool using driver ${poolDriver}"
         if [ "${poolDriver}" = "dir" ] || [ "${poolDriver}" = "ceph" ]; then
                 lxc storage create "${poolName}" "${poolDriver}"
@@ -360,18 +359,18 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Copy to different storage pool with same driver and check size"
         if [ "${poolDriver}" = "dir" ] || [ "${poolDriver}" = "ceph" ]; then
-                lxc storage create "${poolName}2" "${poolDriver}"
+                lxc storage create "${poolName}-2" "${poolDriver}"
         elif [ "${poolDriver}" = "lvm" ]; then
-                lxc storage create "${poolName}2" "${poolDriver}" size=40GiB lvm.use_thinpool=false
+                lxc storage create "${poolName}-2" "${poolDriver}" size=40GiB lvm.use_thinpool=false
         elif [ "${poolDriver}" = "lvm-thin" ]; then
-                lxc storage create "${poolName}2" lvm size=20GiB
+                lxc storage create "${poolName}-2" lvm size=20GiB
         elif [ "${poolDriver}" = "powerflex" ]; then
-                createPowerFlexPool "${poolName}2"
+                createPowerFlexPool "${poolName}-2"
         else
-                lxc storage create "${poolName}2" "${poolDriver}" size=20GiB
+                lxc storage create "${poolName}-2" "${poolDriver}" size=20GiB
         fi
 
-        lxc copy v1 v2 -s "${poolName}2"
+        lxc copy v1 v2 -s "${poolName}-2"
         lxc start v2
         waitInstanceReady v2
         lxc info v2
@@ -384,7 +383,7 @@ for poolDriver in $poolDriverList; do
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
         fi
         lxc delete -f v2
-        lxc storage delete "${poolName}2"
+        lxc storage delete "${poolName}-2"
 
         echo "==> Copy to different storage pool with different driver and check size"
         dstPoolDriver=zfs # Use ZFS storage pool as that has fixed volumes not files.
@@ -392,8 +391,8 @@ for poolDriver in $poolDriverList; do
                 dstPoolDriver=lvm # Use something different when testing ZFS.
         fi
 
-        lxc storage create "${poolName}2" "${dstPoolDriver}" size=20GiB
-        lxc copy v1 v2 -s "${poolName}2"
+        lxc storage create "${poolName}-${dstPoolDriver}" "${dstPoolDriver}" size=20GiB
+        lxc copy v1 v2 -s "${poolName}-${dstPoolDriver}"
         lxc start v2
         waitInstanceReady v2
         lxc info v2
@@ -414,7 +413,7 @@ for poolDriver in $poolDriverList; do
                 echo "==> Override volume size from profile (8GiB) to 16GiB and copy to different storage pool"
                 lxc config device override v1 root size=16GiB
         fi
-        lxc copy v1 v2 -s "${poolName}2"
+        lxc copy v1 v2 -s "${poolName}-${dstPoolDriver}"
         lxc start v2
         waitInstanceReady v2
         lxc info v2
@@ -427,7 +426,7 @@ for poolDriver in $poolDriverList; do
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
         fi
         lxc delete -f v2
-        lxc storage delete "${poolName}2"
+        lxc storage delete "${poolName}-${dstPoolDriver}"
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Publishing larger VM (5GiB)"
