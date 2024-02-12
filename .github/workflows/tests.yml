@@ -1,33 +1,136 @@
 name: Tests
 on:
-  - push
-  - pull_request
+  push:
+  pull_request:
+  schedule:
+    - cron:  '38 9 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  lint:
-    runs-on: ubuntu-latest
-    
-    permissions:
-      security-events: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+defaults:
+  run:
+    # Make sure bash is always invoked with `-eo pipefail`
+    # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsshell
+    shell: bash
+
+jobs:
+  code-tests:
+    name: Code
+    runs-on: ubuntu-22.04
     steps:
-      - name: Repository checkout
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - id: ShellCheck
         name: Differential ShellCheck
         uses: redhat-plumbers-in-action/differential-shellcheck@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+        if: github.event_name == 'pull_request'
 
-      - if: ${{ always() }}
-        name: Upload artifact with ShellCheck defects in SARIF format
+      - name: Upload artifact with ShellCheck defects in SARIF format
         uses: actions/upload-artifact@v4
         with:
           name: Differential ShellCheck SARIF
           path: ${{ steps.ShellCheck.outputs.sarif }}
+        if: github.event_name == 'pull_request'
+
+  system-tests:
+    env:
+      PURGE_LXD: "1"
+    name: ${{ matrix.test }} (${{ matrix.track }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        track:
+          - "latest/edge"
+          - "5.0/edge"
+        test:
+          - cgroup
+          - cluster
+          - cpu-vm
+          - devlxd-vm
+          - docker
+          - interception
+          - pylxd
+          - network-bridge-firewall
+          - network-ovn
+          - network-routed
+          - storage-buckets
+          - storage-disks-vm
+          - "storage-vm dir"
+          - "storage-vm btrfs"
+          - "storage-vm ceph"
+          - "storage-vm lvm"
+          - "storage-vm lvm-thin"
+          - "storage-vm zfs"
+          - storage-volumes-vm
+          - vm-nesting
+        exclude:
+          - test: interception # not compatible with 5.0/* and no API extension advertised
+            track: "5.0/edge"
+          - test: storage-buckets  # waiting for integration with microceph
+          - test: "storage-vm ceph" # waiting for integration with microceph
+
+    steps:
+      - name: Performance tuning
+        run: |
+          set -eux
+          # optimize ext4 FSes for performance, not reliability
+          for fs in $(findmnt --noheading --type ext4 --list --uniq | awk '{print $1}'); do
+            # nombcache and data=writeback cannot be changed on remount
+            sudo mount -o remount,noatime,barrier=0,commit=6000 "${fs}"
+          done
+
+          # disable dpkg from calling sync()
+          echo "force-unsafe-io" | sudo tee /etc/dpkg/dpkg.cfg.d/force-unsafe-io
+
+      - name: Reclaim some space
+        run: |
+          set -eux
+          df -h
+
+          sudo snap remove lxd --purge
+          # Purge older snap revisions that are disabled/superseded by newer revisions of the same snap
+          snap list --all | while read -r name _ rev _ _ notes _; do
+            [ "${notes}" = "disabled" ] && snap remove "${name}" --revision "${rev}" --purge
+          done || true
+
+          # This was inspired from https://github.com/easimon/maximize-build-space
+          df -h
+          # dotnet
+          sudo rm -rf /usr/share/dotnet
+          # android
+          sudo rm -rf /usr/local/lib/android
+          # haskell
+          sudo rm -rf /opt/ghc
+          df -h
+
+      - name: Remove docker
+        run: |
+          set -eux
+          sudo apt-get autopurge -y moby-containerd docker uidmap
+          sudo ip link delete docker0
+          sudo nft flush ruleset
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ${{ matrix.test }} (${{ matrix.track }})
+        run: |
+          set -eux
+          TEST_SCRIPT="$(echo ${{ matrix.test }} | cut -d " " -f 1)"
+          EXTRA_ARGS="$(echo ${{ matrix.test }} | cut -d " " -f 2- --only-delimited)"
+          if [ "${TEST_SCRIPT}" = "cluster" ]; then
+            dst_track="${{ matrix.track }}"
+            src_track="$(echo "${dst_track}" | cut -d/ -f1)/stable"
+            EXTRA_ARGS="${EXTRA_ARGS:-3} ${src_track} ${{ matrix.track }}"
+          fi
+          sudo --preserve-env=PURGE_LXD,TEST_IMG ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}

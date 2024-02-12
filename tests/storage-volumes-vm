@@ -17,6 +17,14 @@ lxc project create test -c features.images=false
 lxc project switch test
 lxc profile device add default eth0 nic network=lxdbr0
 
+# Cleanup
+extra_cleanup() {
+	lxc profile device remove default eth0
+	lxc project switch default
+	lxc project delete test
+	lxc network delete lxdbr0
+}
+
 poolName="vmpool$$"
 
 for poolDriver in $poolDriverList
@@ -169,11 +177,6 @@ do
 	lxc storage volume rm "${poolName}" vol6 || true  # optional ISO
 	lxc storage rm "${poolName}"
 done
-
-lxc profile device remove default eth0
-lxc project switch default
-lxc project delete test
-lxc network delete lxdbr0
 
 # shellcheck disable=SC2034
 FAIL=0

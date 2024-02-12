@@ -47,7 +47,7 @@ lxc profile device add default eth0 nic network=lxdbr0
 lxc profile show default
 
 # Create instance and add check relative source paths are not allowed.
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm
+lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm
 ! lxc config device add v1 d1 disk source=foo path=/mnt || false
 
 # Check adding a disk with a source path above the restricted parent source path isn't allowed.
@@ -130,6 +130,10 @@ if hasNeededAPIExtension disk_io_bus; then
   lxc config device add v1 nvme-ssd disk source="${loopdev}" io.bus=nvme
   lxc start v1
   waitInstanceReady v1
+  if ! lxc exec v1 -- sh -c 'command -v lspci'; then
+    lxc exec v1 -- apt-get update
+    lxc exec v1 -- apt-get install --no-install-recommends -y pciutils
+  fi
   lxc exec v1 -- lspci | grep -F "QEMU NVM Express Controller"
 else
   echo 'Skipping NVME test due to missing extension: "disk_io_bus"'

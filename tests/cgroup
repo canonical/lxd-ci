@@ -18,6 +18,11 @@ install_lxd
 # Configure LXD
 lxd init --auto
 
+# Cleanup
+extra_cleanup() {
+    lxc delete -f c1
+}
+
 # Test
 set -x
 

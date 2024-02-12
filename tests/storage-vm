@@ -16,12 +16,11 @@ poolDriverList="${1:-dir btrfs lvm lvm-thin zfs}"
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 
-poolName="vmpool$$"
-
 GiB=1073741823
 
-for poolDriver in $poolDriverList
-do
+for poolDriver in $poolDriverList; do
+        echo "::group::${poolDriver}"
+        poolName="vmpool-${poolDriver}-$$"
         echo "==> Create storage pool using driver ${poolDriver}"
         if [ "${poolDriver}" = "dir" ] || [ "${poolDriver}" = "ceph" ]; then
                 lxc storage create "${poolName}" "${poolDriver}"
@@ -35,10 +34,11 @@ do
                 lxc storage create "${poolName}" "${poolDriver}" size=20GiB
         fi
 
-        echo "==> Create VM and boot with small root"
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=4GiB
+                echo "==> Create VM and boot with small root (3GiB)"
+                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=3GiB
         else
+                echo "==> Create VM and boot with small root (8GiB)"
                 lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=8GiB
         fi
         lxc start v1
@@ -64,8 +64,8 @@ do
         lxc exec v1 -- umount /srv
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM root disk size is 4GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
+                echo "==> Checking VM root disk size is 3GiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
         else
                 echo "==> Checking VM root disk size is 8GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -101,8 +101,8 @@ do
         lxc exec v2 -- cat /root/foo.txt | grep -Fx "foo"
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM snapshot copy root disk size is 4GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
+                echo "==> Checking VM snapshot copy root disk size is 3GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
         else
                 echo "==> Checking VM snapshot copy root disk size is 8GiB"
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -144,10 +144,11 @@ do
         lxc start v1
         waitInstanceReady v1
 
-        echo "==> Increasing VM root disk size for next boot"
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc config device set v1 root size=11GiB
+                echo "==> Increasing VM root disk size for next boot (4GiB)"
+                lxc config device set v1 root size=4GiB
         else
+                echo "==> Increasing VM root disk size for next boot (16GiB)"
                 lxc config device set v1 root size=16GiB
         fi
         lxc config get v1 volatile.root.apply_quota | grep true
@@ -156,15 +157,18 @@ do
         waitInstanceReady v1
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM root disk size is 11GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "11" ]
+                echo "==> Checking VM root disk size is 4GiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
+
+                echo "==> Check VM shrink is blocked"
+                ! lxc config device set v1 root size=3GiB || false
         else
                 echo "==> Checking VM root disk size is 16GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
-        fi
 
-        echo "==> Check VM shrink is blocked"
-        ! lxc config device set v1 root size=10GiB || false
+                echo "==> Check VM shrink is blocked"
+                ! lxc config device set v1 root size=8GiB || false
+        fi
 
         echo "==> Checking additional disk device support"
         lxc stop -f v1
@@ -186,8 +190,8 @@ do
 
         echo "==> Testing VM lxd-agent drive mounts"
         # Check there is only 1 mount for each directory disk and that it is mounted with the appropriate options.
-        lxc exec v1 -- mount | grep '/srv/rw type' -c | grep 1
-        lxc exec v1 -- mount | grep '/srv/ro type' -c | grep 1
+        lxc exec v1 -- mount | grep -cF '/srv/rw type' | grep -xF 1
+        lxc exec v1 -- mount | grep -cF '/srv/ro type' | grep -xF 1
 
         # RW disks should use virtio-fs when used with the snap.
         lxc exec v1 -- mount | grep 'lxd_dir1rw on /srv/rw type virtiofs (rw,relatime)'
@@ -196,8 +200,8 @@ do
         lxc exec v1 -- mount | grep 'lxd_dir1ro on /srv/ro type virtiofs (ro,relatime)'
 
         # Check UID/GID are correct.
-        lxc exec v1 -- stat -c '%u:%g' /srv/rw | grep '0:0'
-        lxc exec v1 -- stat -c '%u:%g' /srv/ro | grep '0:0'
+        lxc exec v1 -- stat -c '%u:%g' /srv/rw | grep -xF '0:0'
+        lxc exec v1 -- stat -c '%u:%g' /srv/ro | grep -xF '0:0'
 
         # Remount the readonly disk as rw inside VM and check that the disk is still readonly at the LXD layer.
         lxc exec v1 -- mount -oremount,rw /srv/ro
@@ -218,13 +222,13 @@ do
 
         # Check writable disk is writable.
         lxc exec v1 -- touch /srv/rw/lxd-test-rw
-        stat -c '%u:%g' "/tmp/lxd-test-${poolName}/lxd-test-rw" | grep "0:0"
+        stat -c '%u:%g' "/tmp/lxd-test-${poolName}/lxd-test-rw" | grep -xF "0:0"
         lxc exec v1 -- rm /srv/rw/lxd-test-rw
         lxc exec v1 -- rm /srv/rw/lxd-test
 
         # Check block disks are available.
-        lxc exec v1 -- stat -c "%F" /dev/sdb | grep "block special file"
-        lxc exec v1 -- stat -c "%F" /dev/sdc | grep "block special file"
+        lxc exec v1 -- stat -c "%F" /dev/sdb | grep -xF "block special file"
+        lxc exec v1 -- stat -c "%F" /dev/sdc | grep -xF "block special file"
 
         # Check the rw driver accepts writes and the ro does not.
         ! lxc exec v1 -- dd if=/dev/urandom of=/dev/sdb bs=512 count=2 || false
@@ -257,17 +261,17 @@ do
         fi
         lxc storage volume attach "${poolName}" vol1 v1
         sleep 3
-        lxc exec v1 -- stat -c "%F" /dev/sdb | grep "block special file"
+        lxc exec v1 -- stat -c "%F" /dev/sdb | grep -xF "block special file"
         lxc storage volume detach "${poolName}" vol1 v1
         sleep 3
         ! lxc exec v1 -- stat -c "%F" /dev/sdb || false
         lxc storage volume delete "${poolName}" vol1
 
         lxc config device add v1 block1 disk source="/tmp/lxd-test-${poolName}/lxd-test-block" readonly=true
-        sleep 5
+        sleep 7
         [ "$(lxc exec v1 -- cat /sys/block/sdb/ro)" -eq 1 ]
         lxc config device set v1 block1 readonly=false
-        sleep 5
+        sleep 7
         [ "$(lxc exec v1 -- cat /sys/block/sdb/ro)" -eq 0 ]
 
         # Hotplugging directories is not allowed and will fail
@@ -290,11 +294,11 @@ do
         echo "==> Deleting VM"
         lxc delete -f v1
 
-        echo "==> Change volume.size on pool and create VM"
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc storage set "${poolName}" volume.size 6GiB
+                echo "==> Change volume.size on pool from default of 10GiB to 4GiB and create VM"
+                lxc storage set "${poolName}" volume.size 4GiB
         else
-                # Set to something else than the default of 8GiB.
+                echo "==> Change volume.size on pool from default of 8GiB to 16GiB and create VM"
                 lxc storage set "${poolName}" volume.size 16GiB
         fi
         lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
@@ -303,8 +307,8 @@ do
         lxc info v1
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM root disk size is 6GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "6" ]
+                echo "==> Checking VM root disk size is 4GiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
         else
                 echo "==> Checking VM root disk size is 16GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
@@ -324,18 +328,19 @@ do
 
                 echo "==> Checking VM config disk filesyste is XFS"
                 serverPID="$(lxc query /1.0 | jq .environment.server_pid)"
-                nsenter -m -t "${serverPID}" stat -f -c %T /var/snap/lxd/common/lxd/virtual-machines/v1 | grep xfs
+                nsenter -m -t "${serverPID}" stat -f -c %T /var/snap/lxd/common/lxd/virtual-machines/v1 | grep -xF xfs
 
                 echo "==> Deleting VM"
                 lxc delete -f v1
                 lxc storage unset "${poolName}" volume.block.filesystem
         fi
 
-        echo "==> Create VM from profile with small disk size"
         lxc profile copy default vmsmall
         if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Create VM from profile with small disk size (3GiB)"
                 lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=3GiB
         else
+                echo "==> Create VM from profile with small disk size (8GiB)"
                 lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=8GiB
         fi
         lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -p vmsmall
@@ -354,18 +359,18 @@ do
 
         echo "==> Copy to different storage pool with same driver and check size"
         if [ "${poolDriver}" = "dir" ] || [ "${poolDriver}" = "ceph" ]; then
-                lxc storage create "${poolName}2" "${poolDriver}"
+                lxc storage create "${poolName}-2" "${poolDriver}"
         elif [ "${poolDriver}" = "lvm" ]; then
-                lxc storage create "${poolName}2" "${poolDriver}" size=40GiB lvm.use_thinpool=false
+                lxc storage create "${poolName}-2" "${poolDriver}" size=40GiB lvm.use_thinpool=false
         elif [ "${poolDriver}" = "lvm-thin" ]; then
-                lxc storage create "${poolName}2" lvm size=20GiB
+                lxc storage create "${poolName}-2" lvm size=20GiB
         elif [ "${poolDriver}" = "powerflex" ]; then
-                createPowerFlexPool "${poolName}2"
+                createPowerFlexPool "${poolName}-2"
         else
-                lxc storage create "${poolName}2" "${poolDriver}" size=20GiB
+                lxc storage create "${poolName}-2" "${poolDriver}" size=20GiB
         fi
 
-        lxc copy v1 v2 -s "${poolName}2"
+        lxc copy v1 v2 -s "${poolName}-2"
         lxc start v2
         waitInstanceReady v2
         lxc info v2
@@ -378,7 +383,7 @@ do
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
         fi
         lxc delete -f v2
-        lxc storage delete "${poolName}2"
+        lxc storage delete "${poolName}-2"
 
         echo "==> Copy to different storage pool with different driver and check size"
         dstPoolDriver=zfs # Use ZFS storage pool as that has fixed volumes not files.
@@ -386,8 +391,8 @@ do
                 dstPoolDriver=lvm # Use something different when testing ZFS.
         fi
 
-        lxc storage create "${poolName}2" "${dstPoolDriver}" size=20GiB
-        lxc copy v1 v2 -s "${poolName}2"
+        lxc storage create "${poolName}-${dstPoolDriver}" "${dstPoolDriver}" size=20GiB
+        lxc copy v1 v2 -s "${poolName}-${dstPoolDriver}"
         lxc start v2
         waitInstanceReady v2
         lxc info v2
@@ -401,36 +406,37 @@ do
         fi
         lxc delete -f v2
 
-        echo "==> Grow above default volume size and copy to different storage pool"
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc config device override v1 root size=11GiB
+                echo "==> Override volume size from profile (4GiB) to 5GiB and copy to different storage pool"
+                lxc config device override v1 root size=5GiB
         else
+                echo "==> Override volume size from profile (8GiB) to 16GiB and copy to different storage pool"
                 lxc config device override v1 root size=16GiB
         fi
-        lxc copy v1 v2 -s "${poolName}2"
+        lxc copy v1 v2 -s "${poolName}-${dstPoolDriver}"
         lxc start v2
         waitInstanceReady v2
         lxc info v2
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking copied VM root disk size is 11GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "11" ]
+                echo "==> Checking copied VM root disk size is 5GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "5" ]
         else
                 echo "==> Checking copied VM root disk size is 16GiB"
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
         fi
         lxc delete -f v2
-        lxc storage delete "${poolName}2"
+        lxc storage delete "${poolName}-${dstPoolDriver}"
 
-        echo "==> Publishing larger VM"
-        lxc start v1 # Start to ensure cloud-init grows filesystem before publish.
-        waitInstanceReady v1
-        lxc info v1
-        lxc stop -f v1
+        if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Publishing larger VM (5GiB)"
+        else
+                echo "==> Publishing larger VM (16GiB)"
+        fi
         lxc publish v1 --alias vmbig
         lxc delete -f v1
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc storage set "${poolName}" volume.size 9GiB
+                lxc storage set "${poolName}" volume.size 3GiB
         else
                 lxc storage set "${poolName}" volume.size 8GiB
         fi
@@ -446,10 +452,10 @@ do
         lxc info v1
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking new VM root disk size is 11GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "11" ]
+                echo "==> Checking new VM root disk size has default volume size of 10GiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "10" ]
         else
-                echo "==> Checking new VM root disk size is 16GiB"
+                echo "==> Checking new VM root disk size has default volume size of 16GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
         fi
 
@@ -480,6 +486,7 @@ do
 
         echo "==> Deleting storage pool"
         lxc storage delete "${poolName}"
+        echo "::endgroup::"
 done
 
 echo "==> Delete network"

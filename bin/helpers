@@ -171,6 +171,10 @@ cleanup() {
     echo ""
     if [ "${FAIL}" = "1" ]; then
         echo "Test failed"
+
+        # Report current disk usage to diagnose potential out of space issues
+        df -h
+
         exit 1
     fi
 
@@ -183,6 +187,7 @@ cleanup() {
     exit 0
 }
 
+@@LXD_SNAP_CHANNEL@@
 export DEBIAN_FRONTEND=noninteractive
 FAIL=1
 trap cleanup EXIT HUP INT TERM
