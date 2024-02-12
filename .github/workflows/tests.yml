@@ -65,13 +65,19 @@ jobs:
           - network-routed
           - storage-buckets
           - storage-disks-vm
-          - storage-vm
+          - "storage-vm dir"
+          - "storage-vm btrfs"
+          - "storage-vm ceph"
+          - "storage-vm lvm"
+          - "storage-vm lvm-thin"
+          - "storage-vm zfs"
           - storage-volumes-vm
           - vm-nesting
         exclude:
           - test: interception # not compatible with 5.0/* and no API extension advertised
             track: "5.0/edge"
           - test: storage-buckets  # waiting for integration with microceph
+          - test: "storage-vm ceph" # waiting for integration with microceph
 
     steps:
       - name: Performance tuning
