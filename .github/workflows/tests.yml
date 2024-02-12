@@ -120,9 +120,11 @@ jobs:
       - name: ${{ matrix.test }} (${{ matrix.track }})
         run: |
           set -eux
-          if [ "${{ matrix.test }}" = "cluster" ]; then
+          TEST_SCRIPT="$(echo ${{ matrix.test }} | cut -d " " -f 1)"
+          EXTRA_ARGS="$(echo ${{ matrix.test }} | cut -d " " -f 2- --only-delimited)"
+          if [ "${TEST_SCRIPT}" = "cluster" ]; then
             dst_track="${{ matrix.track }}"
             src_track="$(echo "${dst_track}" | cut -d/ -f1)/stable"
-            EXTRA_ARGS="3 ${src_track} ${{ matrix.track }}"
+            EXTRA_ARGS="${EXTRA_ARGS:-3} ${src_track} ${{ matrix.track }}"
           fi
-          sudo --preserve-env=PURGE_LXD,TEST_IMG ./bin/local-run tests/${{ matrix.test }} ${{ matrix.track }} ${EXTRA_ARGS:-}
+          sudo --preserve-env=PURGE_LXD,TEST_IMG ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
