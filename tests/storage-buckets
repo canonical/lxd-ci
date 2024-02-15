@@ -11,6 +11,21 @@ if ! hasNeededAPIExtension storage_buckets; then
   exit 0
 fi
 
+
+# Grab the architecture so we can install the correct pre-built minio.
+arch="$(uname -m)"
+if [ "${arch}" = "aarch64" ]; then
+  arch="arm64"
+elif [ "${arch}" = "ppc64el" ]; then
+  arch="ppc64le"
+elif [ "${arch}" = "armhf" ]; then
+  arch="arm"
+elif [ "${arch}" = "riscv64" ] ; then
+  echo "Skipping test as not supported by architecture $(arch)"
+  FAIL=0
+  exit 0
+fi
+
 poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
 
 if echo "${poolDriverList}" | grep -qwF "ceph"; then
@@ -21,6 +36,23 @@ if echo "${poolDriverList}" | grep -qwF "ceph"; then
   apt-get update
   apt-get install --no-install-recommends --yes ceph-common
 fi
+
+# Clean up the build dir in case it hung around from a failed test.
+rm -rf /opt/minio
+mkdir -p /opt/minio
+
+# Download the minio server.
+curl -sSfL "https://dl.min.io/server/minio/release/linux-${arch}/minio" --output "/opt/minio/minio"
+chmod +x "opt/minio/minio"
+
+# Also grab the latest minio client to maintain compatibility with the server.
+curl -sSfL "https://dl.min.io/client/mc/release/linux-${arch}/mc" --output "/opt/minio/mc"
+chmod +x "opt/minio/mc"
+
+# Set the snap config key for minio and reload LXD to have it take effect.
+snap set lxd minio.path=/opt/minio
+systemctl reload snap.lxd.daemon
+lxd waitready --timeout=300
 
 # Configure LXD
 lxc project switch default
@@ -60,6 +92,9 @@ done
 
 lxc project switch default
 lxc project delete test
+
+# Remove MinIO now that the test is over.
+rm -rf /opt/minio
 
 # shellcheck disable=SC2034
 FAIL=0
