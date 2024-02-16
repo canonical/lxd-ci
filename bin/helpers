@@ -175,6 +175,16 @@ cleanup() {
         # Report current disk usage to diagnose potential out of space issues
         df -h
 
+        # LXD daemon logs
+        echo "::group::lxd logs"
+        journalctl --quiet --no-hostname --boot=0 --lines=100 --unit=snap.lxd.daemon.service
+        echo "::endgroup::"
+
+        # dmesg may contain oops, IO errors, crashes, etc
+        echo "::group::dmesg logs"
+        journalctl --quiet --no-hostname --boot=0 --lines=100 --dmesg
+        echo "::endgroup::"
+
         exit 1
     fi
 
