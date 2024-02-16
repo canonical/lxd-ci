@@ -17,6 +17,8 @@ jobs:
     uses: ./.github/workflows/image-alpine.yml
   busybox:
     uses: ./.github/workflows/image-busybox.yml
+  centos:
+    uses: ./.github/workflows/image-centos.yml
   debian:
     uses: ./.github/workflows/image-debian.yml
   ubuntu:

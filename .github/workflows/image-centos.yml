@@ -1,91 +1,109 @@
-- job:
-    name: "image-centos"
-    concurrent: false
-    description: CentOS images for LXC and LXD.
-    node: master
-    project-type: matrix
+name: Build CentOS Images
 
-    axes:
-    - axis:
-        name: architecture
-        type: slave
-        values:
-        - amd64
-        - arm64
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+        description: Publish built image
 
-    - axis:
-        name: release
-        type: user-defined
-        values:
-        - 7
-        - 8-Stream
-        - 9-Stream
+jobs:
+  centos:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        release:
+          - 7 # CentOS 7 tests require cgroups v1. They will pass on ubuntu-20.04 runner.
+          - 8-Stream
+          - 9-Stream
+        variant:
+          - default
+          - cloud
+        architecture:
+          - amd64
+          # - arm64
+    env:
+      type: "container"
+      distro: "${{ github.job }}"
+      target: "${HOME}/build"
 
-    - axis:
-        name: variant
-        type: user-defined
-        values:
-        - default
-        - cloud
+    steps:
+      - uses: actions/checkout@v4
 
-    builders:
-    - shell: |-
-        cd /lxc-ci
-        LXD_ARCHITECTURE="${architecture}"
+      - name: Setup environment
+        uses: ./.github/actions/image-setup
 
-        ARCH=${architecture}
-        [ "${ARCH}" = "amd64" ] && ARCH="x86_64"
-        [ "${ARCH}" = "arm64" ] && ARCH="aarch64"
+      - name: Determine image types
+        run: |
+          ARCH="${{ matrix.architecture }}"
+          if [ "${ARCH}" = "amd64" ]; then
+              echo "type=container,vm" >> $GITHUB_ENV
+          fi
 
-        EXTRA_ARGS=""
-        if [ "${release}" = "7" ] && [ "${architecture}" != "amd64" ]; then
-            EXTRA_ARGS="-o source.url=http://mirror.math.princeton.edu/pub/centos-altarch/ -o source.skip_verification=true"
-        fi
+      - name: Build image
+        run: |
+          TIMEOUT=1800
+          YAML="${{ github.workspace }}/images/${{ env.distro }}.yaml"
+          ARCH="${{ matrix.architecture }}"
+          TYPE="${{ env.type }}"
+          RELEASE="${{ matrix.release }}"
 
-        if [ "${release}" = "8-Stream" ] || [ "${release}" = "9-Stream" ]; then
-            EXTRA_ARGS="${EXTRA_ARGS} -o source.variant=boot"
-        fi
+          IMAGE_ARCH=${ARCH}
+          [ "${ARCH}" = "amd64" ] && IMAGE_ARCH="x86_64"
+          [ "${ARCH}" = "arm64" ] && IMAGE_ARCH="aarch64"
 
-        if [ "${release}" = "9-Stream" ]; then
-            EXTRA_ARGS="${EXTRA_ARGS} -o source.url=https://mirror1.hs-esslingen.de/pub/Mirrors/centos-stream"
-        fi
+          EXTRA_ARGS=""
+          if [ "${RELEASE}" = "7" ] && [ "${ARCH}" != "amd64" ]; then
+              EXTRA_ARGS="-o source.url=http://mirror.math.princeton.edu/pub/centos-altarch/ -o source.skip_verification=true"
+          fi
 
-        TYPE="container"
-        if [ "${architecture}" = "amd64" ]; then
-            TYPE="container,vm"
-        fi
+          if [ "${RELEASE}" = "7" ]; then
+              EXTRA_ARGS="${EXTRA_ARGS} -o packages.manager=yum"
+          fi
 
-        exec sudo /lxc-ci/bin/build-distro /lxc-ci/images/centos.yaml \
-            ${LXD_ARCHITECTURE} ${TYPE} 7200 ${WORKSPACE} \
-            -o image.architecture=${ARCH} -o image.release=${release} \
-            -o image.variant=${variant} ${EXTRA_ARGS}
+          if [ "${RELEASE}" = "8-Stream" ] || [ "${RELEASE}" = "9-Stream" ]; then
+              EXTRA_ARGS="${EXTRA_ARGS} -o source.variant=boot"
+          fi
 
-    properties:
-    - build-discarder:
-        num-to-keep: 3
+          if [ "${RELEASE}" = "9-Stream" ]; then
+              EXTRA_ARGS="${EXTRA_ARGS} -o source.url=https://mirror1.hs-esslingen.de/pub/Mirrors/centos-stream"
+          fi
 
-    - raw:
-        !include: ../includes/webhook.yaml.inc
+          ./bin/build-distro "${YAML}" "${ARCH}" "${TYPE}" "${TIMEOUT}" "${{ env.target }}" \
+              -o image.architecture="${IMAGE_ARCH}" \
+              -o image.release=${{ matrix.release }} \
+              -o image.variant=${{ matrix.variant }} \
+              ${EXTRA_ARGS}
 
-    publishers:
-    - archive:
-        artifacts: "*.qcow2,*.tar.xz,*.squashfs,image.yaml,serial"
-        only-if-success: true
+      - name: Print build artifacts
+        run: ls -lah "${{ env.target }}"
 
-    - workspace-cleanup:
-        fail-build: false
+      - name: Test container image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'container')
+        with:
+          type: container
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
+      - name: Test VM image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'vm')
+        with:
+          type: vm
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-    - naginator:
-        rerun-unstable-builds: true
-        rerun-matrix-part: true
-        max-failed-builds: 3
-        progressive-delay-increment: 300
-        progressive-delay-maximum: 900
-
-    triggers:
-    - timed: '@daily'
-
-    wrappers:
-    - ansicolor:
-        colormap: css
+      - name: Upload image
+        uses: ./.github/actions/image-upload
+        if: inputs.publish == true
+        with:
+          name: "${{ env.distro }}-${{ matrix.release }}-${{ matrix.architecture }}-${{ matrix.variant }}"
+          target: ${{ env.target }}
