@@ -15,3 +15,5 @@ concurrency:
 jobs:
   debian:
     uses: ./.github/workflows/image-debian.yml
+  ubuntu:
+    uses: ./.github/workflows/image-ubuntu.yml
