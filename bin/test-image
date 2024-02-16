@@ -1,15 +1,51 @@
 #!/bin/sh
 set -eu
 
-DIST="$1"
-RELEASE="$2"
-VARIANT="$3"
-TYPE="$4"
-META_URL="$5"
-DATA_URL="$6"
+# Check input arguments.
+if [ "${1:-}" = "" ] || [ "${2:-}" = "" ] || [ "${3:-}" = "" ] || [ "${4:-}" = "" ] || [ "${5:-}" = "" ]; then
+    echo "Usage: ${0} <type> <distribution> <release> <variant> <target dir>"
+    exit 1
+fi
+
+TYPE=${1}
+DIST=${2}
+RELEASE=${3}
+VARIANT=${4}
+TARGET=${5}
+
+# Ensure lxc is installed.
+if ! which lxc >/dev/null; then
+        echo "==> FAIL: Binary 'lxc' not found!"
+        exit 1
+fi
+
+# Skip VM tests on arm64.
+if [ "${TYPE}" = "vm" ] && [ "$(uname -m)" = "aarch64" ]; then
+    echo "==> SKIP: Can't test VM image on arm64 (lack nested support)"
+    exit
+fi
+
+# Setup the test environment.
+TEST_DIR="${HOME}/build-test"
+TEST_IMAGE="${TYPE}-${DIST}-${VARIANT}"
+
+rm -Rf "${TEST_DIR}"
+mkdir -p "${TEST_DIR}"
+
+echo "==> Fetching the image"
+if [ "${TYPE}" = "container" ]; then
+    cp "${TARGET}/lxd.tar.xz" "${TEST_DIR}/meta"
+    cp "${TARGET}/rootfs.squashfs" "${TEST_DIR}/root"
+elif [ "${TYPE}" = "vm" ]; then
+    cp "${TARGET}/lxd.tar.xz" "${TEST_DIR}/meta"
+    cp "${TARGET}/disk.qcow2" "${TEST_DIR}/root"
+else
+    echo "==> FAIL: Invalid instance type '${TYPE}'. Valid types: [container, vm]"
+    exit 1
+fi
 
 cleanup() {
-    rm -Rf "/tmp/${TEST_IMAGE}"
+    rm -Rf "${TEST_DIR}"
     lxc delete -f "${TEST_IMAGE}" 2>/dev/null || true
     lxc delete -f "${TEST_IMAGE}-priv" 2>/dev/null || true
     lxc delete -f "${TEST_IMAGE}-unpriv" 2>/dev/null || true
@@ -22,38 +58,29 @@ cleanup() {
     exit 0
 }
 
-# Skip VM tests on arm64
-if [ "${TYPE}" = "vm" ] && [ "$(uname -m)" = "aarch64" ]; then
-    echo "==> SKIP: Can't test VM image on arm64 (lack nested support)"
-    exit
-fi
-
-# Setup the test environment
-TEST_IMAGE="$(mktemp -u test-image-XXXXXX)"
-mkdir -p "/tmp/${TEST_IMAGE}"
-
 FAIL=1
 trap cleanup EXIT HUP INT TERM
 
-echo "==> Fetching the image"
-curl "${META_URL}" -s -o "/tmp/${TEST_IMAGE}/meta"
-curl "${DATA_URL}" -s -o "/tmp/${TEST_IMAGE}/root"
-FINGERPRINT=$(cat "/tmp/${TEST_IMAGE}/meta" "/tmp/${TEST_IMAGE}/root" | sha256sum | cut -d' ' -f1)
-lxc image delete "${FINGERPRINT}" 2>/dev/null || true
-lxc image import "/tmp/${TEST_IMAGE}/meta" "/tmp/${TEST_IMAGE}/root" --alias "${TEST_IMAGE}"
+FINGERPRINT=$(cat "${TEST_DIR}/meta" "${TEST_DIR}/root" | sha256sum | cut -d' ' -f1)
+lxc image import "${TEST_DIR}/meta" "${TEST_DIR}/root" --alias "${TEST_IMAGE}"
 
 echo "==> Creating the instances"
 INSTANCES=""
 if [ "${TYPE}" = "vm" ]; then
-    lxc init "${TEST_IMAGE}" "${TEST_IMAGE}" --vm -c security.secureboot=false -c limits.cpu=4 -c limits.memory=4GB
+    lxc init "${TEST_IMAGE}" "${TEST_IMAGE}" \
+        --vm \
+        -c limits.cpu=4 \
+        -c limits.memory=4GB \
+        -c security.secureboot=false
+
     INSTANCES="${TEST_IMAGE}"
 
-    # Handle distros needing the agent drive
+    # Handle distros needing the agent drive.
     if [ "${DIST}" = "almalinux" ] || [ "${DIST}" = "centos" ] || [ "${DIST}" = "openeuler" ] || [ "${DIST}" = "rockylinux" ]; then
         lxc config device add "${TEST_IMAGE}" agent disk source=agent:config
     fi
 
-    # Cloud-init testing
+    # Cloud-init testing.
     if [ "${VARIANT}" = "cloud" ]; then
         lxc config set "${TEST_IMAGE}" user.user-data "$(cat << EOF
 #cloud-config
@@ -73,7 +100,7 @@ EOF
 else
     for PRIV in "priv" "unpriv"; do
         if [ "${PRIV}" = "priv" ] && [ "${DIST}" = "nixos" ] && [ "${RELEASE}" = "23.11" ]; then
-            # NixOS 23.11 will never support privileged containers, but future versions do
+            # NixOS 23.11 will never support privileged containers, but future versions do.
             continue
         fi
 
@@ -88,16 +115,16 @@ else
         fi
 
         if [ "${DIST}" = "voidlinux" ]; then
-            # Workaround weird init system
+            # Workaround weird init system.
             lxc config set "${TEST_IMAGE}-${PRIV}" raw.lxc lxc.signal.halt=SIGCONT
         fi
 
         if [ "${DIST}" = "slackware" ]; then
-            # Workaround weird init system
+            # Workaround weird init system.
             lxc config set "${TEST_IMAGE}-${PRIV}" raw.lxc lxc.signal.halt=SIGKILL
         fi
 
-        # Cloud-init testing
+        # Cloud-init testing.
         if [ "${VARIANT}" = "cloud" ]; then
             lxc config set "${TEST_IMAGE}-${PRIV}" user.user-data "$(cat << EOF
 #cloud-config
@@ -117,19 +144,19 @@ EOF
     done
 fi
 
-# Start them all
+# Start all instances.
 echo "==> Starting the instances"
 for i in ${INSTANCES}; do
     lxc start "${i}"
 done
 
-# Wait for things to settle
+# Wait for things to settle.
 echo "==> Waiting for instances to start"
 [ "${TYPE}" = "container" ] && sleep 1m
 [ "${TYPE}" = "vm" ] && sleep 3m
 lxc list "${TEST_IMAGE}"
 
-# Check that all instances have an IPv4 and IPv6 address
+# Check that all instances have an IPv4 and IPv6 address.
 echo "==> Performing network tests"
 FAIL=0
 for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
@@ -153,12 +180,12 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
         continue
     fi
 
-    # Systemd cleanliness
+    # Systemd cleanliness.
     if lxc exec "${name}" -- sh -c "type systemctl" >/dev/null 2>&1; then
         if lxc exec "${name}" -- systemctl --failed 2>&1 | grep -q '\sfailed\s'; then
             echo "===> FAIL: systemd clean: ${name}"
 
-            # Show the systemd failures
+            # Show the systemd failures.
             echo "===> DEBUG: systemd failed: ${name}"
             lxc exec "${name}" -- systemctl --failed
             FAIL=1
@@ -169,7 +196,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
         echo "===> SKIP: systemd clean: ${name}"
     fi
 
-    # Get the addresses
+    # Get the addresses.
     address=$(lxc query "${url}/state" | jq -r ".network.eth0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
     if [ -z "${address}" ]; then
         address=$(lxc query "${url}/state" | jq -r ".network.enp5s0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
@@ -178,7 +205,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     if [ -z "${address}" ]; then
         echo "===> FAIL: No network interface: ${name}"
 
-        # Show the network state
+        # Show the network state.
         echo "===> DEBUG: network state: ${name}"
         lxc info "${name}"
         FAIL=1
@@ -241,7 +268,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     fi
 done
 
-# Check that all instances can be stopped
+# Check that all instances can be stopped.
 echo "==> Performing shutdown test"
 STOPPED=0
 for i in $(seq 10); do
