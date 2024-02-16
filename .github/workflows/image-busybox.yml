@@ -1,67 +1,75 @@
-- job:
-    name: "image-busybox"
-    concurrent: false
-    description: Busybox images for LXC and LXD.
-    node: master
-    project-type: matrix
+name: Build BusyBox Images
 
-    axes:
-    - axis:
-        name: architecture
-        type: slave
-        values:
-        - amd64
-        - arm64
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+        description: Publish built image
 
-    - axis:
-        name: release
-        type: user-defined
-        values:
-        - "1.34.1"
+jobs:
+  busybox:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        release:
+          - 1.36.1
+        variant:
+          - default
+        architecture:
+          - amd64
+          # - arm64
+    env:
+      type: "container"
+      distro: "${{ github.job }}"
+      target: "${HOME}/build"
 
-    - axis:
-        name: variant
-        type: user-defined
-        values:
-        - default
+    steps:
+      - uses: actions/checkout@v4
 
-    builders:
-    - shell: |-
-        cd /lxc-ci
-        LXD_ARCHITECTURE="${architecture}"
-        ARCH=${architecture}
-        TYPE=container
+      - name: Setup environment
+        uses: ./.github/actions/image-setup
 
-        exec sudo /lxc-ci/bin/build-distro /lxc-ci/images/busybox.yaml \
-            ${LXD_ARCHITECTURE} ${TYPE} 1200 ${WORKSPACE} \
-            -o image.architecture=${ARCH} -o image.release=${release}
+      - name: Build image
+        run: |
+          TIMEOUT=1200
+          YAML="${{ github.workspace }}/images/${{ env.distro }}.yaml"
+          ARCH="${{ matrix.architecture }}"
+          TYPE="${{ env.type }}"
 
-    properties:
-    - build-discarder:
-        num-to-keep: 3
+          ./bin/build-distro "${YAML}" "${ARCH}" "${TYPE}" "${TIMEOUT}" "${{ env.target }}" \
+              -o image.architecture="${ARCH}" \
+              -o image.release=${{ matrix.release }}
 
-    - raw:
-        !include: ../includes/webhook.yaml.inc
+      - name: Print build artifacts
+        run: ls -lah "${{ env.target }}"
 
-    publishers:
-    - archive:
-        artifacts: "*.qcow2,*.tar.xz,*.squashfs,image.yaml,serial"
-        only-if-success: true
+      - name: Test container image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'container')
+        with:
+          type: container
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-    - workspace-cleanup:
-        fail-build: false
+      - name: Test VM image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'vm')
+        with:
+          type: vm
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-
-    - naginator:
-        rerun-unstable-builds: true
-        rerun-matrix-part: true
-        max-failed-builds: 3
-        progressive-delay-increment: 300
-        progressive-delay-maximum: 900
-
-    triggers:
-    - timed: '@daily'
-
-    wrappers:
-    - ansicolor:
-        colormap: css
+      - name: Upload image
+        uses: ./.github/actions/image-upload
+        if: inputs.publish == true
+        with:
+          name: "${{ env.distro }}-${{ matrix.release }}-${{ matrix.architecture }}-${{ matrix.variant }}"
+          target: ${{ env.target }}
