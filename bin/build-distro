@@ -1,87 +1,55 @@
-#!/bin/sh -eu
-CNAME="distrobuilder-$(uuidgen)"
+#!/bin/sh
+set -eu
 
 # Check arguments
-if [ "${1:-}" = "" ] || [ "${2:-}" = "" ] || [ "${3:-}" = "" ] || [ "${4:-}" = "" ] || [ "${5:-}" = "" ]; then
+if [ "${1:-}" = "" ] || [ "${2:-}" = "" ] || [ "${3:-}" = "" ] || [ "${4:-}" = "" ] || [ "${4:-}" = "" ]; then
     echo "Usage: ${0} <yaml> <architecture> <type> <timeout> <target dir> [flags]"
     exit 1
 fi
 
 YAML=${1}
-shift
-ARCH=${1}
-shift
-TYPE=${1}
-shift
-TIMEOUT=${1}
-shift
-TARGET=${1}
-shift
+ARCH=${2}
+TYPE=${3}
+TIMEOUT=${4}
+TARGET=${5}
+shift 5
 
-cleanup() {
-    lxc delete --force "${CNAME}"
-}
+# Setup build directory.
+CACHE_DIR="${TARGET}/cache"
+mkdir -p "${CACHE_DIR}"
 
-trap cleanup EXIT HUP INT TERM
+cd "${TARGET}"
+cp "${YAML}" image.yaml
 
-# Create the container
-lxc copy "cache-distrobuilder-${ARCH}" "${CNAME}"
+# Get lxd-imagebuilder path and create a serial.
+BUILDER=$(which lxd-imagebuilder)
+SERIAL=$(date -u +%Y%m%d_%H:%M)
 
-# Start the container
-lxc start "${CNAME}"
+# Build plain rootfs.
+sudo "${BUILDER}" build-dir image.yaml rootfs \
+    --cache-dir "${CACHE_DIR}" \
+    --timeout "${TIMEOUT}" \
+    -o image.serial="${SERIAL}" \
+    "$@"
 
-set -x
-
-lxc file push "${YAML}" "${CNAME}/root/image.yaml"
-
-(
-cat << EOF
-#!/bin/sh
-# Wait for network
-while :; do
-    ping -W1 -c1 linuxcontainers.org >/dev/null 2>&1 && break
-    sleep 1
-done
-
-set -eux
-
-export PATH=/snap/bin:\${PATH}
-
-# Workaround for plamo not liking dbus much
-rm -f /run/dbus/system_bus_socket
-
-# Attempt to refresh distrobuilder
-sleep 30s
-snap refresh distrobuilder || true
-
-# Build the image
-mkdir /root/build /root/build/cache
-if [ "$(uname -m)" = "x86_64" ] || [ "$(uname -m)" = "i686" ]; then
-    if ! echo "${YAML}" | grep -q -E "sabayon|gentoo|oracle|springdalelinux|openeuler|funtoo" && [ "${TYPE}" != "vm" ]; then
-        mount -t tmpfs tmpfs /root/build -o size=6G,nr_inodes=10000000
-    fi
+# Build container.
+if echo "${TYPE}" | grep -q container; then
+    sudo "${BUILDER}" pack-lxd image.yaml rootfs \
+        --cache-dir "${CACHE_DIR}" \
+        --timeout "${TIMEOUT}" \
+        -o image.serial="${SERIAL}" \
+        "$@"
 fi
-mv /root/image.yaml /root/build/
-cd /root/build/
-SERIAL=\$(date -u +%Y%m%d_%H:%M)
 
-distrobuilder --cache-dir /root/build/cache/ --timeout "${TIMEOUT}" build-dir image.yaml rootfs -o image.serial="\${SERIAL}" "\$@"
-if echo ${TYPE} | grep -q vm; then
-    distrobuilder --cache-dir /root/build/cache/ pack-lxd image.yaml rootfs --vm -o image.serial="\${SERIAL}" "\$@"
+# Build VM.
+if echo "${TYPE}" | grep -q vm; then
+    sudo "${BUILDER}" pack-lxd image.yaml rootfs \
+        --cache-dir "${CACHE_DIR}" \
+        --timeout "${TIMEOUT}" \
+        --vm \
+        -o image.serial="${SERIAL}" \
+        "$@"
 fi
-if echo ${TYPE} | grep -q container; then
-    distrobuilder --cache-dir /root/build/cache/ pack-lxc image.yaml rootfs -o image.serial="\${SERIAL}" "\$@"
-    distrobuilder --cache-dir /root/build/cache/ pack-lxd image.yaml rootfs -o image.serial="\${SERIAL}" "\$@"
-fi
-btrfs subvolume delete rootfs/var/lib/machines >/dev/null 2>&1 || true
-rm -Rf rootfs
-echo "\${SERIAL}" > serial
 
-exit 0
-EOF
-) | lxc file push - "${CNAME}/root/build.sh" --mode=755
-lxc exec "${CNAME}" -- /root/build.sh "$@"
-lxc exec "${CNAME}" -- tar -cf - -C /root/build/ . | tar -xvf - -C "${TARGET}"
-
-[ -n "${SUDO_UID:-}" ] && chown "${SUDO_UID}" -R "${TARGET}"
-[ -n "${SUDO_GID:-}" ] && chgrp "${SUDO_GID}" -R "${TARGET}"
+sudo rm -Rf rootfs
+echo "${SERIAL}" > serial
