@@ -15,43 +15,64 @@ concurrency:
 jobs:
   almalinux:
     uses: ./.github/workflows/image-almalinux.yml
+    secrets: inherit
   alpine:
     uses: ./.github/workflows/image-alpine.yml
+    secrets: inherit
   alt:
     uses: ./.github/workflows/image-alt.yml
+    secrets: inherit
   amazonlinux:
     uses: ./.github/workflows/image-amazonlinux.yml
+    secrets: inherit
   archlinux:
     uses: ./.github/workflows/image-archlinux.yml
+    secrets: inherit
   busybox:
     uses: ./.github/workflows/image-busybox.yml
+    secrets: inherit
   centos:
     uses: ./.github/workflows/image-centos.yml
+    secrets: inherit
   debian:
     uses: ./.github/workflows/image-debian.yml
+    secrets: inherit
   devuan:
     uses: ./.github/workflows/image-devuan.yml
+    secrets: inherit
   fedora:
     uses: ./.github/workflows/image-fedora.yml
+    secrets: inherit
   funtoo:
     uses: ./.github/workflows/image-funtoo.yml
+    secrets: inherit
   gentoo:
     uses: ./.github/workflows/image-gentoo.yml
+    secrets: inherit
   kali:
     uses: ./.github/workflows/image-kali.yml
+    secrets: inherit
   nixos:
     uses: ./.github/workflows/image-nixos.yml
+    secrets: inherit
   openeuler:
     uses: ./.github/workflows/image-openeuler.yml
+    secrets: inherit
   opensuse:
     uses: ./.github/workflows/image-opensuse.yml
+    secrets: inherit
   openwrt:
     uses: ./.github/workflows/image-openwrt.yml
+    secrets: inherit
   oracle:
     uses: ./.github/workflows/image-oracle.yml
+    secrets: inherit
   rockylinux:
     uses: ./.github/workflows/image-rockylinux.yml
+    secrets: inherit
   ubuntu:
     uses: ./.github/workflows/image-ubuntu.yml
+    secrets: inherit
   voidlinux:
     uses: ./.github/workflows/image-voidlinux.yml
+    secrets: inherit

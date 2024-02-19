@@ -8,10 +8,20 @@ inputs:
   go-version:
     description: Go version to install
     default: 1.22.x
+  ssh-key:
+    description: LXD imagebuilder deployment key
+    required: true
 
 runs:
   using: composite
   steps:
+    - name: Checkout LXD imagebuilder
+      uses: actions/checkout@v4
+      with:
+        repository: canonical/lxd-imagebuilder
+        path: lxd-imagebuilder
+        ssh-key: ${{ inputs.ssh-key }}
+
     - name: Install dependencies
       shell: bash
       run: |
@@ -33,12 +43,6 @@ runs:
     #   shell: bash
     #   run: |
     #     git clone https://github.com/canonical/lxd-imagebuilder --depth 1
-
-    - name: Checkout LXD imagebuilder
-      uses: actions/checkout@v4
-      with:
-        repository: canonical/lxd-imagebuilder
-        path: lxd-imagebuilder
 
     - name: Build LXD imagebuilder
       shell: bash
