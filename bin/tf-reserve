@@ -1,0 +1,22 @@
+# testflinger helper function for manual system reservations
+
+# testflinger-reserve
+tf-reserve() {
+    queue="${1:-anything}"
+    data="${2:-jammy}"
+    if echo "${data}" | grep -q ^http; then
+        provision_data="url: ${data}"
+    else
+        provision_data="distro: ${data}"
+    fi
+    echo "Will reserve the system ${queue} and install ${data} on it"
+    testflinger-cli submit --poll - << EOF
+job_queue: ${queue}
+provision_data:
+  ${provision_data}
+reserve_data:
+  ssh_keys:
+    - lp:$(whoami)
+  timeout: 21600
+EOF
+}
