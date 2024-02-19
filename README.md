@@ -14,6 +14,8 @@ export PURGE_LXD=1
 ./bin/local-run tests/interception latest/edge
 ```
 
+Note: if you need to run tests on temporary machines, [Testflinger reservations](https://docs.google.com/document/d/11Kot68mnBY9Wq9DXRzTVrKpx5cMkkhBC5RrM51eyybY) might be useful.
+
 
 # Running tests on OpenStack (ProdStack)
 
