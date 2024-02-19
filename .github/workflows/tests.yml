@@ -5,6 +5,19 @@ on:
   schedule:
     - cron:  '38 9 * * *'
   workflow_dispatch:
+    inputs:
+      self-hosted-runner:
+        type: boolean
+        description: Whether to use self-hosted runners to run the jobs.
+        default: false
+      tmate-debug:
+        description: Use tmate debugging session on integration test failure.
+        type: boolean
+        default: false
+      tmate-timeout:
+        description: Timeout in minutes to keep tmate debugging session.
+        type: number
+        default: 30
 
 permissions:
   contents: read
@@ -134,3 +147,12 @@ jobs:
             EXTRA_ARGS="${EXTRA_ARGS:-3} ${src_track} ${{ matrix.track }}"
           fi
           sudo --preserve-env=PURGE_LXD,TEST_IMG ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
+
+      - name: Tmate debugging session (self-hosted)
+        if: ${{ failure() && inputs.tmate-debug && inputs.self-hosted-runner }}
+        uses: canonical/action-tmate@main
+        timeout-minutes: ${{ inputs.tmate-timeout }}
+      - name: Tmate debugging session (gh-hosted)
+        if: ${{ failure() && inputs.tmate-debug && !inputs.self-hosted-runner }}
+        uses: mxschmitt/action-tmate@v3
+        timeout-minutes: ${{ inputs.tmate-timeout }}
