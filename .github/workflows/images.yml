@@ -25,6 +25,8 @@ jobs:
     uses: ./.github/workflows/image-debian.yml
   fedora:
     uses: ./.github/workflows/image-fedora.yml
+  kali:
+    uses: ./.github/workflows/image-kali.yml
   opensuse:
     uses: ./.github/workflows/image-opensuse.yml
   rockylinux:
