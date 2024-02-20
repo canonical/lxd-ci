@@ -1,71 +1,79 @@
-- job:
-    name: "image-alt"
-    concurrent: false
-    description: ALT Linux images for LXC and LXD.
-    node: master
-    project-type: matrix
+name: Build ALT Linux Images
 
-    axes:
-    - axis:
-        name: architecture
-        type: slave
-        values:
-        - amd64
-        - arm64
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+        description: Publish built image
 
-    - axis:
-        name: release
-        type: user-defined
-        values:
-        - Sisyphus
-        - p10
-        - p9
+jobs:
+  alt:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        release:
+          - Sisyphus
+          - p10
+          - p9
+        variant:
+          - default
+          - cloud
+        architecture:
+          - amd64
+          # - arm64
+    env:
+      type: "container"
+      distro: "${{ github.job }}"
+      target: "${HOME}/build"
 
-    - axis:
-        name: variant
-        type: user-defined
-        values:
-        - default
-        - cloud
+    steps:
+      - uses: actions/checkout@v4
 
-    builders:
-    - shell: |-
-        cd /lxc-ci
-        LXD_ARCHITECTURE="${architecture}"
+      - name: Setup environment
+        uses: ./.github/actions/image-setup
 
-        ARCH=${architecture}
+      - name: Build image
+        run: |
+          TIMEOUT=1800
+          YAML="${{ github.workspace }}/images/${{ env.distro }}.yaml"
+          ARCH="${{ matrix.architecture }}"
+          TYPE="${{ env.type }}"
 
-        exec sudo /lxc-ci/bin/build-distro /lxc-ci/images/alt.yaml \
-            ${LXD_ARCHITECTURE} container 3600 ${WORKSPACE} \
-            -o image.variant=${variant} \
-            -o image.release=${release} -o image.architecture=${ARCH}
+          ./bin/build-distro "${YAML}" "${ARCH}" "${TYPE}" "${TIMEOUT}" "${{ env.target }}" \
+              -o image.architecture="${ARCH}" \
+              -o image.release=${{ matrix.release }} \
+              -o image.variant=${{ matrix.variant }}
 
-    properties:
-    - build-discarder:
-        num-to-keep: 3
+      - name: Print build artifacts
+        run: ls -lah "${{ env.target }}"
 
-    - raw:
-        !include: ../includes/webhook.yaml.inc
+      - name: Test container image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'container')
+        with:
+          type: container
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-    publishers:
-    - archive:
-        artifacts: "*.tar.xz,*.squashfs,image.yaml,serial"
-        only-if-success: true
+      - name: Test VM image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'vm')
+        with:
+          type: vm
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-    - workspace-cleanup:
-        fail-build: false
-
-
-    - naginator:
-        rerun-unstable-builds: true
-        rerun-matrix-part: true
-        max-failed-builds: 3
-        progressive-delay-increment: 300
-        progressive-delay-maximum: 900
-
-    triggers:
-    - timed: '@daily'
-
-    wrappers:
-    - ansicolor:
-        colormap: css
+      - name: Upload image
+        uses: ./.github/actions/image-upload
+        if: inputs.publish == true
+        with:
+          name: "${{ env.distro }}-${{ matrix.release }}-${{ matrix.architecture }}-${{ matrix.variant }}"
+          target: ${{ env.target }}
