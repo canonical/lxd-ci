@@ -25,6 +25,8 @@ jobs:
     uses: ./.github/workflows/image-centos.yml
   debian:
     uses: ./.github/workflows/image-debian.yml
+  devuan:
+    uses: ./.github/workflows/image-devuan.yml
   fedora:
     uses: ./.github/workflows/image-fedora.yml
   kali:
