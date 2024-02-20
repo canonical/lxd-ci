@@ -13,6 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  almalinux:
+    uses: ./.github/workflows/image-almalinux.yml
   alpine:
     uses: ./.github/workflows/image-alpine.yml
   busybox:
