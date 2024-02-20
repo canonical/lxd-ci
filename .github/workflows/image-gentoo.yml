@@ -1,80 +1,84 @@
-- job:
-    name: "image-gentoo"
-    concurrent: false
-    description: Gentoo images for LXC and LXD.
-    node: master
-    project-type: matrix
+name: Build Gentoo Images
 
-    axes:
-    - axis:
-        name: architecture
-        type: slave
-        values:
-        - amd64
-        - arm64
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+        description: Publish built image
 
-    - axis:
-        name: release
-        type: user-defined
-        values:
-        - current
+jobs:
+  gentoo:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        release:
+          - current
+        variant:
+          - openrc
+          - systemd
+        architecture:
+          - amd64
+          # - arm64
+    env:
+      type: "container"
+      distro: "${{ github.job }}"
+      target: "${HOME}/build"
 
-    - axis:
-        name: variant
-        type: user-defined
-        values:
-        - openrc
-        - systemd
+    steps:
+      - uses: actions/checkout@v4
 
-    builders:
-    - shell: |-
-        cd /lxc-ci
-        LXD_ARCHITECTURE="${architecture}"
+      - name: Setup environment
+        uses: ./.github/actions/image-setup
 
-        ARCH=${architecture}
+      - name: Determine image types
+        run: |
+          if [ "${{ matrix.architecture }}" = "amd64" ]; then
+              echo "type=container,vm" >> $GITHUB_ENV
+          fi
 
-        TYPE="container"
-        if [ "${architecture}" = "amd64" ]; then
-            TYPE="container,vm"
-        fi
+      - name: Build image
+        run: |
+          TIMEOUT=1800
+          YAML="${{ github.workspace }}/images/${{ env.distro }}.yaml"
+          ARCH="${{ matrix.architecture }}"
+          TYPE="${{ env.type }}"
 
-        EXTRA_ARGS=""
-        if [ "${variant}" = "cloud" ]; then
-            EXTRA_ARGS="-o source.variant=openrc"
-        else
-            EXTRA_ARGS="-o source.variant=${variant}"
-        fi
+          ./bin/build-distro "${YAML}" "${ARCH}" "${TYPE}" "${TIMEOUT}" "${{ env.target }}" \
+              -o image.architecture="${IMAGE_ARCH}" \
+              -o image.release=${{ matrix.release }} \
+              -o image.variant=${{ matrix.variant }} \
+              -o source.variant=${{ matrix.variant }}
 
-        exec sudo /lxc-ci/bin/build-distro /lxc-ci/images/gentoo.yaml \
-            ${LXD_ARCHITECTURE} ${TYPE} 14400 ${WORKSPACE} \
-            -o image.architecture=${ARCH} -o image.variant=${variant} ${EXTRA_ARGS}
+      - name: Print build artifacts
+        run: ls -lah "${{ env.target }}"
 
-    properties:
-    - build-discarder:
-        num-to-keep: 3
+      - name: Test container image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'container')
+        with:
+          type: container
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-    - raw:
-        !include: ../includes/webhook.yaml.inc
+      - name: Test VM image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'vm')
+        with:
+          type: vm
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-    publishers:
-    - archive:
-        artifacts: "*.qcow2,*.tar.xz,*.squashfs,image.yaml,serial"
-        only-if-success: true
-
-    - workspace-cleanup:
-        fail-build: false
-
-
-    - naginator:
-        rerun-unstable-builds: true
-        rerun-matrix-part: true
-        max-failed-builds: 3
-        progressive-delay-increment: 300
-        progressive-delay-maximum: 900
-
-    triggers:
-    - timed: '@daily'
-
-    wrappers:
-    - ansicolor:
-        colormap: css
+      - name: Upload image
+        uses: ./.github/actions/image-upload
+        if: inputs.publish == true
+        with:
+          name: "${{ env.distro }}-${{ matrix.release }}-${{ matrix.architecture }}-${{ matrix.variant }}"
+          target: ${{ env.target }}
