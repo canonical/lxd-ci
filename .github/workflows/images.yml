@@ -29,6 +29,8 @@ jobs:
     uses: ./.github/workflows/image-devuan.yml
   fedora:
     uses: ./.github/workflows/image-fedora.yml
+  funtoo:
+    uses: ./.github/workflows/image-funtoo.yml
   kali:
     uses: ./.github/workflows/image-kali.yml
   opensuse:
