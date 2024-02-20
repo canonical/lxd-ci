@@ -25,5 +25,7 @@ jobs:
     uses: ./.github/workflows/image-debian.yml
   fedora:
     uses: ./.github/workflows/image-fedora.yml
+  rockylinux:
+    uses: ./.github/workflows/image-rockylinux.yml
   ubuntu:
     uses: ./.github/workflows/image-ubuntu.yml
