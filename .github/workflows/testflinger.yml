@@ -1,0 +1,27 @@
+name: Testflinger
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  testflinger:
+    name: Testflinger
+    runs-on: [self-hosted, linux, X64, jammy, small]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test connectivity to testflinger
+        run: |
+          wget --method HEAD -qSO - https://testflinger.canonical.com/agents
+
+      - name: Install dependencies
+        run: |
+          snap install testflinger-cli
+
+      - name: cgroup (latest/edge)
+        run: |
+          ./bin/testflinger-run jammy default tests/cgroup latest/edge
