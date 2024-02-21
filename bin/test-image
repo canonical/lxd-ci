@@ -225,12 +225,12 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     # DNS resolution
     DNS=0
     for i in $(seq 3); do
-        if lxc exec "${name}" -- getent hosts linuxcontainers.org >/dev/null 2>&1; then
+        if lxc exec "${name}" -- getent hosts canonical.com >/dev/null 2>&1; then
             DNS=1
             break
         fi
 
-        if lxc exec "${name}" -- ping -c1 -W1 linuxcontainers.org >/dev/null 2>&1; then
+        if lxc exec "${name}" -- nslookup canonical.com >/dev/null 2>&1; then
             DNS=1
             break
         fi
