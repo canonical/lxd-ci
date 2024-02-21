@@ -39,6 +39,8 @@ jobs:
     uses: ./.github/workflows/image-kali.yml
   opensuse:
     uses: ./.github/workflows/image-opensuse.yml
+  openwrt:
+    uses: ./.github/workflows/image-openwrt.yml
   rockylinux:
     uses: ./.github/workflows/image-rockylinux.yml
   ubuntu:
