@@ -173,4 +173,5 @@ case "$i" in
     esac
 done
 
+update-grub
 reboot
