@@ -44,6 +44,9 @@ run_test jammy default tests/cpu-vm "${lxd_snap_channel}"
 # devlxd-vm
 run_test jammy default tests/devlxd-vm "${lxd_snap_channel}"
 
+# efi-vars-editor-vm
+run_test jammy default tests/efi-vars-editor-vm "${lxd_snap_channel}"
+
 # docker
 run_test jammy default tests/docker "${lxd_snap_channel}"
 

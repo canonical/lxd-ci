@@ -86,8 +86,11 @@ jobs:
           - "storage-vm zfs"
           - storage-volumes-vm
           - vm-nesting
+          - efi-vars-editor-vm
         exclude:
           - test: interception # not compatible with 5.0/* and no API extension advertised
+            track: "5.0/edge"
+          - test: efi-vars-editor-vm # not compatible with 5.0/*
             track: "5.0/edge"
           - test: storage-buckets  # waiting for integration with microceph
           - test: "storage-vm ceph" # waiting for integration with microceph
