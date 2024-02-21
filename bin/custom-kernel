@@ -157,13 +157,20 @@ case "$i" in
 
       daily)
         echo "===> Installing a mainline daily build"
+        if [ "$(uname -m)" != "x86_64" ]; then
+          echo "Unsupported architecture requested: $(uname -m)"
+          exit 1
+        fi
 
-        wget -e robots=off -r --no-parent -A '*all*.deb' -R '*lpae*' -R '*lowlatency*' https://kernel.ubuntu.com/~kernel-ppa/mainline/daily/current/
-        wget -e robots=off -r --no-parent -A '*amd64*.deb' -R '*lpae*' -R '*lowlatency*' https://kernel.ubuntu.com/~kernel-ppa/mainline/daily/current/
+        if mokutil --sb-state | grep -Fx "SecureBoot enabled"; then
+          echo "Daily kernels are unsigned so incompatible with SecureBoot"
+          exit 1
+        fi
+
+        wget -e robots=off -r --no-parent -A '*all*.deb' -R '*lpae*' -R '*lowlatency*' https://kernel.ubuntu.com/mainline/daily/current/amd64/
+        wget -e robots=off -r --no-parent -A '*amd64*.deb' -R '*lpae*' -R '*lowlatency*' https://kernel.ubuntu.com/mainline/daily/current/amd64/
         echo "MODULES=dep" > /etc/initramfs-tools/conf.d/modules.conf
-        apt-get update
-        apt-get install ./kernel.ubuntu.com/~kernel-ppa/mainline/daily/current/amd64/*.deb --yes
-        apt-get dist-upgrade --yes
+        dpkg --force-depends -i ./kernel.ubuntu.com/mainline/daily/current/amd64/*.deb
       ;;
 
       *)
@@ -173,11 +180,5 @@ case "$i" in
     esac
 done
 
-# Since we are doing a reboot, might as well also turn off mitigations and have a faster testbed
-echo "===> Disabling all mitigations"
-
-# shellcheck disable=SC2016
-echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} mitigations=off"' > /etc/default/grub.d/99-mitigations.cfg
 update-grub
-
 reboot
