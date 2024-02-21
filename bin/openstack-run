@@ -96,7 +96,7 @@ fi
 
 # Connect and run something
 echo "==> Running the job ${test_name} against ${lxd_snap_channel}" >&2
-sed "1 r bin/helpers" "${script}" | sed "s|^@@LXD_SNAP_CHANNEL@@$|LXD_SNAP_CHANNEL=${lxd_snap_channel}|" > "${_script}"
+sed "1 r bin/helpers" "${script}" | sed "s|@@LXD_SNAP_CHANNEL@@$|LXD_SNAP_CHANNEL=${lxd_snap_channel}|" > "${_script}"
 if echo "${IP}" | grep -q ":"; then
     scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no "${_script}" "ubuntu@[${IP}]:test-script"
 else

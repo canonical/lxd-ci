@@ -177,12 +177,12 @@ cleanup() {
 
         # LXD daemon logs
         echo "::group::lxd logs"
-        journalctl --quiet --no-hostname --boot=0 --lines=100 --unit=snap.lxd.daemon.service
+        journalctl --quiet --no-hostname --no-pager --boot=0 --lines=100 --unit=snap.lxd.daemon.service
         echo "::endgroup::"
 
         # dmesg may contain oops, IO errors, crashes, etc
         echo "::group::dmesg logs"
-        journalctl --quiet --no-hostname --boot=0 --lines=100 --dmesg
+        journalctl --quiet --no-hostname --no-pager --boot=0 --lines=100 --dmesg
         echo "::endgroup::"
 
         exit 1
@@ -197,7 +197,10 @@ cleanup() {
     exit 0
 }
 
-@@LXD_SNAP_CHANNEL@@
-export DEBIAN_FRONTEND=noninteractive
-FAIL=1
-trap cleanup EXIT HUP INT TERM
+# Only if executed directly (not sourced)
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  @@LXD_SNAP_CHANNEL@@
+  export DEBIAN_FRONTEND=noninteractive
+  FAIL=1
+  trap cleanup EXIT HUP INT TERM
+fi
