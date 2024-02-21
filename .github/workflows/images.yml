@@ -47,6 +47,8 @@ jobs:
     uses: ./.github/workflows/image-opensuse.yml
   openwrt:
     uses: ./.github/workflows/image-openwrt.yml
+  oracle:
+    uses: ./.github/workflows/image-oracle.yml
   rockylinux:
     uses: ./.github/workflows/image-rockylinux.yml
   ubuntu:

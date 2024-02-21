@@ -1,78 +1,89 @@
-- job:
-    name: "image-oracle"
-    concurrent: false
-    description: Oracle Linux images for LXC and LXD.
-    node: master
-    project-type: matrix
+name: Build Oracle Images
 
-    axes:
-    - axis:
-        name: architecture
-        type: slave
-        values:
-        - amd64
-        - arm64
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+        description: Publish built image
 
-    - axis:
-        name: release
-        type: user-defined
-        values:
-        - 7
-        - 8
-        - 9
+jobs:
+  oracle:
+    runs-on: ubuntu-20.04
+    strategy:
+      fail-fast: false
+      matrix:
+        release:
+          - 7 # Requires cgroups v1 for tests. They will pass on ubuntu-20.04 runner.
+          - 8
+          - 9
+        variant:
+          - default
+          - cloud
+        architecture:
+          - amd64
+          # - arm64
+    env:
+      type: "container"
+      distro: "${{ github.job }}"
+      target: "${HOME}/build"
 
-    - axis:
-        name: variant
-        type: user-defined
-        values:
-        - default
-        - cloud
+    steps:
+      - uses: actions/checkout@v4
 
-    builders:
-    - shell: |-
-        cd /lxc-ci
-        LXD_ARCHITECTURE="${architecture}"
+      - name: Setup environment
+        uses: ./.github/actions/image-setup
 
-        ARCH=${architecture}
-        [ "${ARCH}" = "amd64" ] && ARCH="x86_64"
-        [ "${ARCH}" = "arm64" ] && ARCH="aarch64"
+      - name: Build image
+        run: |
+          TIMEOUT=3600
+          YAML="${{ github.workspace }}/images/${{ env.distro }}.yaml"
+          ARCH="${{ matrix.architecture }}"
+          TYPE="${{ env.type }}"
 
-        EXTRA_ARGS=""
-        if [ "${release}" = "9" ]; then
-            EXTRA_ARGS="-o source.url=https://yum.oracle.com/ISOS/OracleLinux"
-        fi
+          IMAGE_ARCH="${ARCH}"
+          [ "${ARCH}" = "amd64" ] && IMAGE_ARCH="x86_64"
+          [ "${ARCH}" = "arm64" ] && IMAGE_ARCH="aarch64"
 
-        exec sudo /lxc-ci/bin/build-distro /lxc-ci/images/oracle.yaml \
-            ${LXD_ARCHITECTURE} container 3600 ${WORKSPACE} \
-            -o image.architecture=${ARCH} -o image.release=${release} \
-            -o image.variant=${variant} ${EXTRA_ARGS}
+          EXTRA_ARGS=""
+          if [ "${{ matrix.release }}" = "9" ]; then
+              EXTRA_ARGS="-o source.url=https://yum.oracle.com/ISOS/OracleLinux"
+          fi
 
-    properties:
-    - build-discarder:
-        num-to-keep: 3
+          ./bin/build-distro "${YAML}" "${ARCH}" "${TYPE}" "${TIMEOUT}" "${{ env.target }}" \
+              -o image.architecture="${IMAGE_ARCH}" \
+              -o image.release=${{ matrix.release }} \
+              -o image.variant=${{ matrix.variant }} \
+              ${EXTRA_ARGS}
 
-    - raw:
-        !include: ../includes/webhook.yaml.inc
+      - name: Print build artifacts
+        run: ls -lah "${{ env.target }}"
 
-    publishers:
-    - archive:
-        artifacts: "*.tar.xz,*.squashfs,image.yaml,serial"
-        only-if-success: true
+      - name: Test container image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'container')
+        with:
+          type: container
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-    - workspace-cleanup:
-        fail-build: false
+      - name: Test VM image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'vm')
+        with:
+          type: vm
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-
-    - naginator:
-        rerun-unstable-builds: true
-        rerun-matrix-part: true
-        max-failed-builds: 3
-        progressive-delay-increment: 300
-        progressive-delay-maximum: 900
-
-    triggers:
-    - timed: '@daily'
-
-    wrappers:
-    - ansicolor:
-        colormap: css
+      - name: Upload image
+        uses: ./.github/actions/image-upload
+        if: inputs.publish == true
+        with:
+          name: "${{ env.distro }}-${{ matrix.release }}-${{ matrix.architecture }}-${{ matrix.variant }}"
+          target: ${{ env.target }}
