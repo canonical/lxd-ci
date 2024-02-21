@@ -45,3 +45,5 @@ jobs:
     uses: ./.github/workflows/image-rockylinux.yml
   ubuntu:
     uses: ./.github/workflows/image-ubuntu.yml
+  voidlinux:
+    uses: ./.github/workflows/image-voidlinux.yml
