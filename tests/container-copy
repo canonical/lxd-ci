@@ -1,0 +1,69 @@
+#!/bin/sh
+set -eu
+
+# Tests for snap-specific regressions when rsyncing a container whose storage pool is mounted in the snap confinement.
+
+# Install and setup LXD.
+install_lxd
+lxd init --auto
+
+# Create a loop device that we can mount as a source for a dir storage pool.
+test_dir="$(mktemp -d XXX.test)"
+loopimg="$(mktemp "${test_dir}/XXX.img")"
+truncate -s 5G "${loopimg}"
+loopdev="$(losetup --show --find "${loopimg}")"
+
+extra_cleanup() {
+  # Clean up LXD and remove the loop device.
+  lxc remote remove target
+  lxc delete target -f
+  losetup --detach "${loopdev}"
+  rm -rf "${test_dir}"
+}
+
+# Begin Test.
+set -x
+
+# Launch a VM which will be the target of the copy.
+lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" target --vm
+waitInstanceBooted target
+
+# Add the target VM as a remote LXD.
+lxc exec target -- snap install lxd --channel "${LXD_SNAP_CHANNEL}"
+lxc exec target -- lxd init --auto
+lxc exec target -- lxc config set core.https_address=:8443
+token="$(lxc exec target -- lxc config trust add --name host --quiet)"
+lxc remote add target "${token}" --accept-certificate
+
+# Run the test for various filesystems.
+for fs in "xfs" "btrfs" "ext4" ; do
+  mkfs.${fs} "${loopdev}"
+  disk_dir="$(mktemp -d "${test_dir}/XXX.disk")"
+  mount "${loopdev}" "${disk_dir}"
+  rm -rf "${disk_dir}/lost+found"
+
+  # Create a storage pool with the mounted disk. It will be mounted in the snap, but not on the hostfs.
+  lxc storage create "${fs}" dir source="${PWD}/${disk_dir}"
+
+  # Create a container which we will copy to another target.
+  lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" c1 --storage "${fs}"
+
+  # Copy the container to the remote LXD.
+  lxc copy c1 target:c1 --stateless --refresh --mode=relay
+
+  # Ensure the container exists.
+  lxc config show target:c1 > /dev/null
+
+  # Clean up the storage pool for this run.
+  lxc delete c1 -f
+  lxc delete target:c1 -f
+  lxc storage delete "${fs}"
+
+  # Reset the loop device.
+  umount "${loopdev}"
+  wipefs -a "${loopdev}"
+done
+
+
+# shellcheck disable=SC2034
+FAIL=0
