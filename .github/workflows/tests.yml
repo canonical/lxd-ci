@@ -68,6 +68,7 @@ jobs:
         test:
           - cgroup
           - cluster
+          - container-copy
           - cpu-vm
           - devlxd-vm
           - docker
