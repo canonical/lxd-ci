@@ -235,31 +235,8 @@ packages:
     action: install
 
   - packages:
-    - network-scripts
-    action: install
-    types:
-    - container
-    variants:
-    - default
-    architectures:
-    - x86_64
-    - aarch64
-
-  - packages:
     - NetworkManager
     action: install
-    types:
-    - container
-    variants:
-    - default
-    architectures:
-    - armhfp
-
-  - packages:
-    - NetworkManager
-    action: install
-    types:
-    - vm
     variants:
     - default
 
