@@ -1,92 +1,99 @@
-- job:
-    name: "image-archlinux"
-    concurrent: false
-    description: ArchLinux images for LXC and LXD.
-    node: master
-    project-type: matrix
+name: Build ArchLinux Images
 
-    axes:
-    - axis:
-        name: architecture
-        type: slave
-        values:
-        - amd64
-        - arm64
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: false
+        description: Publish built image
 
-    - axis:
-        name: release
-        type: user-defined
-        values:
-        - current
+jobs:
+  archlinux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        release:
+          - current
+        variant:
+          - default
+          - cloud
+          - desktop-gnome
+        architecture:
+          - amd64
+          # - arm64
+        exclude:
+          - { architecture: arm64, variant: cloud }
+          - { architecture: arm64, variant: desktop-gnome }
+    env:
+      type: "container"
+      distro: "${{ github.job }}"
+      target: "${HOME}/build"
 
-    - axis:
-        name: variant
-        type: user-defined
-        values:
-        - default
-        - cloud
-        - desktop-gnome
+    steps:
+      - uses: actions/checkout@v4
 
-    builders:
-    - shell: |-
-        cd /lxc-ci
-        LXD_ARCHITECTURE="${architecture}"
+      - name: Setup environment
+        uses: ./.github/actions/image-setup
 
-        ARCH=${architecture}
-        [ "${ARCH}" = "amd64" ] && ARCH="x86_64"
-        [ "${ARCH}" = "arm64" ] && ARCH="aarch64"
+      - name: Determine image types
+        run: |
+          if [ "${{ matrix.architecture }}" = "amd64" ]; then
+              echo "type=container,vm" >> $GITHUB_ENV
+          fi
 
-        TYPE="container"
-        if [ "${architecture}" = "amd64" ]; then
-            TYPE="container,vm"
-        fi
+          if [ "${{ matrix.variant }}" = "desktop-gnome" ]; then
+              echo "type=vm" >> $GITHUB_ENV
+          fi
 
-        if [ "${variant}" = "desktop-gnome" ]; then
-            TYPE="vm"
-        fi
+      - name: Build image
+        run: |
+          TIMEOUT=1800
+          YAML="${{ github.workspace }}/images/${{ env.distro }}.yaml"
+          ARCH="${{ matrix.architecture }}"
+          TYPE="${{ env.type }}"
 
-        if [ "${architecture}" = "amd64" ]; then
-            exec sudo /lxc-ci/bin/build-distro /lxc-ci/images/archlinux.yaml \
-                ${LXD_ARCHITECTURE} ${TYPE} 1800 ${WORKSPACE} \
-                -o image.architecture=${ARCH} -o image.variant=${variant}
-        fi
+          IMAGE_ARCH="${ARCH}"
+          [ "${ARCH}" = "amd64" ] && IMAGE_ARCH="x86_64"
+          [ "${ARCH}" = "arm64" ] && IMAGE_ARCH="aarch64"
 
-        exec sudo /lxc-ci/bin/build-distro /lxc-ci/images/archlinux.yaml \
-            ${LXD_ARCHITECTURE} ${TYPE} 1800 ${WORKSPACE} \
-            -o image.architecture=${ARCH} \
-            -o source.url=http://os.archlinuxarm.org
+          EXTRA_ARGS="-o image.variant=${{ matrix.variant }}"
+          if [ ${ARCH} = "arm64" ]; then
+              EXTRA_ARGS="-o source.url=http://os.archlinuxarm.org"
+          fi
 
-    execution-strategy:
-      combination-filter: '
-      !(architecture != "amd64" && variant == "cloud") &&
-      !(architecture != "amd64" && variant == "desktop-gnome")'
+          ./bin/build-distro "${YAML}" "${ARCH}" "${TYPE}" "${TIMEOUT}" "${{ env.target }}" \
+              -o image.architecture="${IMAGE_ARCH}" \
+              ${EXTRA_ARGS}
 
-    properties:
-    - build-discarder:
-        num-to-keep: 3
+      - name: Print build artifacts
+        run: ls -lah "${{ env.target }}"
 
-    - raw:
-        !include: ../includes/webhook.yaml.inc
+      - name: Test container image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'container')
+        with:
+          type: container
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-    publishers:
-    - archive:
-        artifacts: "*.qcow2,*.tar.xz,*.squashfs,image.yaml,serial"
-        only-if-success: true
+      - name: Test VM image
+        uses: ./.github/actions/image-test
+        if: contains(env.type, 'vm')
+        with:
+          type: vm
+          target: ${{ env.target }}
+          distro: ${{ env.distro }}
+          release: ${{ matrix.release }}
+          variant: ${{ matrix.variant }}
 
-    - workspace-cleanup:
-        fail-build: false
-
-
-    - naginator:
-        rerun-unstable-builds: true
-        rerun-matrix-part: true
-        max-failed-builds: 3
-        progressive-delay-increment: 300
-        progressive-delay-maximum: 900
-
-    triggers:
-    - timed: '@daily'
-
-    wrappers:
-    - ansicolor:
-        colormap: css
+      - name: Upload image
+        uses: ./.github/actions/image-upload
+        if: inputs.publish == true
+        with:
+          name: "${{ env.distro }}-${{ matrix.release }}-${{ matrix.architecture }}-${{ matrix.variant }}"
+          target: ${{ env.target }}

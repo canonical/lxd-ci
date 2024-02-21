@@ -19,6 +19,8 @@ jobs:
     uses: ./.github/workflows/image-alpine.yml
   alt:
     uses: ./.github/workflows/image-alt.yml
+  archlinux:
+    uses: ./.github/workflows/image-archlinux.yml
   busybox:
     uses: ./.github/workflows/image-busybox.yml
   centos:
