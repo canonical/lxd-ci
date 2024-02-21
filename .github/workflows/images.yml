@@ -37,6 +37,8 @@ jobs:
     uses: ./.github/workflows/image-gentoo.yml
   kali:
     uses: ./.github/workflows/image-kali.yml
+  nixos:
+    uses: ./.github/workflows/image-nixos.yml
   opensuse:
     uses: ./.github/workflows/image-opensuse.yml
   openwrt:
