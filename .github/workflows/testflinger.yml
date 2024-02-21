@@ -16,6 +16,7 @@ jobs:
 
       - name: Test connectivity to testflinger
         run: |
+          export https_proxy=http://squid.internal:3128
           wget --method HEAD -qSO - https://testflinger.canonical.com/agents
 
       - name: Install dependencies
@@ -24,4 +25,5 @@ jobs:
 
       - name: cgroup (latest/edge)
         run: |
+          export https_proxy=http://squid.internal:3128
           ./bin/testflinger-run jammy default tests/cgroup latest/edge
