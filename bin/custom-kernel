@@ -162,6 +162,11 @@ case "$i" in
           exit 1
         fi
 
+        if mokutil --sb-state | grep -Fx "SecureBoot enabled"; then
+          echo "Daily kernels are unsigned so incompatible with SecureBoot"
+          exit 1
+        fi
+
         wget -e robots=off -r --no-parent -A '*all*.deb' -R '*lpae*' -R '*lowlatency*' https://kernel.ubuntu.com/mainline/daily/current/amd64/
         wget -e robots=off -r --no-parent -A '*amd64*.deb' -R '*lpae*' -R '*lowlatency*' https://kernel.ubuntu.com/mainline/daily/current/amd64/
         echo "MODULES=dep" > /etc/initramfs-tools/conf.d/modules.conf
