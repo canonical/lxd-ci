@@ -317,7 +317,7 @@ for poolDriver in $poolDriverList; do
         lxc delete -f v1
         lxc storage unset "${poolName}" volume.size
 
-        if [ "${poolDriver}" = "lvm" ]; then
+        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ]; then
                 echo "==> Change volume.block.filesystem on pool and create VM"
                 lxc storage set "${poolName}" volume.block.filesystem xfs
                 lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
@@ -325,9 +325,14 @@ for poolDriver in $poolDriverList; do
                 waitInstanceReady v1
                 lxc info v1
 
-                echo "==> Checking VM config disk filesyste is XFS"
+                echo "==> Ensure the VM volume ignores volume.block.filesystem"
+                volume_fs="$(lxc storage volume get "${poolName}" virtual-machine/v1 block.filesystem)"
+                echo "${volume_fs}" | grep -F "ext4"
+
+                echo "==> Checking VM config disk filesystem is not XFS"
                 serverPID="$(lxc query /1.0 | jq .environment.server_pid)"
-                nsenter -m -t "${serverPID}" stat -f -c %T /var/snap/lxd/common/lxd/virtual-machines/v1 | grep -xF xfs
+                nsenter -m -t "${serverPID}" findmnt --noheadings --output=FSTYPE --mountpoint /var/snap/lxd/common/lxd/devices/v1/config.mount | grep -xF ext4
+
 
                 echo "==> Deleting VM"
                 lxc delete -f v1
