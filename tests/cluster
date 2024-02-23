@@ -58,7 +58,6 @@ for i in $(seq "$1"); do
         CLUSTER_IP=$(lxc exec "${PREFIX}-$i" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
         lxc exec "${PREFIX}-$i" -- lxc config set core.https_address "${CLUSTER_IP}:8443"
         lxc exec "${PREFIX}-$i" -- lxc config set cluster.https_address "${CLUSTER_IP}:8443"
-        lxc exec "${PREFIX}-$i" -- lxc config set core.trust_password "cluster"
         lxc exec "${PREFIX}-$i" -- lxc cluster enable "${PREFIX}-$i"
         lxc exec "${PREFIX}-$i" -- lxc network create lxdfan0 bridge.mode=fan
         lxc exec "${PREFIX}-$i" -- lxc storage create default dir
@@ -69,6 +68,9 @@ for i in $(seq "$1"); do
     else
         MEMBER_IP=$(lxc exec "${PREFIX}-$i" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
 
+        # Get a join token
+        TOKEN="$(lxc exec "${PREFIX}-1" -- lxc cluster add "${PREFIX}-${i}" | tail -n1)"
+
         lxc exec "${PREFIX}-$i" -- lxd init --preseed << EOF
 cluster:
   server_name: "${PREFIX}-$i"
@@ -77,7 +79,7 @@ cluster:
   cluster_address: ${CLUSTER_IP}:8443
   cluster_certificate: "${CLUSTER_CRT}"
   server_address: ${MEMBER_IP}:8443
-  cluster_password: cluster
+  cluster_token: "${TOKEN}"
 EOF
     fi
 done
