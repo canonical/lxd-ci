@@ -43,13 +43,13 @@ waitInstanceBooted "${PREFIX}-1"
 
 lxc exec "${PREFIX}-1" -- snap refresh lxd --channel="$2"
 
-for i in $(seq 2 "$1"); do
+for i in $(seq 2 "${SIZE}"); do
     lxc copy "${PREFIX}-1" "${PREFIX}-$i"
     lxc start "${PREFIX}-$i"
     waitInstanceBooted "${PREFIX}-$i"
 done
 
-for i in $(seq "$1"); do
+for i in $(seq "${SIZE}"); do
     sleep 10
 
     # Configure the cluster
@@ -101,10 +101,10 @@ lxc exec "${PREFIX}-1" -- lxc exec u1 -- ping -c1 "${U2_IPV4}"
 lxc exec "${PREFIX}-1" -- ping -c1 "${U2_IPV4}"
 
 echo "==> Upgrading the cluster"
-for i in $(seq "$1"); do
+for i in $(seq "${SIZE}"); do
     lxc exec "${PREFIX}-$i" -- snap refresh
     lxc exec "${PREFIX}-$i" -- snap switch lxd --channel="$3"
-    if [ "$i" = "$1" ]; then
+    if [ "$i" = "${SIZE}" ]; then
         lxc exec "${PREFIX}-$i" -- timeout 10m snap refresh lxd
     fi
 done
@@ -113,7 +113,7 @@ echo "==> Wait for all members to be ONLINE"
 for _ in $(seq 10); do
     sleep 30
     ONLINE_MEMBERS="$(lxc exec "${PREFIX}-1" -- lxc cluster list | grep -cwF ONLINE)"
-    [ "${ONLINE_MEMBERS}" = "$1" ] && break
+    [ "${ONLINE_MEMBERS}" = "${SIZE}" ] && break
 done
 sleep 10
 
