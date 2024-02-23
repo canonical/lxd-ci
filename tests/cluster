@@ -14,7 +14,6 @@ if [ -z "${1:-""}" ] || [ -z "${2:-""}" ] || [ -z "${3:-""}" ]; then
     exit 1
 fi
 
-# Deploy the cluster
 echo "==> Deploying the cluster"
 
 print_log() {
@@ -84,7 +83,6 @@ EOF
     fi
 done
 
-# Validate the cluster
 echo "==> Validating the cluster"
 lxc exec "${PREFIX}-1" -- lxc info
 lxc exec "${PREFIX}-1" -- lxc cluster list
@@ -102,7 +100,6 @@ U2_IPV4="$(lxc exec "${PREFIX}-1" -- lxc list u2 -c4 --format=csv | cut -d' ' -f
 lxc exec "${PREFIX}-1" -- lxc exec u1 -- ping -c1 "${U2_IPV4}"
 lxc exec "${PREFIX}-1" -- ping -c1 "${U2_IPV4}"
 
-# Upgrade the cluster
 echo "==> Upgrading the cluster"
 for i in $(seq "$1"); do
     lxc exec "${PREFIX}-$i" -- snap refresh
@@ -120,7 +117,6 @@ for _ in $(seq 10); do
 done
 sleep 10
 
-# Validate the cluster
 echo "==> Validating the cluster"
 lxc exec "${PREFIX}-1" -- lxc info
 lxc exec "${PREFIX}-1" -- lxc cluster list
