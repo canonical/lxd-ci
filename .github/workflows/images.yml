@@ -2,8 +2,6 @@ name: Build all images
 
 on:
   workflow_dispatch:
-  push:
-  pull_request:
   # schedule:
   #   # Run at 00:00 UTC daily.
   #   - cron: '0 0 * * *'
@@ -70,9 +68,9 @@ jobs:
   rockylinux:
     uses: ./.github/workflows/image-rockylinux.yml
     secrets: inherit
-  ubuntu:
-    uses: ./.github/workflows/image-ubuntu.yml
-    secrets: inherit
+  # ubuntu:
+  #   uses: ./.github/workflows/image-ubuntu.yml
+  #   secrets: inherit
   voidlinux:
     uses: ./.github/workflows/image-voidlinux.yml
     secrets: inherit
