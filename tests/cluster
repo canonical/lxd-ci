@@ -68,7 +68,7 @@ for i in $(seq "${SIZE}"); do
         MEMBER_IP=$(lxc exec "${PREFIX}-$i" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
 
         # Get a join token
-        TOKEN="$(lxc exec "${PREFIX}-1" -- lxc cluster add "${PREFIX}-${i}" | tail -n1)"
+        TOKEN="$(lxc exec "${PREFIX}-1" -- lxc cluster add --quiet "${PREFIX}-${i}")"
 
         lxc exec "${PREFIX}-$i" -- lxd init --preseed << EOF
 cluster:
