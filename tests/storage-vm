@@ -242,6 +242,39 @@ for poolDriver in $poolDriverList; do
         echo "==> Deleting VM"
         lxc delete -f v1
 
+        if hasNeededAPIExtension disk_state_created; then
+                # Check that we don't remove an existing target directory when unmounting a disk device if the original dir hasn't been created by LXD
+                echo "==> Avoid deleting existing target directories not created by LXD when unmounting disks."
+                mkdir -p "/tmp/lxd-test-${poolName}/empty-dir"
+                lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+                waitInstanceReady v1
+
+                lxc exec v1 -- test -d /opt # The directory already exists and is not created by LXD.
+                lxc config device add v1 empty-dir disk source="/tmp/lxd-test-${poolName}/empty-dir" path=/opt
+                # Check that no `volatile.<deviceName>.last_state.created` has been set.
+                if [ -n "$(lxc config get v1 volatile.empty-dir.last_state.created)"]; then
+                        echo "==> volatile.<deviceName>.last_state.created should not be set"
+                        false
+                fi
+
+                lxc config device remove v1 empty-dir
+                lxc exec v1 -- test -d /opt # /opt is not removed as it was not created by LXD.
+
+                lxc config device add v1 empty-dir disk source="/tmp/lxd-test-${poolName}/empty-dir" path=/tmp/new-dir
+                # Check that the volatile.<deviceName>.last_state.created is set.
+                targetPath=$(lxc config get v1 volatile.empty-dir.last_state.created)
+                if [ "${targetPath}" != "/tmp/new-dir" ]; then
+                        echo "==> volatile.<deviceName>.last_state.created is not set to the correct value"
+                        false
+                fi
+
+                lxc config device remove v1 empty-dir
+                ! lxc exec v1 -- test -d /tmp/new-dir || false # /tmp/new-dir is removed as it was created by LXD.
+
+                lxc delete -f v1
+                rmdir "/tmp/lxd-test-${poolName}/empty-dir"
+        fi
+
         # Create directory with a file for directory disk tests.
         mkdir "/tmp/lxd-test-${poolName}"
 
