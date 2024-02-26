@@ -2,7 +2,7 @@
 set -eu
 
 # Check arguments
-if [ "${1:-}" = "" ] || [ "${2:-}" = "" ] || [ "${3:-}" = "" ] || [ "${4:-}" = "" ] || [ "${4:-}" = "" ]; then
+if [ "${1:-}" = "" ] || [ "${2:-}" = "" ] || [ "${3:-}" = "" ] || [ "${4:-}" = "" ] || [ "${5:-}" = "" ]; then
     echo "Usage: ${0} <yaml> <architecture> <type> <timeout> <target dir> [flags]"
     exit 1
 fi
