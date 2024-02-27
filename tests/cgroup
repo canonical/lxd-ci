@@ -1,14 +1,6 @@
 #!/bin/sh
 set -eu
 
-# linux-image-kvm doesn't support setting limits.egress/limits.ingress
-if uname -r | grep -- "-kvm$"; then
-    echo "The -kvm kernel flavor does not have the required extra modules needed by this test."
-    # shellcheck disable=SC2034
-    FAIL=0
-    exit 0
-fi
-
 # Install dependencies
 install_deps jq iperf3
 
@@ -59,12 +51,20 @@ if [ -e "/sys/fs/cgroup/net_prio" ]; then
     [ "$(lxc exec c1 -- cat /sys/fs/cgroup/net_prio/net_prio.ifpriomap)" = "$(cat /sys/fs/cgroup/net_prio/net_prio.ifpriomap)" ]
 fi
 
+NPROC="$(nproc)"
+if [ "${NPROC}" -lt 3 ]; then
+    # The number 3 comes from `limits.cpu=0,2` which takes the 1st and 3rd host's CPUs
+    echo "This test requires 3 CPUs or more to be available (not ${NPROC})" >&2
+    exit 1
+fi
+
 echo "==> Testing CPU limits"
 lxc config set c1 limits.cpu=2
 [ "$(lxc exec c1 -- nproc)" = "2" ]
 
-lxc config set c1 limits.cpu=200
-[ "$(lxc exec c1 -- nproc)" = "$(nproc)" ]
+# trying to allocate more CPUs than there are available should silently be capped at NPROC
+lxc config set c1 limits.cpu="$((NPROC+2))"
+[ "$(lxc exec c1 -- nproc)" = "${NPROC}" ]
 
 lxc config set c1 limits.cpu=0,2
 [ "$(lxc exec c1 -- nproc)" = "2" ]
@@ -75,7 +75,7 @@ lxc config set c1 limits.cpu=2-2
 lxc config unset c1 limits.cpu
 # XXX: avoid a race (https://github.com/canonical/lxd/issues/12659)
 sleep 2
-[ "$(lxc exec c1 -- nproc)" = "$(nproc)" ]
+[ "$(lxc exec c1 -- nproc)" = "${NPROC}" ]
 
 lxc config set c1 limits.cpu.priority 5
 if [ -e "/sys/fs/cgroup/cpu" ]; then
@@ -110,10 +110,10 @@ fi
 lxc config unset c1 limits.cpu.allowance
 
 echo "==> Testing memory limits"
-lxc config set c1 limits.memory=2GiB
-[ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "MemTotal:        2097152 kB" ]
+lxc config set c1 limits.memory=512MiB
+[ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "MemTotal:         524288 kB" ]
 if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] || [ -e "/sys/fs/cgroup/memory.swap.max" ]; then
-    [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:       2097152 kB" ]
+    [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:        524288 kB" ]
 else
     [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:             0 kB" ]
 fi
@@ -176,11 +176,12 @@ else
     [ "$(lxc exec c1 -- cat /sys/fs/cgroup/pids.max)" = "2000" ]
 fi
 
-echo "==> Testing network limits"
-if [ -e "/sys/fs/cgroup/net_prio" ]; then
+# limits.network.priority was dropped after 5.0
+if [ -e "/sys/fs/cgroup/net_prio" ] && echo "${lxd_snap_channel}" | grep -qE "^5\.0/"; then
+    echo "==> Testing limits.network.priority"
     # NOTE: No such thing as net_prio under cgroup2
     lxc config set c1 limits.network.priority=10
-    lxc exec c1 -- grep -q "10$" /sys/fs/cgroup/net_prio/net_prio.ifpriomap
+    lxc exec c1 -- grep -xF "10" /sys/fs/cgroup/net_prio/net_prio.ifpriomap
 fi
 
 lxc restart c1 --force
@@ -196,17 +197,22 @@ lxc exec c1 -- iperf3 -R -c "${IP}" -J > iperf.json
 I1=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
 echo "Throughput before limits: ${E1}Mbps / ${I1}Mbps"
 
-lxc config device override c1 eth0 limits.egress=50Mbit limits.ingress=200Mbit
-lxc exec c1 -- iperf3 -c "${IP}" -J > iperf.json
-E2=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
-lxc exec c1 -- iperf3 -R -c "${IP}" -J > iperf.json
-I2=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
-echo "Throughput after limits: ${E2}Mbps / ${I2}Mbps"
-[ "${E2}" -lt "50" ]
-[ "${I2}" -lt "200" ]
+# linux-image-kvm doesn't support setting limits.egress/limits.ingress
+if uname -r | grep -- "-kvm$"; then
+    echo "The -kvm kernel flavor does not have the required extra modules to test limits.egress/limits.ingress"
+else
+    lxc config device override c1 eth0 limits.egress=50Mbit limits.ingress=200Mbit
+    lxc exec c1 -- iperf3 -c "${IP}" -J > iperf.json
+    E2=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
+    lxc exec c1 -- iperf3 -R -c "${IP}" -J > iperf.json
+    I2=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
+    echo "Throughput after limits: ${E2}Mbps / ${I2}Mbps"
+    [ "${E2}" -lt "50" ]
+    [ "${I2}" -lt "200" ]
 
-pkill -9 iperf3
-lxc config device set c1 eth0 limits.egress= limits.ingress=
+    pkill -9 iperf3
+    lxc config device set c1 eth0 limits.egress= limits.ingress=
+fi
 
 echo "==> Testing disk limits"
 if [ -e /sys/fs/cgroup/init.scope/io.weight ]; then
