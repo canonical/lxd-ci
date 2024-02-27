@@ -51,6 +51,12 @@ if [ -e "/sys/fs/cgroup/net_prio" ]; then
     [ "$(lxc exec c1 -- cat /sys/fs/cgroup/net_prio/net_prio.ifpriomap)" = "$(cat /sys/fs/cgroup/net_prio/net_prio.ifpriomap)" ]
 fi
 
+NPROC="$(nproc)"
+if [ "${NPROC}" -lt 3 ]; then
+    echo "This test requires 3 CPUs or more to be available (not ${NPROC})" >&2
+    exit 1
+fi
+
 echo "==> Testing CPU limits"
 lxc config set c1 limits.cpu=2
 [ "$(lxc exec c1 -- nproc)" = "2" ]
