@@ -517,6 +517,29 @@ for poolDriver in $poolDriverList; do
 
                 # Finally, unset the value to avoid any potential side effects on other tests.
                 lxc config unset instances.migration.stateful
+
+                echo "==> Checking start / stop operations with root size.state being unset"
+                # We should be able to start a VM with migration.stateful=true eventhough the root `size.state` config is unset
+                lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm --config migration.stateful=true -s "${poolName}"
+                waitInstanceReady v1
+                # However, we should not be able to statefully stop the VM
+                ! lxc stop v1 --stateful || false
+                # But we should be able to change the root size.state config without stopping the VM
+                lxc config device set v1 root size.state=2GiB
+                # And then we should be able to statefully stop the VM.
+                # But before, let's register the boot_id to check that it has not changed after a stateful stop / start
+                boot_id=$(lxc exec v1 -- cat /proc/sys/kernel/random/boot_id)
+                lxc stop v1 --stateful
+                # And then we should be able to statefully start the VM again
+                lxc start v1
+                waitInstanceReady v1
+                # And the boot_id should not have changed
+                if [ "$(lxc exec v1 -- cat /proc/sys/kernel/random/boot_id)" != "${boot_id}" ]; then
+                        echo "==> Boot ID changed after stateful stop / start"
+                        false
+                fi
+
+                lxc delete v1 -f
         fi
 
         echo "==> Deleting storage pool"
