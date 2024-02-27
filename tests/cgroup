@@ -110,10 +110,10 @@ fi
 lxc config unset c1 limits.cpu.allowance
 
 echo "==> Testing memory limits"
-lxc config set c1 limits.memory=2GiB
-[ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "MemTotal:        2097152 kB" ]
+lxc config set c1 limits.memory=512MiB
+[ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "MemTotal:         524288 kB" ]
 if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] || [ -e "/sys/fs/cgroup/memory.swap.max" ]; then
-    [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:       2097152 kB" ]
+    [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:        524288 kB" ]
 else
     [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:             0 kB" ]
 fi
