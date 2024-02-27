@@ -53,6 +53,7 @@ fi
 
 NPROC="$(nproc)"
 if [ "${NPROC}" -lt 3 ]; then
+    # The number 3 comes from `limits.cpu=0,2` which takes the 1st and 3rd host's CPUs
     echo "This test requires 3 CPUs or more to be available (not ${NPROC})" >&2
     exit 1
 fi
