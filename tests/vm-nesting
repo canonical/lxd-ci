@@ -78,22 +78,17 @@ function delete() {
 	lxc delete -f "${instances[@]}"
 }
 
-echo "::group::parallel-vms"
 echo "==> Test 10 VMs in parallel"
 init 10 --vm
 start 10
 delete 10
-echo "::endgroup::"
 
-echo "::group::vsock-id-collision"
 echo "==> Test 10 VMs in parallel for vsock ID collision"
 init 10 --vm
 conf 10 volatile.vsock_id=42
 start 10
 delete 10
-echo "::endgroup::"
 
-echo "::group::nested-vms"
 echo "==> Test 5 VMs each with one nested VM"
 init 5 --vm
 start 5
@@ -107,9 +102,7 @@ fi
 cmd 5 "lxd init --auto"
 cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=3GiB"
 delete 5
-echo "::endgroup::"
 
-echo "::group::vms-in-ctns"
 echo "==> Test 5 containers each with one nested VM"
 init 5
 conf 5 security.devlxd.images=true
@@ -127,7 +120,6 @@ else
 fi
 cmd 5 "lxd init --auto"
 cmd 5 "lxc launch ${instanceImage} nested --vm -c limits.memory=512MiB -d root,size=3GiB"
-echo "::endgroup::"
 
 # shellcheck disable=SC2034
 FAIL=0
