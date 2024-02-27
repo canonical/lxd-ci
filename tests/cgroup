@@ -62,8 +62,9 @@ echo "==> Testing CPU limits"
 lxc config set c1 limits.cpu=2
 [ "$(lxc exec c1 -- nproc)" = "2" ]
 
-lxc config set c1 limits.cpu=200
-[ "$(lxc exec c1 -- nproc)" = "$(nproc)" ]
+# trying to allocate more CPUs than there are available should silently be capped at NPROC
+lxc config set c1 limits.cpu="$((NPROC+2))"
+[ "$(lxc exec c1 -- nproc)" = "${NPROC}" ]
 
 lxc config set c1 limits.cpu=0,2
 [ "$(lxc exec c1 -- nproc)" = "2" ]
@@ -74,7 +75,7 @@ lxc config set c1 limits.cpu=2-2
 lxc config unset c1 limits.cpu
 # XXX: avoid a race (https://github.com/canonical/lxd/issues/12659)
 sleep 2
-[ "$(lxc exec c1 -- nproc)" = "$(nproc)" ]
+[ "$(lxc exec c1 -- nproc)" = "${NPROC}" ]
 
 lxc config set c1 limits.cpu.priority 5
 if [ -e "/sys/fs/cgroup/cpu" ]; then
