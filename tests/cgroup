@@ -168,11 +168,12 @@ else
     [ "$(lxc exec c1 -- cat /sys/fs/cgroup/pids.max)" = "2000" ]
 fi
 
-echo "==> Testing network limits"
-if [ -e "/sys/fs/cgroup/net_prio" ]; then
+# limits.network.priority was dropped after 5.0
+if [ -e "/sys/fs/cgroup/net_prio" ] && echo "${lxd_snap_channel}" | grep -qE "^5\.0/"; then
+    echo "==> Testing limits.network.priority"
     # NOTE: No such thing as net_prio under cgroup2
     lxc config set c1 limits.network.priority=10
-    lxc exec c1 -- grep -q "10$" /sys/fs/cgroup/net_prio/net_prio.ifpriomap
+    lxc exec c1 -- grep -xF "10" /sys/fs/cgroup/net_prio/net_prio.ifpriomap
 fi
 
 lxc restart c1 --force
@@ -187,7 +188,6 @@ E1=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
 lxc exec c1 -- iperf3 -R -c "${IP}" -J > iperf.json
 I1=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
 echo "Throughput before limits: ${E1}Mbps / ${I1}Mbps"
-
 
 # linux-image-kvm doesn't support setting limits.egress/limits.ingress
 if uname -r | grep -- "-kvm$"; then
