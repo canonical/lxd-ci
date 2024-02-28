@@ -500,7 +500,7 @@ for poolDriver in $poolDriverList; do
                 lxc delete v1 -f
                 lxc config set instances.migration.stateful=false
                 lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
-                lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]' | grep -xF false
+                [ -z "$(lxc config get --expanded v1 migration.stateful)" ] # instances.migration.stateful leave it unset because since it is `false`, it is the same as the default value of `migration.stateful`.
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=true
