@@ -4,7 +4,7 @@ image:
     openEuler {{ image.release }}
 source:
   downloader: openeuler-http
-  url: https://mirrors.ocf.berkeley.edu/openeuler
+  url: https://repo.openeuler.org
 targets:
   lxc:
     create_message: |
@@ -195,8 +195,6 @@ files:
         name: {% if instance.type == "virtual-machine" %}enp5s0{% else %}eth0{% endif %}
         subnets:
           - type: {% if config_get("user.network_mode", "") == "link-local" %}manual{% else %}dhcp{% endif %}
-            control: auto
-          - type: dhcp6
             control: auto{% else %}{{ config_get("user.network-config", "") }}{% endif %}
   variants:
   - cloud
@@ -237,31 +235,8 @@ packages:
     action: install
 
   - packages:
-    - network-scripts
-    action: install
-    types:
-    - container
-    variants:
-    - default
-    architectures:
-    - x86_64
-    - aarch64
-
-  - packages:
     - NetworkManager
     action: install
-    types:
-    - container
-    variants:
-    - default
-    architectures:
-    - armhfp
-
-  - packages:
-    - NetworkManager
-    action: install
-    types:
-    - vm
     variants:
     - default
 
@@ -317,7 +292,7 @@ actions:
 
     # Rebuild rpm database as the failing builds suggest it's broken.
     rpmdb --rebuilddb
-    sed -i 's|repo.openeuler.org|mirrors.ocf.berkeley.edu/openeuler|g' /etc/yum.repos.d/openEuler.repo
+    sed -i '/metalink=/d' /etc/yum.repos.d/openEuler.repo
 
 - trigger: post-unpack
   action: |-
@@ -331,6 +306,9 @@ actions:
   action: |-
     #!/bin/sh
     set -eux
+
+    # Disable auditd
+    systemctl mask auditd.service
 
     # Disable SELinux
     mkdir -p /selinux
@@ -360,16 +338,19 @@ actions:
 
     # Workaround for broken systemd in centos7
     systemctl enable lxd-agent-workaround.service
+
+    # Workaround for broken mdmonitor
+    systemctl mask mdmonitor
   types:
   - vm
 
-# workaround for https://discuss.linuxcontainers.org/t/help-needed-failed-to-launch-the-lxd-container/15674/6
+# Strip security.ima from all files that have it set.
 - trigger: post-files
   action: |-
     #!/bin/sh
     set -eu
-    for f in $(find /etc/ima/ -type f); do
-      setfattr -x security.ima "${f}" >/dev/null 2>&1 || true
+    getfattr --absolute-names -RPh -n security.ima -e hex / 2>/dev/null | grep "^# file:" | cut -d" " -f3- | while read line; do
+        setfattr -h -x security.ima "${line}" 2>/dev/null || true
     done
   types:
   - container

@@ -2,7 +2,7 @@ image:
   distribution: Apertis
   description: |-
     Apertis {{ image.architecture }} {{ image.variant }} {{ image.release }} {{ image.serial }}
-  variant: minimal
+  variant: sysroot
 
 source:
   downloader: apertis-http
@@ -61,6 +61,8 @@ files:
     [Network]
     DHCP=ipv4
 
+    [DHCP]
+    ClientIdentifier=mac
 packages:
   manager: apt
   update: true

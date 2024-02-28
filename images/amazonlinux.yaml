@@ -55,6 +55,8 @@ files:
     [Network]
     DHCP=ipv4
 
+    [DHCP]
+    ClientIdentifier=mac
 - path: /etc/fstab
   generator: dump
 
@@ -69,6 +71,7 @@ packages:
     - systemd
     - systemd-networkd
     - systemd-resolved
+    - systemd-udev
     action: install
 
 actions:

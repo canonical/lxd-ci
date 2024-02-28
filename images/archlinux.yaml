@@ -482,6 +482,9 @@ files:
 
     [Network]
     DHCP=ipv4
+
+    [DHCP]
+    ClientIdentifier=mac
   types:
   - container
 
@@ -494,6 +497,9 @@ files:
 
     [Network]
     DHCP=ipv4
+
+    [DHCP]
+    ClientIdentifier=mac
   types:
   - vm
 
@@ -730,6 +736,9 @@ actions:
     # Enable GDM
     systemctl enable gdm
 
+    # Disable colord
+    systemctl mask colord
+
     cat << EOF > /home/archlinux/firstboot.sh
     #!/bin/sh
 
@@ -743,6 +752,9 @@ actions:
 
     # Disable 60-second logout prompt when `lxc stop` is called.
     gsettings set org.gnome.SessionManager logout-prompt false
+
+    # Disable welcome tour.
+    gsettings set org.gnome.shell welcome-dialog-last-shown-version '4294967295'
 
     # Delete this script
     rm /home/archlinux/firstboot.sh

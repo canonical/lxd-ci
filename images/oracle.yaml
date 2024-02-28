@@ -185,6 +185,7 @@ packages:
     - 7
 
   - packages:
+    - attr
     - curl
     - dhclient
     - initscripts
@@ -239,3 +240,14 @@ actions:
 
     # Disable loginuid in PAM stack
     sed -i '/^session.*pam_loginuid.so/s/^session/# session/' /etc/pam.d/*
+
+# Strip security.ima from all files that have it set.
+- trigger: post-files
+  action: |-
+    #!/bin/sh
+    set -eu
+    getfattr --absolute-names -RPh -n security.ima -e hex / 2>/dev/null | grep "^# file:" | cut -d" " -f3- | while read line; do
+        setfattr -h -x security.ima "${line}" 2>/dev/null || true
+    done
+  types:
+  - container

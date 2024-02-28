@@ -259,24 +259,14 @@ packages:
     action: install
 
   - packages:
-    - network-scripts
-    action: install
-    types:
-    - container
-    releases:
-    - 8
-
-  - packages:
     - NetworkManager
     action: install
-    types:
-    - vm
     variants:
     - default
+    - cloud
 
   - packages:
     - cloud-init
-    - NetworkManager
     - openssh-server
     action: install
     variants:
@@ -289,16 +279,6 @@ packages:
     - vm
     variants:
     - cloud
-
-  - packages:
-    - NetworkManager
-    action: install
-    types:
-    - container
-    releases:
-    - 9
-    variants:
-    - default
 
   - packages:
     - shim
@@ -326,7 +306,7 @@ packages:
     types:
     - vm
     architectures:
-    - aaarch64
+    - aarch64
 
 actions:
 - trigger: post-unpack
@@ -400,25 +380,12 @@ actions:
   action: |-
     #!/bin/sh
     set -eux
+
     mkdir -p /etc/NetworkManager/conf.d/
     printf "[main]\ndhcp=dhclient" > /etc/NetworkManager/conf.d/dhcp-client.conf
+
     systemctl enable NetworkManager.service
   types:
   - container
   variants:
   - default
-  releases:
-  - 9
-
-- trigger: post-files
-  action: |-
-    #!/bin/sh
-    set -eux
-
-    systemctl enable network
-  types:
-  - container
-  variants:
-  - default
-  releases:
-  - 8

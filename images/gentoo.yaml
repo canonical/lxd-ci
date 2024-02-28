@@ -293,6 +293,11 @@ source:
     -----END PGP PUBLIC KEY BLOCK-----
 
 targets:
+  lxd:
+    vm:
+      size: 6442450944
+      filesystem: ext4
+
   lxc:
     create_message: |
       You just created an {{ image.description }} container.
@@ -351,6 +356,9 @@ files:
 
     [Network]
     DHCP=ipv4
+
+    [DHCP]
+    ClientIdentifier=mac
   types:
   - container
   variants:
@@ -364,6 +372,9 @@ files:
 
     [Network]
     DHCP=ipv4
+
+    [DHCP]
+    ClientIdentifier=mac
   types:
   - vm
   variants:
@@ -373,6 +384,9 @@ files:
   generator: dump
   variants:
   - systemd
+
+- path: /var/lib/dbus/machine-id
+  generator: remove
 
 - path: /etc/local.d/repo_check.start
   generator: dump
@@ -444,15 +458,31 @@ packages:
     - cloud
 
   - packages:
-    - gentoo-kernel-bin
-    - grub
     - syslog-ng
     - sys-power/acpid
     action: install
     types:
     - vm
 
+  - packages:
+    - grub
+    action: install
+    types:
+    - vm
+    variants:
+    - openrc
+
 actions:
+- trigger: post-unpack
+  action: |-
+    #!/bin/sh
+    # Generate machine-id in order for the kernel stuff to be configured properly
+    systemd-machine-id-setup
+  types:
+  - vm
+  variants:
+  - systemd
+
 - trigger: post-unpack
   action: |-
     #!/bin/sh
@@ -476,8 +506,10 @@ actions:
     fi
 
     # Resolve locale issues
-    echo en_US.UTF-8 UTF-8 > /etc/locale.gen
-    locale-gen
+    if command -v locale-gen >/dev/null; then
+        echo en_US.UTF-8 UTF-8 > /etc/locale.gen
+        locale-gen
+    fi
 
 - trigger: post-unpack
   action: |-
@@ -525,6 +557,50 @@ actions:
     echo '*/* PYTHON_TARGETS: python3_7 python3_8' > /etc/portage/package.use
   variants:
   - cloud
+
+- trigger: post-unpack
+  action: |-
+    #!/bin/sh
+    set -eux
+    mkdir -p /etc/portage/package.use
+    echo "sys-apps/systemd boot" >> /etc/portage/package.use/systemd
+    emerge sys-apps/systemd
+  types:
+  - vm
+  variants:
+  - systemd
+
+- trigger: post-files
+  action: |-
+    #!/bin/sh
+    set -eux
+    rm -Rf /boot/* /boot/efi/* || true
+    systemd-machine-id-setup
+    bootctl install --no-variables --esp-path=/boot/efi/
+
+    echo "root=/dev/sda2" >> /etc/kernel/cmdline
+
+    echo "sys-apps/systemd kernel-install" >> /etc/portage/package.use/systemd
+    echo "sys-kernel/installkernel dracut systemd systemd-boot" >> /etc/portage/package.use/installkernel
+    emerge gentoo-kernel-bin
+
+    rm -f /etc/machine-id /var/lib/dbus/machine-id
+    touch /etc/machine-id
+  types:
+  - vm
+  variants:
+  - systemd
+
+- trigger: post-files
+  action: |-
+    #!/bin/sh
+    echo "sys-kernel/installkernel dracut grub" >> /etc/portage/package.use/installkernel
+    emerge gentoo-kernel-bin
+
+  types:
+  - vm
+  variants:
+  - openrc
 
 - trigger: post-packages
   action: |-
@@ -595,6 +671,8 @@ actions:
     sed -i "s#root=[^ ]*#root=/dev/sda2#g" /boot/grub/grub.cfg
   types:
   - vm
+  variants:
+  - openrc
 
 - trigger: post-packages
   action: |-

@@ -1061,26 +1061,37 @@ files:
   content: |-
     [Match]
     Name=eth0
+
     [Network]
     DHCP=true
+
     [DHCPv4]
     UseDomains=true
+
+    [DHCP]
+    ClientIdentifier=mac
   types:
   - container
   releases:
   - bullseye
   - bookworm
   - sid
+  - trixie
 
 - path: /etc/systemd/network/enp5s0.network
   generator: dump
   content: |-
     [Match]
     Name=enp5s0
+
     [Network]
     DHCP=true
+
     [DHCPv4]
     UseDomains=true
+
+    [DHCP]
+    ClientIdentifier=mac
   types:
   - vm
   variants:
@@ -1089,6 +1100,7 @@ files:
   - bullseye
   - bookworm
   - sid
+  - trixie
 
 - path: /etc/default/grub.d/50-lxd.cfg
   generator: dump
@@ -1176,6 +1188,7 @@ packages:
     - bullseye
     - bookworm
     - sid
+    - trixie
 
   - packages:
     - dbus
@@ -1185,6 +1198,7 @@ packages:
     releases:
     - bookworm
     - sid
+    - trixie
 
   - packages:
     - cloud-init
@@ -1231,6 +1245,7 @@ packages:
     - bullseye
     - sid
     - bookworm
+    - trixie
 
   - packages:
     - grub-efi-arm64
@@ -1251,6 +1266,7 @@ packages:
     - bullseye
     - sid
     - bookworm
+    - trixie
 
   repositories:
   - name: sources.list
@@ -1269,8 +1285,7 @@ packages:
     - s390x
   - name: sources.list
     url: |-
-      deb http://ftp.ports.debian.org/debian-ports unstable main
-      deb http://ftp.ports.debian.org/debian-ports unreleased main
+      deb http://deb.debian.org/debian sid main
     architectures:
     - riscv64
 
@@ -1341,6 +1356,7 @@ actions:
   releases:
   - bookworm
   - sid
+  - trixie
 
 - trigger: post-packages
   action: |-
@@ -1357,6 +1373,7 @@ actions:
   - bullseye
   - bookworm
   - sid
+  - trixie
 
 - trigger: post-packages
   action: |-
@@ -1372,6 +1389,7 @@ actions:
   releases:
   - bookworm
   - sid
+  - trixie
 
 - trigger: post-packages
   action: |-
@@ -1397,6 +1415,7 @@ actions:
   releases:
   - bookworm
   - sid
+  - trixie
 
 - trigger: post-packages
   action: |-
@@ -1449,10 +1468,13 @@ actions:
     [ "$(uname -m)" = "aarch64" ] && TARGET="arm64"
 
     update-grub
+
     # This will create EFI/BOOT
     grub-install --uefi-secure-boot --target="${TARGET}-efi" --no-nvram --removable
+
     # This will create EFI/debian
     grub-install --uefi-secure-boot --target="${TARGET}-efi" --no-nvram
+
     update-grub
     sed -i "s#root=[^ ]*#root=/dev/sda2#g" /boot/grub/grub.cfg
   types:
@@ -1462,6 +1484,7 @@ actions:
   - bullseye
   - sid
   - bookworm
+  - trixie
 
 - trigger: post-files
   action: |-
@@ -1473,6 +1496,7 @@ actions:
   releases:
   - bookworm
   - sid
+  - trixie
 
 - trigger: post-files
   action: |-

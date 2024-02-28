@@ -343,9 +343,8 @@ files:
   - bionic
   - focal
   - jammy
-  - kinetic
-  - lunar
   - mantic
+  - noble
   types:
   - container
   variants:
@@ -384,9 +383,8 @@ files:
   - bionic
   - focal
   - jammy
-  - kinetic
-  - lunar
   - mantic
+  - noble
   types:
   - vm
   variants:
@@ -416,37 +414,21 @@ files:
   generator: cloud-init
   variants:
   - cloud
-  releases:
-  - xenial
-  - bionic
-  - focal
 
 - name: network-config
   generator: cloud-init
   variants:
   - cloud
-  releases:
-  - xenial
-  - bionic
-  - focal
 
 - name: user-data
   generator: cloud-init
   variants:
   - cloud
-  releases:
-  - xenial
-  - bionic
-  - focal
 
 - name: vendor-data
   generator: cloud-init
   variants:
   - cloud
-  releases:
-  - xenial
-  - bionic
-  - focal
 
 - name: ext4
   generator: fstab
@@ -505,9 +487,8 @@ packages:
     - fuse3
     releases:
     - jammy
-    - kinetic
-    - lunar
     - mantic
+    - noble
     action: install
 
   - packages:
@@ -535,9 +516,8 @@ packages:
     - xenial
     - bionic
     - jammy
-    - kinetic
-    - lunar
     - mantic
+    - noble
 
   - packages:
     - cloud-init
@@ -549,9 +529,8 @@ packages:
     - systemd-resolved
     action: install
     releases:
-    - kinetic
-    - lunar
     - mantic
+    - noble
 
   - packages:
     - acpid
@@ -589,9 +568,8 @@ packages:
     releases:
     - focal
     - jammy
-    - kinetic
-    - lunar
     - mantic
+    - noble
     types:
     - vm
 
@@ -610,9 +588,8 @@ packages:
     - bionic
     - focal
     - jammy
-    - kinetic
-    - lunar
     - mantic
+    - noble
     types:
     - vm
 
@@ -678,13 +655,9 @@ actions:
 
     # Enable systemd-networkd
     systemctl enable systemd-networkd
-  releases:
-  - bionic
-  - focal
-  - jammy
-  - kinetic
-  - lunar
-  - mantic
+
+    # Disable UA attach
+    systemctl mask ua-auto-attach
 
 - trigger: post-packages
   action: |-
@@ -694,9 +667,8 @@ actions:
     # Ensure /etc/resolv.conf is symlinked to /run/systemd/resolve/stub-resolv.conf
     ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
   releases:
-  - kinetic
-  - lunar
   - mantic
+  - noble
 
 - trigger: post-packages
   action: |-
@@ -724,7 +696,13 @@ actions:
     [ "$(uname -m)" = "aarch64" ] && TARGET="arm64"
 
     update-grub
+
+    # This will create EFI/BOOT
     grub-install --uefi-secure-boot --target="${TARGET}-efi" --no-nvram --removable
+
+    # This will create EFI/ubuntu
+    grub-install --uefi-secure-boot --target="${TARGET}-efi" --no-nvram
+
     update-grub
     sed -i "s#root=[^ ]*#root=/dev/sda2#g" /boot/grub/grub.cfg
   types:
@@ -743,7 +721,7 @@ actions:
     [Service]
     Type=oneshot
     ExecStartPre=-/usr/bin/growpart /dev/sda 2
-    ExecStart=/usr/sbin/resize2fs /dev/sda2
+    ExecStart=/sbin/resize2fs /dev/sda2
 
     [Install]
     WantedBy=default.target
@@ -759,6 +737,9 @@ actions:
   action: |-
     #!/bin/sh
     set -eux
+
+    # Disable location service
+    systemctl mask geoclue.service || true
 
     # Timezone
     rm -f /etc/localtime
@@ -787,6 +768,9 @@ actions:
 
     # Disable automatic screensaver lock
     gsettings set org.gnome.desktop.screensaver lock-enabled false
+
+    # Disable welcome tour.
+    gsettings set org.gnome.shell welcome-dialog-last-shown-version '4294967295'
 
     # Delete this script
     rm /home/ubuntu/firstboot.sh

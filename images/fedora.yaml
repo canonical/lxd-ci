@@ -92,6 +92,9 @@ files:
 
     [Network]
     DHCP=ipv4
+
+    [DHCP]
+    ClientIdentifier=mac
   variants:
   - default
   types:
@@ -106,6 +109,9 @@ files:
 
     [Network]
     DHCP=ipv4
+
+    [DHCP]
+    ClientIdentifier=mac
   variants:
   - default
   types:
@@ -221,6 +227,19 @@ packages:
     types:
     - vm
 
+  - packages:
+    - lvm2
+    - lvm2-libs
+    action: remove
+    types:
+    - vm
+
+  - packages:
+    - libsss_idmap
+    - libsss_nss_idmap
+    - sssd-client
+    action: remove
+
 actions:
 - trigger: post-unpack
   action: |-
@@ -249,7 +268,7 @@ actions:
     for repo in $(ls /etc/yum.repos.d/*.repo); do
       grep -q '^#baseurl' "${repo}" || continue
 
-      sed -ri 's/^metalink=.*/#\0/g;s@^#(baseurl=)http://download.example/pub(.*)@\1https://mirror.csclub.uwaterloo.ca/\2@g' "${repo}"
+      sed -ri 's/^metalink=.*/#\0/g;s@^#(baseurl=)http://download.example/pub(.*)@\1http://fedora.mirror.constant.com/\2@g' "${repo}"
     done
   architectures:
   - aarch64
