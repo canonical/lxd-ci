@@ -514,6 +514,7 @@ for poolDriver in $poolDriverList; do
                 lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -p stateful_profile -s "${poolName}"
                 lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]' | grep -xF true # the profile config should take precedence
                 lxc delete v1 -f
+                lxc profile delete stateful_profile
 
                 # Finally, unset the value to avoid any potential side effects on other tests.
                 lxc config unset instances.migration.stateful
