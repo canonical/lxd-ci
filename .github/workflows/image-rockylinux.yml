@@ -49,6 +49,7 @@ jobs:
           TIMEOUT=1800
           YAML="${{ github.workspace }}/images/${{ env.distro }}.yaml"
           ARCH="${{ matrix.architecture }}"
+          TYPE="${{ env.type }}"
 
           IMAGE_ARCH="${ARCH}"
           [ "${ARCH}" = "amd64" ] && IMAGE_ARCH="x86_64"
