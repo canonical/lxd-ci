@@ -14,7 +14,7 @@ lxd init --auto
 # Test
 set -x
 
-lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" c1
+lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" c1
 sleep 10
 lxc exec c1 -- apt-get update
 lxc exec c1 -- apt-get install --no-install-recommends --yes attr fuse2fs
@@ -49,45 +49,41 @@ else
     echo "Skipping security.syscalls.intercept.bpf config as the kernel is too old"
 fi
 
-if hasNeededAPIExtension container_syscall_intercept_mount; then
-    ## mount
-    truncate -s 10G loop.img
-    LOOP=$(losetup -f --show loop.img)
-    lxc config device add c1 loop unix-block source="${LOOP}" path=/dev/sda
-    lxc exec c1 -- mkfs.ext4 -F /dev/sda
-    ! lxc exec c1 -- mount /dev/sda /mnt || false
-    lxc config set c1 security.syscalls.intercept.mount=true
+## mount
+truncate -s 10G loop.img
+LOOP=$(losetup -f --show loop.img)
+lxc config device add c1 loop unix-block source="${LOOP}" path=/dev/sda
+lxc exec c1 -- mkfs.ext4 -F /dev/sda
+! lxc exec c1 -- mount /dev/sda /mnt || false
+lxc config set c1 security.syscalls.intercept.mount=true
 
-    lxc config set c1 security.syscalls.intercept.mount.allowed=ext4
+lxc config set c1 security.syscalls.intercept.mount.allowed=ext4
+lxc restart c1 -f
+lxc exec c1 -- mount /dev/sda /mnt
+[ "$(lxc exec c1 -- stat --format=%u:%g /mnt)" = "65534:65534" ]
+lxc exec c1 -- umount /mnt
+
+lxc config set c1 security.syscalls.intercept.mount.shift=true
+lxc exec c1 -- mount /dev/sda /mnt
+[ "$(lxc exec c1 -- stat --format=%u:%g /mnt)" = "0:0" ]
+lxc exec c1 -- umount /mnt
+
+if hasNeededAPIExtension container_syscall_intercept_mount_fuse; then
+    lxc config unset c1 security.syscalls.intercept.mount.allowed
+    lxc config set c1 security.syscalls.intercept.mount.fuse=ext4=fuse2fs
     lxc restart c1 -f
-    lxc exec c1 -- mount /dev/sda /mnt
-    [ "$(lxc exec c1 -- stat --format=%u:%g /mnt)" = "65534:65534" ]
-    lxc exec c1 -- umount /mnt
 
-    lxc config set c1 security.syscalls.intercept.mount.shift=true
     lxc exec c1 -- mount /dev/sda /mnt
     [ "$(lxc exec c1 -- stat --format=%u:%g /mnt)" = "0:0" ]
     lxc exec c1 -- umount /mnt
-
-    if hasNeededAPIExtension container_syscall_intercept_mount_fuse; then
-        lxc config unset c1 security.syscalls.intercept.mount.allowed
-        lxc config set c1 security.syscalls.intercept.mount.fuse=ext4=fuse2fs
-        lxc restart c1 -f
-
-        lxc exec c1 -- mount /dev/sda /mnt
-        [ "$(lxc exec c1 -- stat --format=%u:%g /mnt)" = "0:0" ]
-        lxc exec c1 -- umount /mnt
-    else
-        echo "Skipping mount fuse tests as the container_syscall_intercept_mount_fuse API extension is missing"
-    fi
-
-    ## cleanup
-    lxc delete -f c1
-    losetup -d "${LOOP}"
-    rm -f loop.img
 else
-    echo "Skipping mount tests as the container_syscall_intercept_mount API extension is missing"
+    echo "Skipping mount fuse tests as the container_syscall_intercept_mount_fuse API extension is missing"
 fi
+
+## cleanup
+lxc delete -f c1
+losetup -d "${LOOP}"
+rm -f loop.img
 
 # shellcheck disable=SC2034
 FAIL=0

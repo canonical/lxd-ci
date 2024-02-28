@@ -6,6 +6,10 @@ on:
     - cron:  '38 9 * * *'
   workflow_dispatch:
     inputs:
+      snap-tracks:
+        description: List of snap tracks to run the tests. In JSON format, i.e. '["latest/stable", "5.0/candidate"]'.
+        type: string
+        default: '["latest/edge"]'
       self-hosted-runner:
         type: boolean
         description: Whether to use self-hosted runners to run the jobs.
@@ -62,9 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        track:
-          - "latest/edge"
-          - "5.0/edge"
+        track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge", "5.0/edge"]') }}
         test:
           - cgroup
           - cluster
@@ -72,6 +74,7 @@ jobs:
           - cpu-vm
           - devlxd-vm
           - docker
+          - efi-vars-editor-vm
           - interception
           - pylxd
           - network-bridge-firewall
@@ -87,10 +90,7 @@ jobs:
           - "storage-vm zfs"
           - storage-volumes-vm
           - vm-nesting
-          - efi-vars-editor-vm
         exclude:
-          - test: interception # not compatible with 5.0/* and no API extension advertised
-            track: "5.0/edge"
           - test: efi-vars-editor-vm # not compatible with 5.0/*
             track: "5.0/edge"
           - test: storage-buckets  # waiting for integration with microceph
