@@ -1128,7 +1128,7 @@ ovn_peering_tests() {
     ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 198.51.100.1 || false
     ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 2001:db8:1:2::1 || false
 
-    echo "==> Test that pinging external addresses between networks does worth without peering (goes via uplink)"
+    echo "==> Test that pinging external addresses between networks does work without peering (goes via uplink)"
     lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 198.51.100.2
     lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 2001:db8:1:2::2
 
@@ -1136,7 +1136,7 @@ ovn_peering_tests() {
     ip -4 r del 198.51.100.0/24 dev lxdbr0
     ip -6 r del 2001:db8:1:2::/64 dev lxdbr0
 
-    echo "==> Test that pinging external addresses between networks doesn't worth via uplink with removed routes"
+    echo "==> Test that pinging external addresses between networks doesn't work via uplink with removed routes"
     ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 198.51.100.2 || false
     ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 2001:db8:1:2::2 || false
 
