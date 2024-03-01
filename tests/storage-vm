@@ -333,7 +333,6 @@ for poolDriver in $poolDriverList; do
                 serverPID="$(lxc query /1.0 | jq .environment.server_pid)"
                 nsenter -m -t "${serverPID}" findmnt --noheadings --output=FSTYPE --mountpoint /var/snap/lxd/common/lxd/devices/v1/config.mount | grep -xF ext4
 
-
                 echo "==> Deleting VM"
                 lxc delete -f v1
                 lxc storage unset "${poolName}" volume.block.filesystem
