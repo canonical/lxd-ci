@@ -13,14 +13,6 @@ loopimg="$(mktemp "${test_dir}/XXX.img")"
 truncate -s 5G "${loopimg}"
 loopdev="$(losetup --show --find "${loopimg}")"
 
-extra_cleanup() {
-  # Clean up LXD and remove the loop device.
-  lxc remote remove target
-  lxc delete target -f
-  losetup --detach "${loopdev}"
-  rm -rf "${test_dir}"
-}
-
 # Begin Test.
 set -x
 
@@ -64,6 +56,11 @@ for fs in "xfs" "btrfs" "ext4" ; do
   wipefs -a "${loopdev}"
 done
 
+echo "==> Clean up LXD and remove the loop device"
+lxc remote remove target
+lxc delete target -f
+losetup --detach "${loopdev}"
+rm -rf "${test_dir}"
 
 # shellcheck disable=SC2034
 FAIL=0
