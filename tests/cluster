@@ -8,6 +8,7 @@ install_lxd
 lxd init --auto
 
 PREFIX="cluster-$$"
+SIZE="$1"
 
 if [ -z "${1:-""}" ] || [ -z "${2:-""}" ] || [ -z "${3:-""}" ]; then
     echo "Usage: ${0} <count> <source channel> <destination channel>"
@@ -23,17 +24,6 @@ print_log() {
     cat "${log_file}" || true
     echo "<== End log file ${1}"
     rm -f "${log_file}"
-}
-
-# Cleanup on shutdown
-SIZE="$1"
-extra_cleanup() {
-    # Delete the cluster
-    echo "==> Deleting the cluster"
-    for i in $(seq "${SIZE}"); do
-        print_log "${PREFIX}-$i"
-        lxc delete --force "${PREFIX}-$i"
-    done
 }
 
 # Launch the container
@@ -120,6 +110,12 @@ sleep 10
 echo "==> Validating the cluster"
 lxc exec "${PREFIX}-1" -- lxc info
 lxc exec "${PREFIX}-1" -- lxc cluster list
+
+echo "==> Deleting the cluster"
+for i in $(seq "${SIZE}"); do
+    print_log "${PREFIX}-$i"
+    lxc delete --force "${PREFIX}-$i"
+done
 
 # shellcheck disable=SC2034
 FAIL=0
