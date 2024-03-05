@@ -1,5 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
+
+# Source helper functions.
+. $(realpath $(dirname "$0")/helpers)
 
 # Check input arguments.
 if [ "${1:-}" = "" ] || [ "${2:-}" = "" ] || [ "${3:-}" = "" ] || [ "${4:-}" = "" ] || [ "${5:-}" = "" ]; then
@@ -147,8 +150,16 @@ done
 
 # Wait for things to settle.
 echo "==> Waiting for instances to start"
-[ "${TYPE}" = "container" ] && sleep 1m
-[ "${TYPE}" = "vm" ] && sleep 3m
+for i in ${INSTANCES}; do
+    if [ "${DIST}" == "busybox" ]; then
+        MIN_PROC_COUNT=1
+    fi
+
+    waitInstanceReady "${i}"
+done
+
+# Give instances some extra time to boot properly.
+sleep 15
 lxc list "${TEST_IMAGE}"
 
 # Check that all instances have an IPv4 and IPv6 address.
