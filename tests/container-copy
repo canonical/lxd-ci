@@ -7,28 +7,20 @@ set -eu
 install_lxd
 lxd init --auto
 
-# Create a loop device that we can mount as a source for a dir storage pool.
+echo "==> Create a loop device that we can mount as a source for a dir storage pool"
 test_dir="$(mktemp -d XXX.test)"
 loopimg="$(mktemp "${test_dir}/XXX.img")"
 truncate -s 5G "${loopimg}"
 loopdev="$(losetup --show --find "${loopimg}")"
 
-extra_cleanup() {
-  # Clean up LXD and remove the loop device.
-  lxc remote remove target
-  lxc delete target -f
-  losetup --detach "${loopdev}"
-  rm -rf "${test_dir}"
-}
-
 # Begin Test.
 set -x
 
-# Launch a VM which will be the target of the copy.
+echo "==> Launch a VM which will be the target of the copy"
 lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" target --vm
 waitInstanceBooted target
 
-# Add the target VM as a remote LXD.
+echo "==> Add the target VM as a remote LXD"
 lxc exec target -- snap install lxd --channel "${LXD_SNAP_CHANNEL}"
 lxc exec target -- lxd init --auto
 lxc exec target -- lxc config set core.https_address=:8443
@@ -37,6 +29,7 @@ lxc remote add target "${token}" --accept-certificate
 
 # Run the test for various filesystems.
 for fs in "xfs" "btrfs" "ext4" ; do
+  echo "==> Testing with ${fs}"
   mkfs.${fs} "${loopdev}"
   disk_dir="$(mktemp -d "${test_dir}/XXX.disk")"
   mount "${loopdev}" "${disk_dir}"
@@ -64,6 +57,11 @@ for fs in "xfs" "btrfs" "ext4" ; do
   wipefs -a "${loopdev}"
 done
 
+echo "==> Clean up LXD and remove the loop device"
+lxc remote remove target
+lxc delete target -f
+losetup --detach "${loopdev}"
+rm -rf "${test_dir}"
 
 # shellcheck disable=SC2034
 FAIL=0

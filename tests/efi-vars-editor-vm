@@ -29,21 +29,6 @@ poolDriver=dir
 echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 
-extra_cleanup() {
-  echo "==> extra_cleanup"
-
-  echo "==> Stopping and deleting VM"
-  lxc delete -f v1
-
-  lxc profile device remove default eth0
-
-  echo "==> Deleting storage pool"
-  lxc storage delete "${poolName}"
-
-  echo "==> Deleting network"
-  lxc network delete lxdbr0
-}
-
 echo "==> Create VM and boot"
 lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
 lxc info v1
@@ -84,6 +69,18 @@ echo "==> Start VM and check that variable does not exist anymore"
 lxc start v1
 waitInstanceReady v1
 ! lxc exec v1 -- test -e /sys/firmware/efi/efivars/"${EFI_VAR_FULL_NAME}" || false
+
+# Cleanup
+echo "==> Stopping and deleting VM"
+lxc delete -f v1
+
+lxc profile device remove default eth0
+
+echo "==> Deleting storage pool"
+lxc storage delete "${poolName}"
+
+echo "==> Deleting network"
+lxc network delete lxdbr0
 
 # shellcheck disable=SC2034
 FAIL=0

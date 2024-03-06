@@ -10,10 +10,6 @@ install_lxd
 # Configure LXD
 lxd init --auto
 
-# Cleanup
-extra_cleanup() {
-    lxc delete -f c1
-}
 
 # Test
 set -x
@@ -246,6 +242,9 @@ echo "==> Testing the freezer"
 lxc pause c1
 ! lxc exec c1 bash || false
 lxc start c1
+
+echo "==> Cleaning up"
+lxc delete -f c1
 
 # shellcheck disable=SC2034
 FAIL=0

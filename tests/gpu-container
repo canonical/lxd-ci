@@ -36,14 +36,6 @@ install_lxd
 # Check that NVIDIA is installed
 nvidia-smi
 
-extra_cleanup() {
-  lxc delete -f c1
-  lxc profile device remove default root
-  lxc profile device remove default eth0
-  lxc storage delete default
-  lxc network delete lxdbr0
-}
-
 # Configure LXD
 lxc storage create default zfs
 lxc profile device add default root disk path=/ pool=default
@@ -121,6 +113,13 @@ lxc config device add c1 gpus gpu vendorid=10de productid="${first_card_product_
 sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_nvidia_gpu_with_product_id}" ] || false
 lxc exec c1 -- nvidia-smi
+
+echo "==> Cleaning up"
+lxc delete -f c1
+lxc profile device remove default root
+lxc profile device remove default eth0
+lxc storage delete default
+lxc network delete lxdbr0
 
 # shellcheck disable=SC2034
 FAIL=0

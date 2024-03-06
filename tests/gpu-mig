@@ -19,23 +19,6 @@ install_lxd
 # Check that NVIDIA is installed
 nvidia-smi
 
-extra_cleanup() {
-  lxc delete -f nvidia-mig1
-  lxc delete -f nvidia-mig2
-  lxc delete -f nvidia-mig3
-  lxc delete -f nvidia-mig4
-
-  # Cleanup MIG
-  nvidia-smi mig -dci
-  nvidia-smi mig -dgi
-  nvidia-smi -mig 0
-
-  lxc profile device remove default root
-  lxc profile device remove default eth0
-  lxc storage delete default
-  lxc network delete lxdbr0
-}
-
 # Configure LXD
 lxc storage create default zfs
 lxc profile device add default root disk path=/ pool=default
@@ -109,6 +92,13 @@ lxc stop --all
 nvidia-smi mig -dci
 nvidia-smi mig -dgi
 nvidia-smi -mig 0
+
+echo "==> Cleaning up"
+lxc delete nvidia-mig1 nvidia-mig2 nvidia-mig3 nvidia-mig4
+lxc profile device remove default root
+lxc profile device remove default eth0
+lxc storage delete default
+lxc network delete lxdbr0
 
 # shellcheck disable=SC2034
 FAIL=0

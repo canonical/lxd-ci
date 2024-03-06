@@ -167,12 +167,6 @@ createPowerFlexPool() (
 
 # cleanup: report if the test passed or not and return the appropriate return code.
 cleanup() {
-    # Run any extra cleanup function
-    if command -v extra_cleanup > /dev/null; then
-      trap
-      extra_cleanup
-    fi
-
     set +e
     echo ""
     if [ "${FAIL}" = "1" ]; then
