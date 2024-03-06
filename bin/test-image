@@ -72,9 +72,9 @@ INSTANCES=""
 if [ "${TYPE}" = "vm" ]; then
     lxc init "${TEST_IMAGE}" "${TEST_IMAGE}" \
         --vm \
-        -c limits.cpu=4 \
         -c limits.memory=4GB \
         -c security.secureboot=false
+        # -c limits.cpu=4 \
 
     INSTANCES="${TEST_IMAGE}"
 
