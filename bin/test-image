@@ -155,7 +155,7 @@ for i in ${INSTANCES}; do
         MIN_PROC_COUNT=1
     fi
 
-    waitInstanceReady "${i}"
+    WAIT_READY_TIMEOUT=240 waitInstanceReady "${i}"
 done
 
 # Give instances some extra time to boot properly.
