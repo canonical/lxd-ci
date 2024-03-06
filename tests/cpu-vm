@@ -19,6 +19,19 @@ poolDriver=dir
 echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 
+# limits.kernel.* aren't valid for VMs, but profiles with the key set should
+# still work
+lxc profile set default limits.kernel.nofile 50
+
+! lxc init v0 --vm --empty -c limits.kernel.cpu=46 -s "${poolName}" || false
+
+lxc init v0 --vm --empty -s "${poolName}"
+
+# limits.kernel.* only applies to containers (shouldn't work)
+! lxc config set v0 limits.kernel.as=1GiB || false
+
+lxc delete v0
+
 echo "==> Create ephemeral VM and boot"
 lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm -s "${poolName}" --ephemeral
 waitInstanceReady v1
@@ -65,6 +78,7 @@ lxc stop -f v1
 ! lxc info v1 || false
 
 lxc profile device remove default eth0
+lxc profile unset default limits.kernel.nofile
 
 echo "==> Deleting storage pool"
 lxc storage delete "${poolName}"
