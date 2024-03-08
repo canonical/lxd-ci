@@ -31,6 +31,7 @@ lxc storage create "${poolName}" "${poolDriver}"
 
 echo "==> Create VM and boot"
 lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+waitInstanceReady v1
 lxc info v1
 
 EFI_GLOBAL_VARIABLE_GUID="8be4df61-93ca-11d2-aa0d-00e098032b8c"
