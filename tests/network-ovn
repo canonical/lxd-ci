@@ -1129,8 +1129,11 @@ ovn_peering_tests() {
     ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 2001:db8:1:2::1 || false
 
     echo "==> Test that pinging external addresses between networks does work without peering (goes via uplink)"
+    # XXX: Temporarily disable NAT to workaround Azure kernel issue (see https://github.com/canonical/lxd-ci/issues/91)
+    lxc network set lxdbr0 ipv4.nat=false ipv6.nat=false
     lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 198.51.100.2
     lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 2001:db8:1:2::2
+    lxc network set lxdbr0 ipv4.nat=true ipv6.nat=true
 
     echo "==> Remove routes on uplink manually to purposefully break uplink routing of external routes"
     ip -4 r del 198.51.100.0/24 dev lxdbr0
