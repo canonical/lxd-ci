@@ -91,6 +91,10 @@ for poolDriver in $poolDriverList; do
         [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
         lxc start v2
         waitInstanceReady v2
+        lxc stop -f v2
+
+        echo "==> Checking VM can be refreshed"
+        lxc copy v1 v2 --refresh
         lxc delete -f v2
 
         echo "==> Checking running copied VM snapshot"
@@ -107,7 +111,75 @@ for poolDriver in $poolDriverList; do
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
         fi
         lxc delete -f v2
+
+        echo "==> Add current LXD as remote via localhost"
+        lxc config set core.https_address=:8443
+        token="$(lxc config trust add --name localhost --quiet)"
+        lxc remote add localhost "${token}" --accept-certificate
+
+        echo "==> Checking VM can be migrated with snapshots (same storage pool)"
+        lxc copy v1 localhost:v2 --stateless
+        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
+        lxc start v2
+        waitInstanceReady v2
+        lxc stop -f v2
+
+        echo "==> Checking VM can be refreshed remotely (same storage pool)"
+        lxc copy v1 localhost:v2 --refresh
+        lxc delete -f v2
+
+        echo "==> Checking running migrated VM snapshot (same storage pool)"
+        lxc copy v1/snap0 localhost:v2
+        lxc start v2
+        waitInstanceReady v2
+        lxc exec v2 -- cat /root/foo.txt | grep -Fx "foo"
+
+        if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Checking VM snapshot copy root disk size is 3GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
+        else
+                echo "==> Checking VM snapshot copy root disk size is 8GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
+        fi
+        lxc delete -f v2
+
+        echo "==> Create storage pool using different driver than ${poolDriver}"
+        if [ "${poolDriver}" != "dir" ]; then
+                lxc storage create "${poolName}2" dir
+        else
+                # Falback to ZFS in case the selected driver is dir to
+                # also allow testing migration to a different driver if dir.
+                lxc storage create "${poolName}2" zfs
+        fi
+
+        echo "==> Checking VM can be migrated with snapshots (different storage pool)"
+        lxc copy v1 localhost:v2 -s "${poolName}2" --stateless
+        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
+        lxc start v2
+        waitInstanceReady v2
+        lxc stop -f v2
+
+        echo "==> Checking VM can be refreshed remotely (different storage pool)"
+        lxc copy v1 localhost:v2 --refresh
+        lxc delete -f v2
+
+        echo "==> Checking running migrated VM snapshot (different storage pool)"
+        lxc copy v1/snap0 localhost:v2 -s "${poolName}2"
+        lxc start v2
+        waitInstanceReady v2
+        lxc exec v2 -- cat /root/foo.txt | grep -Fx "foo"
+
+        if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Checking VM snapshot copy root disk size is 3GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
+        else
+                echo "==> Checking VM snapshot copy root disk size is 8GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
+        fi
+        lxc delete -f v2
         lxc delete v1/snap0
+        lxc remote rm localhost
+        lxc storage rm "${poolName}2"
 
         echo "==> Check QEMU crash behavior and recovery"
         lxc exec v1 -- fsfreeze --freeze /
