@@ -87,7 +87,7 @@ for poolDriver in $poolDriverList; do
         echo "==> Checking restore VM snapshot"
         lxc restore v1 snap0
         waitInstanceReady v1
-        lxc exec v1 -- cat /root/foo.txt | grep -Fx "foo"
+        lxc exec v1 -- grep -Fx "foo" /root/foo.txt
 
         echo "==> Checking VM filesystem volume was restored too"
         nsenter --mount=/run/snapd/ns/lxd.mnt [ -f "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo" ]
@@ -110,7 +110,7 @@ for poolDriver in $poolDriverList; do
         lxc copy v1/snap0 v2
         lxc start v2
         waitInstanceReady v2
-        lxc exec v2 -- cat /root/foo.txt | grep -Fx "foo"
+        lxc exec v2 -- grep -Fx "foo" /root/foo.txt
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM snapshot copy root disk size is 3GiB"
@@ -141,7 +141,7 @@ for poolDriver in $poolDriverList; do
         lxc copy v1/snap0 localhost:v2
         lxc start v2
         waitInstanceReady v2
-        lxc exec v2 -- cat /root/foo.txt | grep -Fx "foo"
+        lxc exec v2 -- grep -Fx "foo" /root/foo.txt
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM snapshot copy root disk size is 3GiB"
@@ -176,7 +176,7 @@ for poolDriver in $poolDriverList; do
         lxc copy v1/snap0 localhost:v2 -s "${poolName}2"
         lxc start v2
         waitInstanceReady v2
-        lxc exec v2 -- cat /root/foo.txt | grep -Fx "foo"
+        lxc exec v2 -- grep -Fx "foo" /root/foo.txt
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM snapshot copy root disk size is 3GiB"
