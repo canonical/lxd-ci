@@ -26,16 +26,19 @@ for poolDriver in $poolDriverList; do
         elif [ "${poolDriver}" = "lvm" ]; then
                 lxc storage create "${poolName}" "${poolDriver}" size=59GiB lvm.use_thinpool=false
                 lxc storage set "${poolName}" size=60GiB
+                ! lxc storage set "${poolName}" size=58GiB || false
                 [ "$(lxc storage get ${poolName} size)" = "60GiB" ]
         elif [ "${poolDriver}" = "lvm-thin" ]; then
                 lxc storage create "${poolName}" lvm size=19GiB
                 lxc storage set "${poolName}" size=20GiB
+                ! lxc storage set "${poolName}" size=18GiB || false
                 [ "$(lxc storage get ${poolName} size)" = "20GiB" ]
         elif [ "${poolDriver}" = "powerflex" ]; then
                 createPowerFlexPool "${poolName}"
         else
                 lxc storage create "${poolName}" "${poolDriver}" size=19GiB
                 lxc storage set "${poolName}" size=20GiB
+                ! lxc storage set "${poolName}" size=18GiB || false
                 [ "$(lxc storage get ${poolName} size)" = "20GiB" ]
         fi
 
