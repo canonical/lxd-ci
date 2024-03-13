@@ -93,8 +93,11 @@ for poolDriver in $poolDriverList; do
         waitInstanceReady v2
         lxc stop -f v2
 
-        echo "==> Checking VM can be refreshed"
-        lxc copy v1 v2 --refresh
+        # Temporary exception for https://github.com/canonical/lxd/issues/13085.
+        if [ "${poolDriver}" != "btrfs" ]; then
+                echo "==> Checking VM can be refreshed"
+                lxc copy v1 v2 --refresh
+        fi
         lxc delete -f v2
 
         echo "==> Checking running copied VM snapshot"
