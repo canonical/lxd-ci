@@ -81,13 +81,14 @@ if hasNeededAPIExtension instance_ready_state; then
   [ "$(lxc config get v1 volatile.last_state.ready)" = "false" ]
 
   lxc start v1
-  waitInstanceReady v1
 else
   echo "Skipping instance Ready state tests, not supported"
 fi
 
+# Wait for boot to be completed to interact with snap/snapd
+waitInstanceBooted v1
+
 # Test nested VM functionality.
-lxc exec v1 -- snap wait system seed.loaded
 lxc exec v1 -- snap remove --purge lxd || true
 lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec v1 -- /snap/bin/lxd init --auto
