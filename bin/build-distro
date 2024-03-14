@@ -22,8 +22,8 @@ cd "${TARGET}"
 cp "${YAML}" image.yaml
 
 # Get lxd-imagebuilder path and create a serial.
-BUILDER=$(which lxd-imagebuilder)
-SERIAL=$(date -u +%Y%m%d_%H:%M)
+BUILDER=$(command -v lxd-imagebuilder)
+SERIAL=$(date -u +%Y%m%d_%H%M)
 
 # Build plain rootfs.
 sudo "${BUILDER}" build-dir image.yaml rootfs \
