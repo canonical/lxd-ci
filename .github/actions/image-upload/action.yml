@@ -2,39 +2,62 @@ name: Upload Image
 description: Composite action for uploading built images
 
 inputs:
-  name:
-    description: Final image name
-    required: true
   target:
     description: Directory where built image is located
     required: true
-  # types:
-  #   description: Image types
-  #   required: true
+  image_dir:
+    description: Image directory in format <distro>/<release>/<arch>/<variant>
+    required: true
+  ssh_private_key:
+    description: SSH private key for the image server
+    required: true
 
 runs:
   using: composite
   steps:
-      # actions/upload-artifact does not expand env vars.
-    - name: Expand target path
-      shell: bash
-      run: echo "target=${{ inputs.target }}" >> $GITHUB_ENV
-
     - name: Print artifacts
       shell: bash
-      run: ls -lah "${{ env.target }}"
+      run: ls -lah "${{ inputs.target }}"
 
-    - name: Publish artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: "${{ inputs.name }}"
-        path: |
-          ${{ env.target }}/*.qcow2
-          ${{ env.target }}/*.squashfs
-          ${{ env.target }}/*.tar.xz
-          ${{ env.target }}/image.yaml
-          ${{ env.target }}/serial
-        if-no-files-found: "error"
-        retention-days: 1
-        compression-level: 0
-        overwrite: true
+    - name: Configure private key and known host
+      shell: bash
+      env:
+        SSH_HOST: images.lxd.canonical.com
+      run : |
+        # Store image server private key.
+        mkdir -p -m 0700 ~/.ssh
+        touch ~/.ssh/id_ed25519
+        chmod 0600 ~/.ssh/id_ed25519
+        echo "${{ inputs.ssh_private_key }}" > ~/.ssh/id_ed25519
+
+        # Configure known host.
+        echo "${SSH_HOST} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJS6V7WpVdFdAcTSn/98rBRsvJVyTI3O17qMeg0cD5E" >> ~/.ssh/known_hosts
+
+    - name: Upload artifacts to the image server
+      shell: bash
+      env:
+        SSH_HOST: images.lxd.canonical.com
+        SSH_USER: imageserver
+        SSH_PORT: 922
+      run: |
+        # Ensure path of the source directory is expanded.
+        SRC_DIR=$(echo ${{ inputs.target }})
+        IMG_DIR=${{ inputs.image_dir }}
+        VERSION=$(cat "${SRC_DIR}/serial")
+
+        # Create directory structure that will be mirrored on the target server.
+        PRODUCT_PATH="${SRC_DIR}-upload/${IMG_DIR}"
+        mkdir -p "${PRODUCT_PATH}/${VERSION}"
+
+        # Move config.yaml file if exists.
+        if [ -f "${SRC_DIR}/config.yaml" ]; then
+            mv "${SRC_DIR}/config.yaml" "${PRODUCT_PATH}"
+        fi
+
+        # Move image content.
+        mv ${SRC_DIR}/* "${PRODUCT_PATH}/${VERSION}"
+
+        # s -> Uses SFTP protocol
+        # r -> Copies files recursively
+        # p -> Preserves modification and access times
+        scp -srp -P ${SSH_PORT} ${SRC_DIR}-upload/* "${SSH_USER}@${SSH_HOST}:."
