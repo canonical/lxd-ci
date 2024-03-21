@@ -106,12 +106,19 @@ fi
 lxc config unset c1 limits.cpu.allowance
 
 echo "==> Testing memory limits"
-lxc config set c1 limits.memory=512MiB
-[ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "MemTotal:         524288 kB" ]
+MEM_LIMIT_MIB=512
+lxc config set c1 limits.memory="${MEM_LIMIT_MIB}MiB"
+[ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "MemTotal:         $((MEM_LIMIT_MIB * 1024)) kB" ]
 if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] || [ -e "/sys/fs/cgroup/memory.swap.max" ]; then
-    [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:        524288 kB" ]
+    [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:        $((MEM_LIMIT_MIB * 1024)) kB" ]
 else
     [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:             0 kB" ]
+fi
+
+# ensure that we don't set memory.high when limits.memory.enforce=hard (default value)
+if [ -e "/sys/fs/cgroup/system.slice/memory.high" ]; then
+    [ "$(lxc exec c1 -- cat /sys/fs/cgroup/memory.max)" = $((MEM_LIMIT_MIB * 1024 * 1024)) ]
+    [ "$(lxc exec c1 -- cat /sys/fs/cgroup/memory.high)" = "max" ]
 fi
 
 if [ -e "/sys/fs/cgroup/memory" ]; then
