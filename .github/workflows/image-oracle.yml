@@ -2,11 +2,16 @@ name: Build Oracle Images
 
 on:
   workflow_dispatch:
-  workflow_call:
     inputs:
       publish:
         type: boolean
         default: false
+        description: Publish built image
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: true
         description: Publish built image
 
 jobs:
