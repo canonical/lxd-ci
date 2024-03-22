@@ -31,7 +31,7 @@ runs:
         echo "${{ inputs.ssh_private_key }}" > ~/.ssh/id_ed25519
 
         # Configure known host.
-        echo "${SSH_HOST} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJS6V7WpVdFdAcTSn/98rBRsvJVyTI3O17qMeg0cD5E" >> ~/.ssh/known_hosts
+        echo "${SSH_HOST} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEkbjXwS373I8wGmlblwjh6NdFalP8wgK8kilCbuoI6e" >> ~/.ssh/known_hosts
 
     - name: Debug
       shell: bash
