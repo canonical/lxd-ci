@@ -98,7 +98,3 @@ jobs:
           target: ${{ env.target }}
           image_dir: "${{ env.distro }}/${{ matrix.release }}/${{ matrix.architecture }}/${{ matrix.variant }}"
           ssh_private_key: "${{ secrets.LXD_INFRA_IMAGES_KEY }}"
-
-      - name: (DEBUG) Tmate
-        if: failure()
-        uses: mxschmitt/action-tmate@v3
