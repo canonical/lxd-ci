@@ -33,19 +33,6 @@ runs:
         # Configure known host.
         echo "${SSH_HOST} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOJS6V7WpVdFdAcTSn/98rBRsvJVyTI3O17qMeg0cD5E" >> ~/.ssh/known_hosts
 
-    - name: Debug
-      shell: bash
-      run: |
-        echo "==> wget"
-        wget -qO - https://ip.sdeziel.info
-
-        echo "==> ip a"
-        ip a
-
-        echo "==> nc"
-        nc -w 1 -zv images.lxd.canonical.com 922
-
-
     - name: Upload artifacts to the image server
       shell: bash
       env:
