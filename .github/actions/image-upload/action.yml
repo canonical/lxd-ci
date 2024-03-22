@@ -60,4 +60,4 @@ runs:
         # s -> Uses SFTP protocol
         # r -> Copies files recursively
         # p -> Preserves modification and access times
-        scp -srp -P ${SSH_PORT} ${SRC_DIR}-upload/* "${SSH_USER}@${SSH_HOST}:."
+        scp -srp -P ${SSH_PORT} ${SRC_DIR}-upload/* "${SSH_USER}@${SSH_HOST}:"
