@@ -2,11 +2,16 @@ name: Build Devuan Images
 
 on:
   workflow_dispatch:
-  workflow_call:
     inputs:
       publish:
         type: boolean
         default: false
+        description: Publish built image
+  workflow_call:
+    inputs:
+      publish:
+        type: boolean
+        default: true
         description: Publish built image
 
 jobs:
@@ -77,6 +82,6 @@ jobs:
         uses: ./.github/actions/image-upload
         if: inputs.publish == true
         with:
-          name: "${{ env.distro }}-${{ matrix.release }}-${{ matrix.architecture }}-${{ matrix.variant }}"
           target: ${{ env.target }}
-          # types: ${{ env.type }}
+          image_dir: "${{ env.distro }}/${{ matrix.release }}/${{ matrix.architecture }}/${{ matrix.variant }}"
+          ssh_private_key: "${{ secrets.LXD_INFRA_IMAGES_KEY }}"
