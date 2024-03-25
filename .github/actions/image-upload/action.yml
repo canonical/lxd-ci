@@ -57,7 +57,8 @@ runs:
         # Move image content.
         mv ${SRC_DIR}/* "${PRODUCT_PATH}/${VERSION}"
 
-        # s -> Uses SFTP protocol
-        # r -> Copies files recursively
-        # p -> Preserves modification and access times
-        scp -srp -P ${SSH_PORT} ${SRC_DIR}-upload/* "${SSH_USER}@${SSH_HOST}:"
+        # Use SFTP to upload images to the server.
+        sftp -P ${SSH_PORT} "${SSH_USER}@${SSH_HOST}" <<EOF
+            put -r ${SRC_DIR}-upload/*
+            bye
+        EOF
