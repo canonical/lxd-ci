@@ -53,3 +53,6 @@ fi
 
 sudo rm -Rf rootfs
 echo "${SERIAL}" > serial
+
+# Calculate checksums for all files within a directory.
+sha256sum * > SHA256SUMS
