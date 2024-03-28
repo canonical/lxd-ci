@@ -2,10 +2,10 @@
 set -eux
 
 # Install LXD
-install_lxd
+#install_lxd
 
 # Configure LXD
-lxd init --auto
+#lxd init --auto
 
 PREFIX="cluster-$$"
 SIZE="$1"
@@ -90,6 +90,38 @@ U2_IPV4="$(lxc exec "${PREFIX}-1" -- lxc list u2 -c4 --format=csv | cut -d' ' -f
 lxc exec "${PREFIX}-1" -- lxc exec u1 -- ping -c1 "${U2_IPV4}"
 lxc exec "${PREFIX}-1" -- ping -c1 "${U2_IPV4}"
 
+tmp_cert_dir="$(mktemp -d)"
+
+echo "==> Add restricted and unrestricted certificates"
+createCertificateAndKey "${tmp_cert_dir}/cert.key" "${tmp_cert_dir}/cert.crt" "cert.local"
+createCertificateAndKey "${tmp_cert_dir}/cert-restricted.key" "${tmp_cert_dir}/cert-restricted.crt" "cert-restricted.local"
+lxc config trust add "${tmp_cert_dir}/cert.crt"
+lxc config trust add "${tmp_cert_dir}/cert-restricted.crt" --restricted --projects default
+unrestricted_fingerprint="$(openssl x509 -in "${tmp_cert_dir}/cert.crt" -outform der | sha256sum | head -c12)"
+restricted_fingerprint="$(openssl x509 -in "${tmp_cert_dir}/cert-restricted.crt" -outform der | sha256sum | head -c12)"
+
+echo "==> Check the certificates for its permissions"
+lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".restricted" | grep -xF false
+lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".type" | grep -xF client
+lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".restricted" | grep -xF true
+lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".type" | grep -xF client
+lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+
+echo "==> Add restricted and unrestricted metrics certificates"
+createCertificateAndKey "${tmp_cert_dir}/metrics.key" "${tmp_cert_dir}/metrics.crt" "metrics.local"
+createCertificateAndKey "${tmp_cert_dir}/metrics-restricted.key" "${tmp_cert_dir}/metrics-restricted.crt" "metrics-restricted.local"
+lxc config trust add "${tmp_cert_dir}/metrics.crt" --type metrics
+lxc config trust add "${tmp_cert_dir}/metrics-restricted.crt" --type metrics --restricted --projects default
+unrestricted_metrics_fingerprint="$(openssl x509 -in "${tmp_cert_dir}/metrics.crt" -outform der | sha256sum | head -c12)"
+restricted_metrics_fingerprint="$(openssl x509 -in "${tmp_cert_dir}/metrics-restricted.crt" -outform der | sha256sum | head -c12)"
+
+echo "==> Check the metrics certificates for its permissions"
+lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF false
+lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
+lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF true
+lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
+lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+
 echo "==> Upgrading the cluster"
 for i in $(seq "${SIZE}"); do
     lxc exec "${PREFIX}-$i" -- snap refresh
@@ -112,11 +144,27 @@ echo "==> Validating the cluster"
 lxc exec "${PREFIX}-1" -- lxc info
 lxc exec "${PREFIX}-1" -- lxc cluster list
 
+echo "==> Check the certificates for its permissions after cluster upgrade"
+lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".restricted" | grep -xF false
+lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".type" | grep -xF client
+lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".restricted" | grep -xF true
+lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".type" | grep -xF client
+lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+
+echo "==> Check the metrics certificates for its permissions after cluster upgrade"
+lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF false
+lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
+lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF true
+lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
+lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+
 echo "==> Deleting the cluster"
 for i in $(seq "${SIZE}"); do
     print_log "${PREFIX}-$i"
     lxc delete --force "${PREFIX}-$i"
 done
+
+rm -rf "${tmp_cert_dir}"
 
 # shellcheck disable=SC2034
 FAIL=0
