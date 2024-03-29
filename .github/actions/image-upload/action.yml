@@ -46,19 +46,14 @@ runs:
         VERSION=$(cat "${SRC_DIR}/serial")
 
         # Create directory structure that will be mirrored on the target server.
-        PRODUCT_PATH="${SRC_DIR}-upload/${IMG_DIR}"
-        mkdir -p "${PRODUCT_PATH}/${VERSION}"
+        mkdir -p "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
+        mv ${SRC_DIR}/* "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
 
-        # Move config.yaml file if exists.
-        if [ -f "${SRC_DIR}/config.yaml" ]; then
-            mv "${SRC_DIR}/config.yaml" "${PRODUCT_PATH}"
-        fi
-
-        # Move image content.
-        mv ${SRC_DIR}/* "${PRODUCT_PATH}/${VERSION}"
-
-        # Use SFTP to upload images to the server.
-        sftp -P ${SSH_PORT} "${SSH_USER}@${SSH_HOST}" <<EOF
-            put -r ${SRC_DIR}-upload/*
+        # First upload contents to the temporary dir and once fully uploaded
+        # move the directory to the final destination to avoid potential race
+        # where simplestream-maintainer includes partially uploaded images.
+        sftp -P ${SSH_PORT} -b - "${SSH_USER}@${SSH_HOST}" <<EOF
+            put -R ${SRC_DIR}-upload/*
+            rename "${IMG_DIR}/.${VERSION}" "${IMG_DIR}/${VERSION}"
             bye
         EOF
