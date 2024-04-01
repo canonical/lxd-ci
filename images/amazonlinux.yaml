@@ -1,6 +1,12 @@
 image:
   distribution: amazonlinux
 
+
+simplestream:
+  requirements:
+  - requirements:
+      cgroup: v1
+
 source:
   downloader: rootfs-http
   url: https://cdn.amazonlinux.com/os-images/{{ image.release }}/{% if image.architecture == "aarch64" %}container-arm64{% else %}container{% endif %}/amzn2-container-raw-{{ image.release }}-{% if image.architecture == "aarch64" %}arm64{% else %}{{ image.architecture }}{% endif %}.tar.xz

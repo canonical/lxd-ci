@@ -1,6 +1,14 @@
 image:
   distribution: oracle
 
+simplestream:
+  requirements:
+  - requirements:
+      cgroup: v1
+    releases:
+    - 7
+
+
 source:
   downloader: oraclelinux-http
   url: https://mirrors.kernel.org/oracle/
