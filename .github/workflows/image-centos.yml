@@ -1,17 +1,14 @@
 name: Build CentOS Images
 
 on:
+  schedule:
+    # Run at 00:00 UTC daily.
+    - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
       publish:
         type: boolean
         default: false
-        description: Publish built image
-  workflow_call:
-    inputs:
-      publish:
-        type: boolean
-        default: true
         description: Publish built image
 
 jobs:
@@ -110,7 +107,7 @@ jobs:
 
       - name: Upload image
         uses: ./.github/actions/image-upload
-        if: inputs.publish == true
+        if: github.event_name == 'schedule' || inputs.publish == true
         with:
           target: ${{ env.target }}
           image_dir: "${{ env.distro }}/${{ matrix.release }}/${{ matrix.architecture }}/${{ matrix.variant }}"
