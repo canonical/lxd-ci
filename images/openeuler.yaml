@@ -342,7 +342,7 @@ actions:
 
     umount /sys/firmware
 
-    sed -i "s#root=[^ ]*#root=/dev/sda2#g" "${target}"
+    sed -i "s#root=[^ ]*#root=${LXD_IMAGEBUILDER_ROOT_UUID}#g" "${target}"
 
     # Workaround for broken systemd in centos7
     systemctl enable lxd-agent-workaround.service
