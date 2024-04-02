@@ -152,7 +152,13 @@ done
 echo "==> Waiting for instances to start"
 for i in ${INSTANCES}; do
     if [ "${DIST}" == "busybox" ]; then
+        # Busybox has only 1 process running when ready.
         MIN_PROC_COUNT=1
+    fi
+
+    if [ "${DIST}" == "centos" ]; then
+        # Give CentOS a bit more time to boot.
+        MAX_WAIT_SECONDS=180
     fi
 
     waitInstanceReady "${i}"

@@ -13,7 +13,7 @@ waitSnapdSeed() (
 # waitInstanceReady: waits for the instance to be ready (processes count > 1).
 waitInstanceReady() (
   set +x
-  maxWait=120
+  maxWait="${MAX_WAIT_SECONDS:-120}"
   instName="${1}"
   instProj="${2:-}"
   if [ -z "${instProj}" ]; then
