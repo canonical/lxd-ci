@@ -1,6 +1,13 @@
 image:
   distribution: Springdale
 
+simplestream:
+  requirements:
+  - requirements:
+      cgroup: v1
+    releases:
+    - 7
+
 source:
   downloader: springdalelinux-http
   url: https://mirror.math.princeton.edu/pub/springdale/puias/

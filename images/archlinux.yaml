@@ -1,6 +1,11 @@
 image:
   distribution: archlinux
 
+simplestream:
+  requirements:
+  - requirements:
+      secure_boot: false
+
 source:
   downloader: archlinux-http
   url: https://archive.archlinux.org/iso/

@@ -1,6 +1,13 @@
 image:
   distribution: centos
 
+simplestream:
+  requirements:
+  - requirements:
+      cgroup: v1
+    releases:
+    - 7
+
 source:
   downloader: centos-http
   url: https://mirror.math.princeton.edu/pub/centos/

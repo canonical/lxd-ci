@@ -1,6 +1,11 @@
 image:
   distribution: gentoo
 
+simplestream:
+  requirements:
+  - requirements:
+      secure_boot: false
+
 source:
   downloader: gentoo-http
   url: https://mirror.csclub.uwaterloo.ca/gentoo-distfiles/

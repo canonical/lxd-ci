@@ -1,6 +1,11 @@
 image:
   distribution: nixos
 
+simplestream:
+  requirements:
+  - requirements:
+      secure_boot: false
+
 source:
   downloader: nixos-http
 

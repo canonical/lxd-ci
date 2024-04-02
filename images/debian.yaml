@@ -1,6 +1,13 @@
 image:
   distribution: "debian"
 
+simplestream:
+  release_aliases:
+    buster: 10
+    bullseye: 11
+    bookworm: 12
+    trixie: 13
+
 source:
   downloader: debootstrap
   same_as: sid
