@@ -165,6 +165,14 @@ createPowerFlexPool() (
     powerflex.user.password="${POWERFLEX_PASSWORD}"
 )
 
+# createCertificateAndKey: creates a new key pair.
+createCertificateAndKey() (
+  key_file="${1}"
+  crt_file="${2}"
+  cn="${3}"
+  openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -sha384 -keyout "${key_file}" -nodes -out "${crt_file}" -days 1 -subj "/CN=${cn}"
+)
+
 # cleanup: report if the test passed or not and return the appropriate return code.
 cleanup() {
     set +e
