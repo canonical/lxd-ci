@@ -18,7 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 15.4
           - 15.5
           - tumbleweed
         variant:
