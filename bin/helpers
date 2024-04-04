@@ -173,6 +173,16 @@ createCertificateAndKey() (
   openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -sha384 -keyout "${key_file}" -nodes -out "${crt_file}" -days 1 -subj "/CN=${cn}"
 )
 
+# certificateFingerprint: returns the certificate's fingerprint.
+certificateFingerprint() (
+  openssl x509 -in "${1}" -outform der | sha256sum
+)
+
+# certificateFingerprintShort: returns the certificate's fingerprint in short form as used by LXD.
+certificateFingerprintShort() (
+  certificateFingerprint "${1}" | head -c12
+)
+
 # cleanup: report if the test passed or not and return the appropriate return code.
 cleanup() {
     set +e
