@@ -97,8 +97,8 @@ createCertificateAndKey "${tmp_cert_dir}/cert.key" "${tmp_cert_dir}/cert.crt" "c
 createCertificateAndKey "${tmp_cert_dir}/cert-restricted.key" "${tmp_cert_dir}/cert-restricted.crt" "cert-restricted.local"
 lxc config trust add "${tmp_cert_dir}/cert.crt"
 lxc config trust add "${tmp_cert_dir}/cert-restricted.crt" --restricted --projects default
-unrestricted_fingerprint="$(openssl x509 -in "${tmp_cert_dir}/cert.crt" -outform der | sha256sum | head -c12)"
-restricted_fingerprint="$(openssl x509 -in "${tmp_cert_dir}/cert-restricted.crt" -outform der | sha256sum | head -c12)"
+unrestricted_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/cert.crt")"
+restricted_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/cert-restricted.crt")"
 
 echo "==> Check the certificates for its permissions"
 lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".restricted" | grep -xF false
@@ -112,8 +112,8 @@ createCertificateAndKey "${tmp_cert_dir}/metrics.key" "${tmp_cert_dir}/metrics.c
 createCertificateAndKey "${tmp_cert_dir}/metrics-restricted.key" "${tmp_cert_dir}/metrics-restricted.crt" "metrics-restricted.local"
 lxc config trust add "${tmp_cert_dir}/metrics.crt" --type metrics
 lxc config trust add "${tmp_cert_dir}/metrics-restricted.crt" --type metrics --restricted --projects default
-unrestricted_metrics_fingerprint="$(openssl x509 -in "${tmp_cert_dir}/metrics.crt" -outform der | sha256sum | head -c12)"
-restricted_metrics_fingerprint="$(openssl x509 -in "${tmp_cert_dir}/metrics-restricted.crt" -outform der | sha256sum | head -c12)"
+unrestricted_metrics_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/metrics.crt")"
+restricted_metrics_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/metrics-restricted.crt")"
 
 echo "==> Check the metrics certificates for its permissions"
 lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF false
