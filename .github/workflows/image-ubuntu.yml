@@ -1,9 +1,9 @@
 name: Build Ubuntu Images
 
 on:
-  # schedule:
-  #   # Run at 00:00 UTC daily.
-  #   - cron: '0 0 * * *'
+  schedule:
+    # Run at 00:00 UTC daily.
+    - cron: '0 0 * * *'
   workflow_dispatch:
     inputs:
       publish:
@@ -19,15 +19,15 @@ jobs:
       matrix:
         release:
           # - xenial
-          - bionic
+          # - bionic
           - focal
           - jammy
           - mantic
           - noble
         variant:
-          - default
           - desktop
-          - cloud
+          # - default
+          # - cloud
         architecture:
           - amd64
           # - arm64
