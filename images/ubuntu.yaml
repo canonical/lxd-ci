@@ -3,18 +3,17 @@ image:
 
 simplestream:
   release_aliases:
-    xenial: 16.04
-    bionic: 18.04
+    # xenial: 16.04
+    # bionic: 18.04
     focal: 20.04
     jammy: 22.04
-    lunar: 23.04
     mantic: 23.10
     noble: 24.04
   requirements:
-  - requirements:
-      cgroup: v1
-    releases:
-    - xenial
+  # - requirements:
+  #     cgroup: v1
+  #   releases:
+  #   - xenial
   - requirements:
       cgroup: v2
     releases:
