@@ -29,6 +29,7 @@ jobs:
           # - arm64
         exclude:
           - { architecture: arm64, variant: desktop-kde }
+          - { release: 15.5, variant: cloud }
     env:
       type: "container"
       distro: "${{ github.job }}"
