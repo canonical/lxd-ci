@@ -2,6 +2,7 @@ image:
   distribution: centos
 
 simplestream:
+  distro_name: CentOS
   requirements:
   - requirements:
       cgroup: v1

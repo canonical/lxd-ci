@@ -1,6 +1,9 @@
 image:
   distribution: OpenWrt
 
+simplestream:
+  distro_name: OpenWRT
+
 source:
   downloader: openwrt-http
   url: https://downloads.openwrt.org

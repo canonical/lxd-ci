@@ -4,6 +4,9 @@ image:
     Apertis {{ image.architecture }} {{ image.variant }} {{ image.release }} {{ image.serial }}
   variant: sysroot
 
+simplestream:
+  distro_name: Apertis
+
 source:
   downloader: apertis-http
   url: https://images.apertis.org

@@ -2,6 +2,7 @@ image:
   distribution: nixos
 
 simplestream:
+  distro_name: NixOS
   requirements:
   - requirements:
       secure_boot: false

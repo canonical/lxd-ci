@@ -1,6 +1,9 @@
 image:
   distribution: "voidlinux"
 
+simplestream:
+  distro_name: Void Linux
+
 source:
   downloader: voidlinux-http
   url: https://mirrors.servercentral.com/voidlinux/live/current/
