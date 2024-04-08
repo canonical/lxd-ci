@@ -1,6 +1,9 @@
 image:
   distribution: almalinux
 
+simplestream:
+  distro_name: AlmaLinux
+
 source:
   downloader: almalinux-http
   url: https://mirror.csclub.uwaterloo.ca/almalinux

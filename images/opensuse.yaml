@@ -1,6 +1,9 @@
 image:
   distribution: openSUSE
 
+simplestream:
+  distro_name: openSUSE
+
 source:
   downloader: opensuse-http
   keys:

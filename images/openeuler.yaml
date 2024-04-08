@@ -2,9 +2,14 @@ image:
   distribution: openEuler
   description: |-
     openEuler {{ image.release }}
+
+simplestream:
+  distro_name: openEuler
+
 source:
   downloader: openeuler-http
   url: https://repo.openeuler.org
+
 targets:
   lxc:
     create_message: |

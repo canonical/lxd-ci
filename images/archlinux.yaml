@@ -2,6 +2,7 @@ image:
   distribution: archlinux
 
 simplestream:
+  distro_name: Arch Linux
   requirements:
   - requirements:
       secure_boot: false

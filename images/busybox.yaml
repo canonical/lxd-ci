@@ -1,6 +1,9 @@
 image:
   distribution: busybox
 
+simplestream:
+  distro_name: BusyBox
+
 source:
   downloader: busybox
   url: https://busybox.net/downloads/

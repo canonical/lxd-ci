@@ -1,6 +1,8 @@
 image:
   distribution: amazonlinux
 
+simplestream:
+  distro_name: Amazon Linux
 
 simplestream:
   requirements:

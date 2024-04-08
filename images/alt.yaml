@@ -1,6 +1,9 @@
 image:
   distribution: "altlinux"
 
+simplestream:
+  distro_name: ALT
+
 source:
   downloader: alt-http
   url: https://mirror.yandex.ru/altlinux/images/

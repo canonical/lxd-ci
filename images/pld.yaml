@@ -2,6 +2,9 @@ image:
   distribution: pld
   variant: minimal
 
+simplestream:
+  distro_name: PLD
+
 source:
   downloader: docker-http
 

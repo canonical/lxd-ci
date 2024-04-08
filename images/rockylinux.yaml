@@ -1,6 +1,9 @@
 image:
   distribution: rockylinux
 
+simplestream:
+  distro_name: RockyLinux
+
 source:
   downloader: rockylinux-http
   url: https://download.rockylinux.org/pub/rocky/
