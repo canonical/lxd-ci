@@ -80,6 +80,58 @@ else
     echo "Skipping mount fuse tests as the container_syscall_intercept_mount_fuse API extension is missing"
 fi
 
+if hasNeededAPIExtension container_syscall_intercept_finit_module; then
+    # it can be any module which is present in the host filesystem and at the same time not used and can be unloaded
+    # good examples: slip, ip_nat_pptp, ip_gre, ip_conntrack_pptp (rarely used modules at the same time widely available)
+    MODULE_TO_TRY="nf_nat_ftp"
+    echo "Trying with module ... ${MODULE_TO_TRY}"
+
+    # try to load on the host
+    if ! modprobe -v "${MODULE_TO_TRY}"; then
+        # useful for debugging this failure
+        find /lib/modules -type f -name '*.ko'
+        lsmod
+
+        false
+    fi
+
+    # we are good, let's unload it
+    rmmod "${MODULE_TO_TRY}"
+
+    # must fail (non-zero exit code)
+    lsmod | grep "${MODULE_TO_TRY}" || true
+
+    MODULE_PATH="$(modinfo -n "${MODULE_TO_TRY}")"
+    MODULE_FILE_NAME="$(basename "${MODULE_PATH}")"
+
+    # upload module file into the container
+    lxc file push "${MODULE_PATH}" "c1/root/"
+
+    # negative case 1 (feature is not enabled)
+    ! lxc exec c1 -- insmod "/root/${MODULE_FILE_NAME}"
+
+    # turn on feature
+    lxc config set c1 linux.kernel_modules.load=ondemand
+    lxc restart c1 -f
+
+    # negative case 2 (module is not in allow list)
+    ! lxc exec c1 -- insmod "/root/${MODULE_FILE_NAME}"
+
+    # allow module
+    lxc config set c1 linux.kernel_modules="${MODULE_TO_TRY}"
+    lxc restart c1 -f
+
+    lxc exec c1 -- insmod "/root/${MODULE_FILE_NAME}"
+
+    # must succeed (zero exit code)
+    lsmod | grep "${MODULE_TO_TRY}"
+
+    # clean up
+    rmmod "${MODULE_TO_TRY}"
+else
+    echo "Skipping finit_module() syscall intercept tests as the container_syscall_intercept_finit_module API extension is missing"
+fi
+
 ## cleanup
 lxc delete -f c1
 losetup -d "${LOOP}"
