@@ -9,6 +9,12 @@ fi
 # Install LXD
 install_lxd
 
+# required for "CPU auto pinning" feature check
+# as we don't have a separate API extension for it
+# and we rely on the debug output in the LXD daemon logs.
+snap set lxd daemon.debug=true
+systemctl restart snap.lxd.daemon.service
+
 # Configure LXD
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
@@ -65,6 +71,25 @@ done
 # Set max CPU count
 lxc config set v1 limits.cpu="${cpuCount}"
 [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -Ec 'cpu[[:digit:]]+')" -eq "${cpuCount}" ]
+
+# check that CPU affinity is automatically set if feature present
+QEMU_PID=$(lxc info v1 | awk '/^PID:/ {print $2}')
+if journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.service | grep "Scheduler: virtual-machine"; then
+  # Check that there are processes with pinning set
+  # It will be shown like this:
+  # pid 2894's current affinity list: 6
+  # pid 2895's current affinity list: 8
+  # pid 2897's current affinity list: 0-15
+  # pid 2898's current affinity list: 0-15
+  # pid 2899's current affinity list: 0-15
+  # 2894 and 2895 have affinity set, while others don't
+  PINNED_VCPU_NUM=$(taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ':\s+[0-9]+$' | wc -l)
+  [ "${PINNED_VCPU_NUM}" = "$(lxc config get v1 limits.cpu)" ]
+else
+  # check that there is no pinning set
+  ! taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ':\s+[0-9]+$'
+  taskset --cpu-list -a -p "${QEMU_PID}" | grep "0-$((cpuCount-1))"
+fi
 
 # Unset CPU limit
 lxc config unset v1 limits.cpu
