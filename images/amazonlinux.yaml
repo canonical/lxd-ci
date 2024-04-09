@@ -3,8 +3,6 @@ image:
 
 simplestream:
   distro_name: Amazon Linux
-
-simplestream:
   requirements:
   - requirements:
       cgroup: v1
