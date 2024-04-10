@@ -184,6 +184,7 @@ certificateFingerprintShort() (
 )
 
 # cleanup: report if the test passed or not and return the appropriate return code.
+# Also fail the test if unexpected warnings/errors are logged by LXD
 cleanup() {
     set +e
     echo ""
@@ -208,6 +209,19 @@ cleanup() {
         echo "::endgroup::"
 
         exit 1
+    else
+        # The test passed but check for unexpected warnings/errors
+        problems="$(journalctl --quiet --no-hostname --output cat --no-pager --boot=0 --lines=100 --unit=snap.lxd.daemon.service --grep ' level=(warning|error) ' | \
+                    grep -vF 'per-instance network priority will be ignored. Please use per-device limits.priority instead')"
+        if [ -n "${problems}" ]; then
+           echo "Test failed"
+
+           echo "Unexpected LXD warnings/errors:"
+           echo
+           echo "${problems}"
+
+           exit 1
+        fi
     fi
 
     echo "Test passed"
