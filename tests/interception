@@ -8,7 +8,10 @@ install_deps attr
 install_lxd
 
 # Configure LXD
-snap set lxd shiftfs.enable=true
+if echo "${LXD_SNAP_CHANNEL}" | grep -q '^5\.0/'; then
+    echo "Enabling shiftfs support"
+    snap set lxd shiftfs.enable=true
+fi
 lxd init --auto
 
 # Test
