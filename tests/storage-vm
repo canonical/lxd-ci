@@ -188,6 +188,7 @@ for poolDriver in $poolDriverList; do
         lxc delete -f v2
         lxc delete v1/snap0
         lxc remote rm localhost
+        lxc config trust rm "$(lxc query /1.0/certificates?recursion=1 | jq -r '.[].fingerprint')"
         lxc storage rm "${poolName}2"
 
         echo "==> Check QEMU crash behavior and recovery"
