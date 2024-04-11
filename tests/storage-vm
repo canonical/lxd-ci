@@ -103,7 +103,10 @@ for poolDriver in $poolDriverList; do
         lxc stop -f v2
 
         echo "==> Checking VM can be refreshed"
+        lxc snapshot v1
         lxc copy v1 v2 --refresh
+        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "2" ]
+        lxc rm v1/snap1
         lxc delete -f v2
 
         echo "==> Checking running copied VM snapshot"
@@ -134,7 +137,10 @@ for poolDriver in $poolDriverList; do
         lxc stop -f v2
 
         echo "==> Checking VM can be refreshed remotely (same storage pool)"
+        lxc snapshot v1
         lxc copy v1 localhost:v2 --refresh
+        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "2" ]
+        lxc rm v1/snap1
         lxc delete -f v2
 
         echo "==> Checking running migrated VM snapshot (same storage pool)"
@@ -169,7 +175,10 @@ for poolDriver in $poolDriverList; do
         lxc stop -f v2
 
         echo "==> Checking VM can be refreshed remotely (different storage pool)"
+        lxc snapshot v1
         lxc copy v1 localhost:v2 --refresh
+        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "2" ]
+        lxc rm v1/snap1
         lxc delete -f v2
 
         echo "==> Checking running migrated VM snapshot (different storage pool)"
