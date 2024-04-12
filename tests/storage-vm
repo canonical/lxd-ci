@@ -197,6 +197,7 @@ for poolDriver in $poolDriverList; do
         lxc delete -f v2
         lxc delete v1/snap0
         lxc remote rm localhost
+        lxc config trust rm "$(lxc query /1.0/certificates?recursion=1 | jq -r '.[].fingerprint')"
         lxc storage rm "${poolName}2"
 
         echo "==> Check QEMU crash behavior and recovery"
@@ -574,8 +575,19 @@ for poolDriver in $poolDriverList; do
                 echo "==> VM Generation ID in LXD config does not match VM Generation ID in QEMU process"
                 false
         fi
-
         lxc delete -f v1
+
+        echo "==> Publishing VM to image"
+        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc storage volume create "${poolName}" images
+        lxc config set storage.images_volume "${poolName}"/images
+        lxc publish v1 --alias v1image
+        lxc launch v1image v2 -s "${poolName}"
+        waitInstanceReady v2
+        lxc delete v1 v2 -f
+        lxc image delete v1image
+        lxc config unset storage.images_volume
+        lxc storage volume delete "${poolName}" images
 
         if hasNeededAPIExtension instances_migration_stateful; then
                 echo "==> Checking setting instances.migration.stateful for VMs"

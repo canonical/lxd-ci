@@ -146,17 +146,6 @@ do
 	lxc storage volume detach "${poolName}" vol3 v1
 	lxc storage volume detach "${poolName}" vol6 v1 || true  # optional ISO
 
-	echo "==> Publishing VM to image"
-	lxc storage volume create "${poolName}" images --project=default
-	lxc config set storage.images_volume "${poolName}"/images
-	lxc publish v1 --alias v1image
-	lxc launch v1image v2 -s "${poolName}"
-	waitInstanceReady v2
-	lxc delete v2 -f
-	lxc image delete v1image
-	lxc config unset storage.images_volume
-	lxc storage volume delete "${poolName}" images --project=default
-
 	echo "==> Deleting VM"
 	lxc delete v1
 
