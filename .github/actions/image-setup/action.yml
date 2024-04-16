@@ -21,9 +21,10 @@ runs:
         sudo apt-get -qq update
         sudo apt-get install -y --no-install-recommends \
             debootstrap \
-            qemu-utils \
             git \
             gpg \
+            make
+            qemu-utils \
             rsync \
             squashfs-tools
 
