@@ -23,7 +23,7 @@ runs:
             debootstrap \
             git \
             gpg \
-            make
+            make \
             qemu-utils \
             rsync \
             squashfs-tools
