@@ -78,7 +78,7 @@ jobs:
           release: ${{ matrix.release }}
           variant: ${{ matrix.variant }}
 
-     - name: Upload image
+      - name: Upload image
         uses: ./.github/actions/image-upload
         if: github.event_name == 'schedule' || inputs.publish == true
         with:
