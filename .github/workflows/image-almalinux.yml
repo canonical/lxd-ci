@@ -36,8 +36,6 @@ jobs:
 
       - name: Setup environment
         uses: ./.github/actions/image-setup
-        with:
-          ssh-key: ${{ secrets.LXD_IMAGEBUILDER_KEY }}
 
       - name: Determine image types
         run: |
