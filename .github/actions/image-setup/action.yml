@@ -8,9 +8,6 @@ inputs:
   go-version:
     description: Go version to install
     default: 1.22.x
-  ssh-key:
-    description: LXD imagebuilder deployment key
-    required: true
 
 runs:
   using: composite
