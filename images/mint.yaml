@@ -1,6 +1,11 @@
 image:
   distribution: "mint"
 
+simplestream:
+  release_aliases:
+    una: 20.3
+    virginia: 21.3
+
 source:
   downloader: debootstrap
   same_as: gutsy
