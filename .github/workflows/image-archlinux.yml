@@ -27,8 +27,8 @@ jobs:
           - amd64
           # - arm64
         exclude:
-          - { architecture: arm64, variant: cloud }
-          - { architecture: arm64, variant: desktop-gnome }
+          - {architecture: arm64, variant: cloud}
+          - {architecture: arm64, variant: desktop-gnome}
     env:
       type: "container"
       distro: "${{ github.job }}"
