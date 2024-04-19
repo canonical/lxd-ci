@@ -52,7 +52,7 @@ jobs:
       - name: Determine image types
         run: |
           ARCH="${{ matrix.architecture }}"
-          if [ "${ARCH}" = "amd64" ] || [ "${ARCH}" = "arm64" ]; then
+          if [ "${ARCH}" = "amd64" ]; then
               echo "type=container,vm" >> $GITHUB_ENV
           fi
 
