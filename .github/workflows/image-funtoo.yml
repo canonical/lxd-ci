@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 1.4
+          - next
         variant:
           - default
         architecture:
