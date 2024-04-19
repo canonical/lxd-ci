@@ -83,7 +83,7 @@ if journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.s
   # pid 2898's current affinity list: 0-15
   # pid 2899's current affinity list: 0-15
   # 2894 and 2895 have affinity set, while others don't
-  PINNED_VCPU_NUM=$(taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ':\s+[0-9]+$' | wc -l)
+  PINNED_VCPU_NUM=$(taskset --cpu-list -a -p "${QEMU_PID}" | grep -cE ':\s+[0-9]+$')
   [ "${PINNED_VCPU_NUM}" = "$(lxc config get v1 limits.cpu)" ]
 else
   # check that there is no pinning set
