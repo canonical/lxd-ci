@@ -36,7 +36,7 @@ jobs:
         build_arm64:
           - ${{ inputs.build-arm64 == true || github.event.schedule == '0 0 * * 1' }}
         exclude:
-          - { architecture: arm64, build_arm64: false }
+          - {architecture: arm64, build_arm64: false}
     env:
       type: "container"
       distro: "${{ github.job }}"
