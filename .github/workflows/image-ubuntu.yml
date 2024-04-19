@@ -2,8 +2,7 @@ name: Build Ubuntu Images
 
 on:
   schedule:
-    # Run at 00:00 UTC daily.
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *' # Build amd64 (Daily at 00:00 UTC).
   workflow_dispatch:
     inputs:
       publish:
@@ -50,7 +49,7 @@ jobs:
       - name: Determine image types
         run: |
           ARCH="${{ matrix.architecture }}"
-          if [ "${ARCH}" = "amd64" ] || [ "${ARCH}" = "arm64" ]; then
+          if [ "${ARCH}" = "amd64" ]; then
               echo "type=container,vm" >> $GITHUB_ENV
           fi
 
