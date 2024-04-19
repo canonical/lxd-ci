@@ -13,7 +13,7 @@ import (
 func main() {
 	log.SetFlags(0)
 	flagFilePath := flag.String("file", "snapcraft.yaml", "Path to snapcraft.yaml file")
-	flagPackageName := flag.String("package", "lxd", "Package name")
+	flagPackageName := flag.String("package", "", "Package name")
 	flagGetVersion := flag.Bool("get-version", false, "Get version of package and source commit hash for lxd part")
 	flagSetVersion := flag.String("set-version", "", "Set version of package")
 	flagSetSourceCommit := flag.String("set-source-commit", "", "Set source-commit hash for lxd part")
@@ -23,6 +23,10 @@ func main() {
 	snapcraftConfig, err := loadSnapcraftYaml(*flagFilePath)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if *flagPackageName == "" {
+		log.Fatal("Package name is required")
 	}
 
 	pkgVersion, pkgConfig := getVersionInfo(*flagPackageName, snapcraftConfig)
