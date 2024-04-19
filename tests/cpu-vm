@@ -87,7 +87,7 @@ if journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.s
   [ "${PINNED_VCPU_NUM}" = "$(lxc config get v1 limits.cpu)" ]
 else
   # check that there is no pinning set
-  ! taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ':\s+[0-9]+$'
+  ! taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ':\s+[0-9]+$' || false
   taskset --cpu-list -a -p "${QEMU_PID}" | grep "0-$((cpuCount-1))"
 fi
 
