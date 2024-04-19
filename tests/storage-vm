@@ -408,7 +408,7 @@ for poolDriver in $poolDriverList; do
         lxc delete -f v1
         lxc storage unset "${poolName}" volume.size
 
-        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] | "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ]; then
+        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ]; then
                 echo "==> Change volume.block.filesystem on pool and create VM"
                 lxc storage set "${poolName}" volume.block.filesystem xfs
                 lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
