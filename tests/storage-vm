@@ -358,9 +358,11 @@ for poolDriver in $poolDriverList; do
         lxc storage volume delete "${poolName}" vol1
 
         lxc config device add v1 block1 disk source="/tmp/lxd-test-${poolName}/lxd-test-block" readonly=true
+        # shellcheck disable=SC2016
         lxc exec v1 -- sh -c 'for i in $(seq 10); do test -e /sys/block/sdb/ro && break; echo "Waiting for sys file to appear (${i}s)"; sleep 1; done'
         [ "$(lxc exec v1 -- cat /sys/block/sdb/ro)" -eq 1 ]
         lxc config device set v1 block1 readonly=false
+        # shellcheck disable=SC2016
         lxc exec v1 -- sh -c 'for i in $(seq 10); do test -e /sys/block/sdb/ro && break; echo "Waiting for sys file to appear (${i}s)"; sleep 1; done'
         [ "$(lxc exec v1 -- cat /sys/block/sdb/ro)" -eq 0 ]
 
