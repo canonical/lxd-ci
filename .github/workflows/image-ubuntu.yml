@@ -2,8 +2,7 @@ name: Build Ubuntu Images
 
 on:
   schedule:
-    # Run at 00:00 UTC daily.
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *' # Build amd64 (Daily at 00:00 UTC).
   workflow_dispatch:
     inputs:
       publish:

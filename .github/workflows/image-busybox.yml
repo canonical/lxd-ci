@@ -2,18 +2,22 @@ name: Build BusyBox Images
 
 on:
   schedule:
-    # Run at 00:00 UTC daily.
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *' # Build amd64 (Daily at 00:00 UTC).
+    - cron: '0 0 * * 1' # Build arm64 (Weekly on Monday at 00:00 UTC).
   workflow_dispatch:
     inputs:
       publish:
         type: boolean
         default: false
         description: Publish built image
+      build-arm64:
+        type: boolean
+        default: false
+        description: Build arm64 images
 
 jobs:
   busybox:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.architecture == 'arm64' && 'Ubuntu_ARM64_4C_16G_01' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -23,7 +27,12 @@ jobs:
           - default
         architecture:
           - amd64
-          # - arm64
+          - arm64
+        build_arm64:
+          - ${{ inputs.build-arm64 == true || github.event.schedule == '0 0 * * 1' }}
+        exclude:
+          - {architecture: amd64, build_arm64: true}
+          - {architecture: arm64, build_arm64: false}
     env:
       type: "container"
       distro: "${{ github.job }}"
