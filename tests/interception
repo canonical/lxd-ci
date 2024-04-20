@@ -111,14 +111,14 @@ if hasNeededAPIExtension container_syscall_intercept_finit_module; then
     lxc file push "${MODULE_PATH}" "c1/root/"
 
     # negative case 1 (feature is not enabled)
-    ! lxc exec c1 -- insmod "/root/${MODULE_FILE_NAME}"
+    ! lxc exec c1 -- insmod "/root/${MODULE_FILE_NAME}" || false
 
     # turn on feature
     lxc config set c1 linux.kernel_modules.load=ondemand
     lxc restart c1 -f
 
     # negative case 2 (module is not in allow list)
-    ! lxc exec c1 -- insmod "/root/${MODULE_FILE_NAME}"
+    ! lxc exec c1 -- insmod "/root/${MODULE_FILE_NAME}" || talse
 
     # allow module
     lxc config set c1 linux.kernel_modules="${MODULE_TO_TRY}"

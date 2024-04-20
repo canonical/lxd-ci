@@ -27,19 +27,19 @@ for poolDriver in $poolDriverList; do
                 lxc storage create "${poolName}" "${poolDriver}" size=59GiB lvm.use_thinpool=false
                 lxc storage set "${poolName}" size=60GiB
                 ! lxc storage set "${poolName}" size=58GiB || false
-                [ "$(lxc storage get ${poolName} size)" = "60GiB" ]
+                [ "$(lxc storage get "${poolName}" size)" = "60GiB" ]
         elif [ "${poolDriver}" = "lvm-thin" ]; then
                 lxc storage create "${poolName}" lvm size=19GiB
                 lxc storage set "${poolName}" size=20GiB
                 ! lxc storage set "${poolName}" size=18GiB || false
-                [ "$(lxc storage get ${poolName} size)" = "20GiB" ]
+                [ "$(lxc storage get "${poolName}" size)" = "20GiB" ]
         elif [ "${poolDriver}" = "powerflex" ]; then
                 createPowerFlexPool "${poolName}"
         else
                 lxc storage create "${poolName}" "${poolDriver}" size=19GiB
                 lxc storage set "${poolName}" size=20GiB
                 ! lxc storage set "${poolName}" size=18GiB || false
-                [ "$(lxc storage get ${poolName} size)" = "20GiB" ]
+                [ "$(lxc storage get "${poolName}" size)" = "20GiB" ]
         fi
 
         if [ "${poolDriver}" != "powerflex" ]; then
@@ -358,9 +358,11 @@ for poolDriver in $poolDriverList; do
         lxc storage volume delete "${poolName}" vol1
 
         lxc config device add v1 block1 disk source="/tmp/lxd-test-${poolName}/lxd-test-block" readonly=true
+        # shellcheck disable=SC2016
         lxc exec v1 -- sh -c 'for i in $(seq 10); do test -e /sys/block/sdb/ro && break; echo "Waiting for sys file to appear (${i}s)"; sleep 1; done'
         [ "$(lxc exec v1 -- cat /sys/block/sdb/ro)" -eq 1 ]
         lxc config device set v1 block1 readonly=false
+        # shellcheck disable=SC2016
         lxc exec v1 -- sh -c 'for i in $(seq 10); do test -e /sys/block/sdb/ro && break; echo "Waiting for sys file to appear (${i}s)"; sleep 1; done'
         [ "$(lxc exec v1 -- cat /sys/block/sdb/ro)" -eq 0 ]
 
@@ -408,7 +410,7 @@ for poolDriver in $poolDriverList; do
         lxc delete -f v1
         lxc storage unset "${poolName}" volume.size
 
-        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] | "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ]; then
+        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ]; then
                 echo "==> Change volume.block.filesystem on pool and create VM"
                 lxc storage set "${poolName}" volume.block.filesystem xfs
                 lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
