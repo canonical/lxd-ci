@@ -64,7 +64,6 @@ cleanup() {
 FAIL=1
 trap cleanup EXIT HUP INT TERM
 
-FINGERPRINT=$(cat "${TEST_DIR}/meta" "${TEST_DIR}/root" | sha256sum | cut -d' ' -f1)
 lxc image import "${TEST_DIR}/meta" "${TEST_DIR}/root" --alias "${TEST_IMAGE}"
 
 echo "==> Creating the instances"
