@@ -17,7 +17,7 @@ VARIANT=${4}
 TARGET=${5}
 
 # Ensure lxc is installed.
-if ! which lxc >/dev/null; then
+if ! command -v lxc >/dev/null; then
         echo "==> FAIL: Binary 'lxc' not found!"
         exit 1
 fi
