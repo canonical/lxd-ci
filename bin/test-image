@@ -2,7 +2,7 @@
 set -eu
 
 # Source helper functions.
-. $(realpath $(dirname "$0")/helpers)
+. "$(realpath "$(dirname "$0")/helpers")"
 
 # Check input arguments.
 if [ "${1:-}" = "" ] || [ "${2:-}" = "" ] || [ "${3:-}" = "" ] || [ "${4:-}" = "" ] || [ "${5:-}" = "" ]; then
@@ -17,7 +17,7 @@ VARIANT=${4}
 TARGET=${5}
 
 # Ensure lxc is installed.
-if ! which lxc >/dev/null; then
+if ! command -v lxc >/dev/null; then
         echo "==> FAIL: Binary 'lxc' not found!"
         exit 1
 fi
@@ -64,7 +64,6 @@ cleanup() {
 FAIL=1
 trap cleanup EXIT HUP INT TERM
 
-FINGERPRINT=$(cat "${TEST_DIR}/meta" "${TEST_DIR}/root" | sha256sum | cut -d' ' -f1)
 lxc image import "${TEST_DIR}/meta" "${TEST_DIR}/root" --alias "${TEST_IMAGE}"
 
 echo "==> Creating the instances"
