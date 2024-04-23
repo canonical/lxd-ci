@@ -11,7 +11,7 @@ lxc project switch default
 lxc storage create default zfs size=30GiB
 lxc network create lxdbr0
 
-IMAGE="${TEST_IMG:-ubuntu-minimal-daily:22.04}"
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 function parallel() {
 	seq "$1" | xargs -P "$1" -I "{}" "${@:2}"
