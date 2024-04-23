@@ -7,7 +7,7 @@ install_deps nftables iptables ebtables
 # Install LXD
 install_lxd
 
-IMAGE="${TEST_IMG:-ubuntu-daily:22.04}"
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
 
 # Test
 set -x
