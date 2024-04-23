@@ -17,7 +17,7 @@ ovs-vsctl set open_vswitch . \
 lxc project switch default
 lxc storage create default zfs
 
-IMAGE="${TEST_IMG:-ubuntu-daily:22.04}"
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
 
 ovn_basic_tests() {
     echo "==> basic"
