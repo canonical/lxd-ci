@@ -15,7 +15,7 @@ install_lxd
 # Install dependencies
 install_deps jq
 
-IMAGE="${TEST_IMG:-ubuntu-daily:22.04}"
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
 
 parentNIC="${1:-}"
 
