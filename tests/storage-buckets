@@ -11,7 +11,6 @@ if ! hasNeededAPIExtension storage_buckets; then
   exit 0
 fi
 
-
 # Grab the architecture so we can install the correct pre-built minio.
 arch="$(uname -m)"
 if [ "${arch}" = "aarch64" ]; then
