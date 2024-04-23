@@ -7,10 +7,12 @@ install_lxd
 # Configure LXD
 lxd init --auto
 
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:22.04}"
+
 CNAME="docker-$$"
 
 # Create the container
-lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" "${CNAME}" -c security.nesting=true "$@"
+lxc launch "${IMAGE}" "${CNAME}" -c security.nesting=true "$@"
 
 if [ -n "${https_proxy:-""}" ]; then
   echo "Using https_proxy=${https_proxy} in ${CNAME}"
