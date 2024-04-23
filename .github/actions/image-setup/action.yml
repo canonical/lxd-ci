@@ -40,9 +40,3 @@ runs:
         sudo chmod 777 /var/snap/lxd/common/lxd/unix.socket
         sudo lxd init --auto
         lxc version
-
-    - name: Print supported LXD drivers
-      shell: bash
-      run: |
-        lxc query /1.0 | jq '.environment.driver'
-        sudo lxc query /1.0 | jq '.environment.driver'
