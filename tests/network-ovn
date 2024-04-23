@@ -17,7 +17,8 @@ ovs-vsctl set open_vswitch . \
 lxc project switch default
 lxc storage create default zfs
 
-IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+# XXX: known DNS resolution on for .lxd domain with 24.04 instances
+IMAGE="${TEST_IMG:-ubuntu-daily:22.04}"
 
 ovn_basic_tests() {
     echo "==> basic"
