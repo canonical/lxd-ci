@@ -16,7 +16,7 @@ INSTALL_RECOMMENDS=yes install_deps "${RECOMMENDED_DRIVER}"
 # Install LXD
 install_lxd
 
-IMAGE="${TEST_IMG:-ubuntu-daily:22.04}"
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
 
 # Check that NVIDIA is installed
 nvidia-smi
