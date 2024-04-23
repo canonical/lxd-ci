@@ -11,6 +11,8 @@ install_lxd
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 
+IMAGE="${TEST_IMG:-ubuntu-daily:22.04}"
+
 poolName="vmpool$$"
 poolDriver=dir
 
@@ -18,7 +20,7 @@ echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 
 echo "==> Create VM and boot"
-lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm -s "${poolName}"
+lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
 waitInstanceReady v1
 lxc info v1
 
