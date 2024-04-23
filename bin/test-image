@@ -2,7 +2,7 @@
 set -eu
 
 # Source helper functions.
-. $(realpath $(dirname "$0")/helpers)
+. "$(realpath "$(dirname "$0")/helpers")"
 
 # Check input arguments.
 if [ "${1:-}" = "" ] || [ "${2:-}" = "" ] || [ "${3:-}" = "" ] || [ "${4:-}" = "" ] || [ "${5:-}" = "" ]; then
