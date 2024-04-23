@@ -61,7 +61,7 @@ jobs:
               -o image.architecture=${{ matrix.architecture }} \
               -o image.release=${{ matrix.release }} \
               -o image.variant=${{ matrix.variant }} \
-              -o source.url="http://ftp.us.debian.org/debian"
+              -o source.url="https://deb.debian.org/debian"
 
       - name: Print build artifacts
         run: ls -lah "${{ env.target }}"
