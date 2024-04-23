@@ -18,7 +18,8 @@ poolDriverList="${1:-dir btrfs lvm lvm-thin zfs}"
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 
-GiB=1073741823
+MiB="$((1024 * 1024))"
+GiB="$((1024 * MiB))"
 
 for poolDriver in $poolDriverList; do
         poolName="vmpool-${poolDriver}-$$"
