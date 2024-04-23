@@ -35,7 +35,7 @@ runs:
     - name: Setup LXD ${{ inputs.lxd-channel }}
       shell: bash
       run: |
-        sudo snap refresh lxd --channel=${{ inputs.lxd-channel }}
+        sudo snap refresh lxd --channel=${{ inputs.lxd-channel }} || sudo snap install lxd --channel=${{ inputs.lxd-channel }}
         sudo snap set lxd daemon.group=adm
         sudo lxd waitready --timeout 60
         sudo lxd init --auto
