@@ -7,6 +7,8 @@ install_deps genisoimage
 # Install LXD
 install_lxd
 
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:22.04}"
+
 # XXX: skip ceph for now
 poolDriverList="${1:-dir btrfs lvm lvm-thin zfs}"
 
@@ -37,8 +39,8 @@ do
 	fi
 
 	echo "==> Create VM"
-	lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
-	lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v2 --vm -s "${poolName}"
+	lxc init "${IMAGE}" v1 --vm -s "${poolName}"
+	lxc init "${IMAGE}" v2 --vm -s "${poolName}"
 
 	echo "==> Create custom block volume and attach it to VM"
 	if [ "${poolDriver}" != "powerflex" ]; then
