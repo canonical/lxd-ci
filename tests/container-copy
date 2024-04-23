@@ -7,6 +7,8 @@ set -eu
 install_lxd
 lxd init --auto
 
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:22.04}"
+
 echo "==> Create a loop device that we can mount as a source for a dir storage pool"
 test_dir="$(mktemp -d XXX.test)"
 loopimg="$(mktemp "${test_dir}/XXX.img")"
@@ -17,7 +19,7 @@ loopdev="$(losetup --show --find "${loopimg}")"
 set -x
 
 echo "==> Launch a VM which will be the target of the copy"
-lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" target --vm
+lxc launch "${IMAGE}" target --vm
 waitInstanceBooted target
 
 echo "==> Add the target VM as a remote LXD"
@@ -39,7 +41,7 @@ for fs in "xfs" "btrfs" "ext4" ; do
   lxc storage create "${fs}" dir source="${PWD}/${disk_dir}"
 
   # Create a container which we will copy to another target.
-  lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" c1 --storage "${fs}"
+  lxc launch "${IMAGE}" c1 --storage "${fs}"
 
   # Copy the container to the remote LXD.
   lxc copy c1 target:c1 --stateless --refresh --mode=relay
