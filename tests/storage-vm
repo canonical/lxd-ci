@@ -9,6 +9,8 @@ install_deps jq
 # Install LXD
 install_lxd
 
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:22.04}"
+
 # XXX: skip ceph for now
 poolDriverList="${1:-dir btrfs lvm lvm-thin zfs}"
 
@@ -44,10 +46,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Create VM and boot with small root (3GiB)"
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=3GiB
+                lxc init "${IMAGE}" v1 --vm -s "${poolName}" -d root,size=3GiB
         else
                 echo "==> Create VM and boot with small root (8GiB)"
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=8GiB
+                lxc init "${IMAGE}" v1 --vm -s "${poolName}" -d root,size=8GiB
         fi
         lxc start v1
         waitInstanceReady v1
@@ -340,7 +342,7 @@ for poolDriver in $poolDriverList; do
         truncate -s 5m "/tmp/lxd-test-${poolName}/lxd-test-block"
 
         echo "==> Checking disk device hotplug support"
-        lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
         waitInstanceReady v1
 
         # Hotplug disks
@@ -393,7 +395,7 @@ for poolDriver in $poolDriverList; do
                 echo "==> Change volume.size on pool from default of 8GiB to 16GiB and create VM"
                 lxc storage set "${poolName}" volume.size 16GiB
         fi
-        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc init "${IMAGE}" v1 --vm -s "${poolName}"
         lxc start v1
         waitInstanceReady v1
         lxc info v1
@@ -413,7 +415,7 @@ for poolDriver in $poolDriverList; do
         if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ]; then
                 echo "==> Change volume.block.filesystem on pool and create VM"
                 lxc storage set "${poolName}" volume.block.filesystem xfs
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+                lxc init "${IMAGE}" v1 --vm -s "${poolName}"
                 lxc start v1
                 waitInstanceReady v1
                 lxc info v1
@@ -439,7 +441,7 @@ for poolDriver in $poolDriverList; do
                 echo "==> Create VM from profile with small disk size (8GiB)"
                 lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=8GiB
         fi
-        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -p vmsmall
+        lxc init "${IMAGE}" v1 --vm -p vmsmall
         lxc start v1
         waitInstanceReady v1
         lxc info v1
@@ -565,7 +567,7 @@ for poolDriver in $poolDriverList; do
         lxc profile delete vmsmall
 
         echo "==> Checking VM Generation UUID with QEMU"
-        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc init "${IMAGE}" v1 --vm -s "${poolName}"
         lxc start v1
         waitInstanceReady v1
         lxc info v1
@@ -580,7 +582,7 @@ for poolDriver in $poolDriverList; do
         lxc delete -f v1
 
         echo "==> Publishing VM to image"
-        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc init "${IMAGE}" v1 --vm -s "${poolName}"
         lxc storage volume create "${poolName}" images
         lxc config set storage.images_volume "${poolName}"/images
         lxc publish v1 --alias v1image
@@ -597,24 +599,24 @@ for poolDriver in $poolDriverList; do
                 # if no local instance config nor profile value of `migration.stateful` is set.
 
                 lxc config set instances.migration.stateful=true
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+                lxc init "${IMAGE}" v1 --vm -s "${poolName}"
 
                 lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]' | grep -xF true
                 lxc delete v1 -f
                 lxc config set instances.migration.stateful=false
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+                lxc init "${IMAGE}" v1 --vm -s "${poolName}"
                 [ -z "$(lxc config get --expanded v1 migration.stateful)" ] # instances.migration.stateful leave it unset because since it is `false`, it is the same as the default value of `migration.stateful`.
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=true
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm --config migration.stateful=false -s "${poolName}"
+                lxc init "${IMAGE}" v1 --vm --config migration.stateful=false -s "${poolName}"
                 lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]' | grep -xF false # the instance local config should take precedence
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=false
                 lxc profile copy default stateful_profile
                 lxc profile set stateful_profile migration.stateful=true
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -p stateful_profile -s "${poolName}"
+                lxc init "${IMAGE}" v1 --vm -p stateful_profile -s "${poolName}"
                 lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]' | grep -xF true # the profile config should take precedence
                 lxc delete v1 -f
                 lxc profile delete stateful_profile
@@ -624,7 +626,7 @@ for poolDriver in $poolDriverList; do
 
                 echo "==> Checking start / stop operations with root size.state being unset"
                 # We should be able to start a VM with migration.stateful=true eventhough the root `size.state` config is unset
-                lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm --config migration.stateful=true -s "${poolName}"
+                lxc launch "${IMAGE}" v1 --vm --config migration.stateful=true -s "${poolName}"
                 waitInstanceReady v1
                 # However, we should not be able to statefully stop the VM
                 ! lxc stop v1 --stateful || false
