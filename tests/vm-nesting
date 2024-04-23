@@ -91,7 +91,7 @@ else
 	cmd 5 "snap wait system seed.loaded && snap refresh lxd --channel ${LXD_SNAP_CHANNEL}"
 fi
 cmd 5 "lxd init --auto"
-cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB -d root,size=3GiB"
+cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB -d root,size=3584MiB"
 delete 5
 
 echo "==> Test 5 containers each with one nested VM"
@@ -110,7 +110,7 @@ else
 	cmd 5 "snap wait system seed.loaded && snap refresh lxd --channel ${LXD_SNAP_CHANNEL}"
 fi
 cmd 5 "lxd init --auto"
-cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB -d root,size=3GiB"
+cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB -d root,size=3584MiB"
 
 echo "==> Cleaning up"
 instCount="$(lxc list -f csv -c n t | wc -l)"
