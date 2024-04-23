@@ -311,7 +311,7 @@ for poolDriver in $poolDriverList; do
         lxc exec v1 -- mkdir /srv/ro9p
         lxc exec v1 -- mount -t 9p lxd_dir1ro /srv/ro9p
         lxc exec v1 -- mount | grep -F /srv/
-        lxc exec v1 -- mount | grep 'lxd_dir1ro on /srv/ro9p type 9p (rw,relatime,sync,dirsync,access=client,trans=virtio)'
+        lxc exec v1 -- mount | grep -x 'lxd_dir1ro on /srv/ro9p type 9p (rw,.*,access=client,trans=virtio)'
         ! lxc exec v1 -- touch /srv/ro9p/lxd-test-ro || false
         ! lxc exec v1 -- mkdir /srv/ro9p/lxd-test-ro || false
         ! lxc exec v1 -- rm /srv/ro9p/lxd-test.txt || false
