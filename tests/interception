@@ -14,7 +14,7 @@ if echo "${LXD_SNAP_CHANNEL}" | grep -q '^5\.0/'; then
 fi
 lxd init --auto
 
-IMAGE="${TEST_IMG:-ubuntu-minimal-daily:22.04}"
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 # Test
 set -x
