@@ -24,7 +24,7 @@ jobs:
         release:
           - buster
           - bullseye
-          #- sid
+          - sid
           - bookworm
           - trixie
         variant:
