@@ -28,13 +28,8 @@ jobs:
           - cloud
           - desktop-gnome
         architecture:
-          - amd64
-          - arm64
-        build_arm64:
-          - ${{ inputs.build-arm64 == true || github.event.schedule == '0 0 * * 1' }}
+          - ${{ (inputs.build-arm64 == true || github.event.schedule == '0 0 * * 1') && 'arm64' ||'amd64' }}
         exclude:
-          - {architecture: amd64, build_arm64: true}
-          - {architecture: arm64, build_arm64: false}
           - {architecture: arm64, variant: cloud}
           - {architecture: arm64, variant: desktop-gnome}
     env:

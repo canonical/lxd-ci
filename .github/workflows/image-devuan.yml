@@ -29,13 +29,7 @@ jobs:
           - default
           - cloud
         architecture:
-          - amd64
-          - arm64
-        build_arm64:
-          - ${{ inputs.build-arm64 == true || github.event.schedule == '0 0 * * 1' }}
-        exclude:
-          - {architecture: amd64, build_arm64: true}
-          - {architecture: arm64, build_arm64: false}
+          - ${{ (inputs.build-arm64 == true || github.event.schedule == '0 0 * * 1') && 'arm64' ||'amd64' }}
     env:
       type: "container"
       distro: "${{ github.job }}"
