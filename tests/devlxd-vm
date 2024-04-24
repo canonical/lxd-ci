@@ -11,6 +11,8 @@ install_lxd
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+
 poolName="vmpool$$"
 poolDriver=dir
 
@@ -18,7 +20,7 @@ echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 
 echo "==> Create VM and boot"
-lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm -s "${poolName}"
+lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
 waitInstanceReady v1
 lxc info v1
 
@@ -92,7 +94,7 @@ waitInstanceBooted v1
 lxc exec v1 -- snap remove --purge lxd || true
 lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec v1 -- /snap/bin/lxd init --auto
-lxc exec v1 -- /snap/bin/lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1v1 --vm
+lxc exec v1 -- /snap/bin/lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1v1 --vm
 sleep 30
 lxc exec v1 -- /snap/bin/lxc info v1v1 | grep -F RUNNING
 

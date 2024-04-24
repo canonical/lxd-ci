@@ -9,6 +9,8 @@ install_deps jq
 # Install LXD
 install_lxd
 
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
+
 # XXX: skip ceph for now
 poolDriverList="${1:-dir btrfs lvm lvm-thin zfs}"
 
@@ -16,7 +18,8 @@ poolDriverList="${1:-dir btrfs lvm lvm-thin zfs}"
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 
-GiB=1073741823
+MiB="$((1024 * 1024))"
+GiB="$((1024 * MiB))"
 
 for poolDriver in $poolDriverList; do
         poolName="vmpool-${poolDriver}-$$"
@@ -43,11 +46,11 @@ for poolDriver in $poolDriverList; do
         fi
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Create VM and boot with small root (3GiB)"
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=3GiB
+                echo "==> Create VM and boot with small root (3.5GiB == 3584MiB)"
+                lxc init "${IMAGE}" v1 --vm -s "${poolName}" -d root,size=3584MiB
         else
                 echo "==> Create VM and boot with small root (8GiB)"
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}" -d root,size=8GiB
+                lxc init "${IMAGE}" v1 --vm -s "${poolName}" -d root,size=8GiB
         fi
         lxc start v1
         waitInstanceReady v1
@@ -72,8 +75,8 @@ for poolDriver in $poolDriverList; do
         lxc exec v1 -- umount /srv
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM root disk size is 3GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
+                echo "==> Checking VM root disk size is 3584MiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking VM root disk size is 8GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -116,8 +119,8 @@ for poolDriver in $poolDriverList; do
         lxc exec v2 -- grep -Fx "foo" /root/foo.txt
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM snapshot copy root disk size is 3GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
+                echo "==> Checking VM snapshot copy root disk size is 3584MiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking VM snapshot copy root disk size is 8GiB"
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -150,8 +153,8 @@ for poolDriver in $poolDriverList; do
         lxc exec v2 -- grep -Fx "foo" /root/foo.txt
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM snapshot copy root disk size is 3GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
+                echo "==> Checking VM snapshot copy root disk size is 3584MiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking VM snapshot copy root disk size is 8GiB"
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -188,8 +191,8 @@ for poolDriver in $poolDriverList; do
         lxc exec v2 -- grep -Fx "foo" /root/foo.txt
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM snapshot copy root disk size is 3GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
+                echo "==> Checking VM snapshot copy root disk size is 3584MiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking VM snapshot copy root disk size is 8GiB"
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -251,7 +254,7 @@ for poolDriver in $poolDriverList; do
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
 
                 echo "==> Check VM shrink is blocked"
-                ! lxc config device set v1 root size=3GiB || false
+                ! lxc config device set v1 root size=3584MiB || false
         else
                 echo "==> Checking VM root disk size is 16GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
@@ -278,6 +281,8 @@ for poolDriver in $poolDriverList; do
         lxc start v1
         waitInstanceReady v1
 
+        lxc exec v1 -- mount | grep -F /srv/
+
         echo "==> Testing VM lxd-agent drive mounts"
         # Check there is only 1 mount for each directory disk and that it is mounted with the appropriate options.
         lxc exec v1 -- mount | grep -cF '/srv/rw type' | grep -xF 1
@@ -295,6 +300,7 @@ for poolDriver in $poolDriverList; do
 
         # Remount the readonly disk as rw inside VM and check that the disk is still readonly at the LXD layer.
         lxc exec v1 -- mount -oremount,rw /srv/ro
+        lxc exec v1 -- mount | grep -F /srv/
         lxc exec v1 -- mount | grep 'lxd_dir1ro on /srv/ro type virtiofs (rw,relatime)'
         ! lxc exec v1 -- touch /srv/ro/lxd-test-ro || false
         ! lxc exec v1 -- mkdir /srv/ro/lxd-test-ro || false
@@ -304,7 +310,8 @@ for poolDriver in $poolDriverList; do
         ## Mount the readonly disk as rw inside VM using 9p and check the disk is still readonly at the LXD layer.
         lxc exec v1 -- mkdir /srv/ro9p
         lxc exec v1 -- mount -t 9p lxd_dir1ro /srv/ro9p
-        lxc exec v1 -- mount | grep 'lxd_dir1ro on /srv/ro9p type 9p (rw,relatime,sync,dirsync,access=client,trans=virtio)'
+        lxc exec v1 -- mount | grep -F /srv/
+        lxc exec v1 -- mount | grep -x 'lxd_dir1ro on /srv/ro9p type 9p (rw,.*,access=client,trans=virtio)'
         ! lxc exec v1 -- touch /srv/ro9p/lxd-test-ro || false
         ! lxc exec v1 -- mkdir /srv/ro9p/lxd-test-ro || false
         ! lxc exec v1 -- rm /srv/ro9p/lxd-test.txt || false
@@ -340,7 +347,7 @@ for poolDriver in $poolDriverList; do
         truncate -s 5m "/tmp/lxd-test-${poolName}/lxd-test-block"
 
         echo "==> Checking disk device hotplug support"
-        lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
         waitInstanceReady v1
 
         # Hotplug disks
@@ -393,7 +400,7 @@ for poolDriver in $poolDriverList; do
                 echo "==> Change volume.size on pool from default of 8GiB to 16GiB and create VM"
                 lxc storage set "${poolName}" volume.size 16GiB
         fi
-        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc init "${IMAGE}" v1 --vm -s "${poolName}"
         lxc start v1
         waitInstanceReady v1
         lxc info v1
@@ -413,7 +420,7 @@ for poolDriver in $poolDriverList; do
         if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ]; then
                 echo "==> Change volume.block.filesystem on pool and create VM"
                 lxc storage set "${poolName}" volume.block.filesystem xfs
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+                lxc init "${IMAGE}" v1 --vm -s "${poolName}"
                 lxc start v1
                 waitInstanceReady v1
                 lxc info v1
@@ -433,20 +440,20 @@ for poolDriver in $poolDriverList; do
 
         lxc profile copy default vmsmall
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Create VM from profile with small disk size (3GiB)"
-                lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=3GiB
+                echo "==> Create VM from profile with small disk size (3584MiB)"
+                lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=3584MiB
         else
                 echo "==> Create VM from profile with small disk size (8GiB)"
                 lxc profile device add vmsmall root disk pool="${poolName}" path=/ size=8GiB
         fi
-        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -p vmsmall
+        lxc init "${IMAGE}" v1 --vm -p vmsmall
         lxc start v1
         waitInstanceReady v1
         lxc info v1
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking VM root disk size is 3GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
+                echo "==> Checking VM root disk size is 3584MiB"
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking VM root disk size is 8GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -472,8 +479,8 @@ for poolDriver in $poolDriverList; do
         lxc info v2
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking copied VM root disk size is 3GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
+                echo "==> Checking copied VM root disk size is 3584MiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking copied VM root disk size is 8GiB"
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -494,8 +501,8 @@ for poolDriver in $poolDriverList; do
         lxc info v2
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking copied VM root disk size is 3GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "3" ]
+                echo "==> Checking copied VM root disk size is 3584MiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking copied VM root disk size is 8GiB"
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
@@ -532,7 +539,7 @@ for poolDriver in $poolDriverList; do
         lxc publish v1 --alias vmbig
         lxc delete -f v1
         if [ "${poolDriver}" != "powerflex" ]; then
-                lxc storage set "${poolName}" volume.size 3GiB
+                lxc storage set "${poolName}" volume.size 3584MiB
         else
                 lxc storage set "${poolName}" volume.size 8GiB
         fi
@@ -565,7 +572,7 @@ for poolDriver in $poolDriverList; do
         lxc profile delete vmsmall
 
         echo "==> Checking VM Generation UUID with QEMU"
-        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc init "${IMAGE}" v1 --vm -s "${poolName}"
         lxc start v1
         waitInstanceReady v1
         lxc info v1
@@ -580,7 +587,7 @@ for poolDriver in $poolDriverList; do
         lxc delete -f v1
 
         echo "==> Publishing VM to image"
-        lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+        lxc init "${IMAGE}" v1 --vm -s "${poolName}"
         lxc storage volume create "${poolName}" images
         lxc config set storage.images_volume "${poolName}"/images
         lxc publish v1 --alias v1image
@@ -597,24 +604,24 @@ for poolDriver in $poolDriverList; do
                 # if no local instance config nor profile value of `migration.stateful` is set.
 
                 lxc config set instances.migration.stateful=true
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+                lxc init "${IMAGE}" v1 --vm -s "${poolName}"
 
                 lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]' | grep -xF true
                 lxc delete v1 -f
                 lxc config set instances.migration.stateful=false
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -s "${poolName}"
+                lxc init "${IMAGE}" v1 --vm -s "${poolName}"
                 [ -z "$(lxc config get --expanded v1 migration.stateful)" ] # instances.migration.stateful leave it unset because since it is `false`, it is the same as the default value of `migration.stateful`.
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=true
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm --config migration.stateful=false -s "${poolName}"
+                lxc init "${IMAGE}" v1 --vm --config migration.stateful=false -s "${poolName}"
                 lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]' | grep -xF false # the instance local config should take precedence
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=false
                 lxc profile copy default stateful_profile
                 lxc profile set stateful_profile migration.stateful=true
-                lxc init "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm -p stateful_profile -s "${poolName}"
+                lxc init "${IMAGE}" v1 --vm -p stateful_profile -s "${poolName}"
                 lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]' | grep -xF true # the profile config should take precedence
                 lxc delete v1 -f
                 lxc profile delete stateful_profile
@@ -624,7 +631,7 @@ for poolDriver in $poolDriverList; do
 
                 echo "==> Checking start / stop operations with root size.state being unset"
                 # We should be able to start a VM with migration.stateful=true eventhough the root `size.state` config is unset
-                lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" v1 --vm --config migration.stateful=true -s "${poolName}"
+                lxc launch "${IMAGE}" v1 --vm --config migration.stateful=true -s "${poolName}"
                 waitInstanceReady v1
                 # However, we should not be able to statefully stop the VM
                 ! lxc stop v1 --stateful || false

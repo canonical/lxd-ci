@@ -14,10 +14,12 @@ if echo "${LXD_SNAP_CHANNEL}" | grep -q '^5\.0/'; then
 fi
 lxd init --auto
 
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
+
 # Test
 set -x
 
-lxc launch "${TEST_IMG:-ubuntu-minimal-daily:22.04}" c1
+lxc launch "${IMAGE}" c1
 sleep 10
 lxc exec c1 -- apt-get update
 lxc exec c1 -- apt-get install --no-install-recommends --yes attr fuse2fs

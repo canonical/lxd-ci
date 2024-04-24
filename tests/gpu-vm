@@ -10,6 +10,8 @@ lxc profile device add default root disk path=/ pool=default
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0 name=eth0
 
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+
 if [ "${1}" = "nvidia" ]; then
 	# Enable SR-IOV
 	/usr/lib/nvidia/sriov-manage -e ALL
@@ -26,7 +28,7 @@ lxc info --resources
 
 # Launch test instances
 for i in $(seq 1 4); do
-	lxc init "${TEST_IMG:-ubuntu-daily:22.04}" "v${i}" --vm -c security.secureboot=false
+	lxc init "${IMAGE}" "v${i}" --vm -c security.secureboot=false
 	if [ "${1}" = "nvidia" ]; then
 		lxc config device add "v${i}" vgpu gpu gputype=mdev pci=0000:07:00.0 mdev=nvidia-468
 	fi

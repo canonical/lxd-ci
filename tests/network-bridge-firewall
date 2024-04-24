@@ -7,6 +7,8 @@ install_deps nftables iptables ebtables
 # Install LXD
 install_lxd
 
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+
 # Test
 set -x
 
@@ -33,7 +35,7 @@ modprobe br_netfilter
 ip link add lxdbr0unmanaged type bridge
 
 firewallTests() {
-    lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" c1
+    lxc launch "${IMAGE}" c1
     sleep 10
 
     managed=0
@@ -118,7 +120,7 @@ firewallTests() {
 }
 
 networkLimitsPriorityNftablesTest() {
-    lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" c1
+    lxc launch "${IMAGE}" c1
     sleep 10
 
     prio=7

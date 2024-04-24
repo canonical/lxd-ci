@@ -8,6 +8,8 @@ install_lxd
 lxc project switch default
 lxc storage create default dir
 
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+
 # Set global sysctl.
 sysctl net.ipv6.conf.all.forwarding=1
 sysctl net.ipv6.conf.all.proxy_ndp=1
@@ -23,7 +25,7 @@ ip addr add 192.0.2.1/32 dev dummy0
 ip addr add 2001:db8::1/128 dev dummy0
 
 # Create VM and add routed NIC.
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" v1 --vm -s default -c limits.memory=512MiB
+lxc init "${IMAGE}" v1 --vm -s default -c limits.memory=512MiB
 lxc config device add v1 eth0 nic \
     nictype=routed \
     parent=dummy0 \

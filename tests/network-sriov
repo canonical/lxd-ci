@@ -15,6 +15,8 @@ install_lxd
 # Install dependencies
 install_deps jq
 
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+
 parentNIC="${1:-}"
 
 if [ -z "${parentNIC}" ]; then
@@ -134,21 +136,21 @@ lxc delete -f v2 v3 v4
 
 # Launch a few containers.
 echo "==> Container on default VLAN"
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" c1
+lxc init "${IMAGE}" c1
 lxc start c1
 
 echo "==> Container on default VLAN with filtering"
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" c2
+lxc init "${IMAGE}" c2
 lxc config device override c2 eth0 security.mac_filtering=true
 lxc start c2
 
 echo "==> Container on alternate VLAN"
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" c3
+lxc init "${IMAGE}" c3
 lxc config device override c3 eth0 vlan=4000
 lxc start c3
 
 echo "==> Container on alternate VLAN with filtering"
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" c4
+lxc init "${IMAGE}" c4
 lxc config device override c4 eth0 vlan=4000 security.mac_filtering=true
 lxc start c4
 

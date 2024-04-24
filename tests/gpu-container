@@ -33,6 +33,8 @@ INSTALL_RECOMMENDS=yes install_deps "${RECOMMENDED_DRIVER}"
 # Install LXD
 install_lxd
 
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+
 # Check that NVIDIA is installed
 nvidia-smi
 
@@ -56,7 +58,7 @@ total_nvidia_gpu_with_product_id="$(lxc query /1.0/resources | jq -r ".gpu.cards
 
 # Launch a test container
 echo "==> Launching a test container"
-lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" c1
+lxc launch "${IMAGE}" c1
 waitInstanceReady c1
 
 # Confirm no GPU

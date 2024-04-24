@@ -7,6 +7,8 @@ install_lxd
 # Configure LXD
 lxd init --auto
 
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+
 PREFIX="cluster-$$"
 SIZE="$1"
 
@@ -27,11 +29,11 @@ print_log() {
 }
 
 # Launch the container
-lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" "${PREFIX}-1" -c security.nesting=true -c security.devlxd.images=true
+lxc launch "${IMAGE}" "${PREFIX}-1" -c security.nesting=true -c security.devlxd.images=true
 
 waitInstanceBooted "${PREFIX}-1"
 
-lxc exec "${PREFIX}-1" -- snap refresh lxd --channel="$2"
+lxc exec "${PREFIX}-1" -- snap install lxd --channel="$2" || lxc exec "${PREFIX}-1" -- snap refresh lxd --channel="$2"
 
 for i in $(seq 2 "${SIZE}"); do
     lxc copy "${PREFIX}-1" "${PREFIX}-$i"
@@ -79,8 +81,8 @@ lxc exec "${PREFIX}-1" -- lxc cluster list
 
 # Test fan networking (intra fan from container and host, as well as external NAT comms)
 echo "==> Test fan networking"
-lxc exec "${PREFIX}-1" -- lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" u1
-lxc exec "${PREFIX}-1" -- lxc launch "${TEST_IMG:-ubuntu-daily:22.04}" u2
+lxc exec "${PREFIX}-1" -- lxc launch "${IMAGE}" u1
+lxc exec "${PREFIX}-1" -- lxc launch "${IMAGE}" u2
 
 echo "==> Wait for addresses"
 sleep 10

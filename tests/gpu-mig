@@ -16,6 +16,8 @@ INSTALL_RECOMMENDS=yes install_deps "${RECOMMENDED_DRIVER}"
 # Install LXD
 install_lxd
 
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+
 # Check that NVIDIA is installed
 nvidia-smi
 
@@ -48,13 +50,13 @@ UUID3="$(echo "$UUIDS" | sed -n '3p')"
 UUID4="$(echo "$UUIDS" | sed -n '4p')"
 
 # Launch test containers
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" nvidia-mig1 -c nvidia.runtime=true
+lxc init "${IMAGE}" nvidia-mig1 -c nvidia.runtime=true
 lxc config device add nvidia-mig1 gpu0 gpu gputype=mig mig.uuid="$UUID1" pci="${first_card_pci_slot}"
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" nvidia-mig2 -c nvidia.runtime=true
+lxc init "${IMAGE}" nvidia-mig2 -c nvidia.runtime=true
 lxc config device add nvidia-mig2 gpu0 gpu gputype=mig mig.uuid="$UUID2" pci="${first_card_pci_slot}"
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" nvidia-mig3 -c nvidia.runtime=true
+lxc init "${IMAGE}" nvidia-mig3 -c nvidia.runtime=true
 lxc config device add nvidia-mig3 gpu0 gpu gputype=mig mig.uuid="$UUID3" pci="${first_card_pci_slot}"
-lxc init "${TEST_IMG:-ubuntu-daily:22.04}" nvidia-mig4 -c nvidia.runtime=true
+lxc init "${IMAGE}" nvidia-mig4 -c nvidia.runtime=true
 lxc config device add nvidia-mig4 gpu0 gpu gputype=mig mig.uuid="$UUID4" pci="${first_card_pci_slot}"
 lxc start nvidia-mig1
 lxc exec nvidia-mig1 -- nvidia-smi
