@@ -18,8 +18,8 @@ shift 5
 CACHE_DIR="${TARGET}/cache"
 mkdir -p "${CACHE_DIR}"
 
+cp "${YAML}" "${TARGET}/image.yaml"
 cd "${TARGET}"
-cp "${YAML}" image.yaml
 
 # Get lxd-imagebuilder path and create a serial.
 BUILDER=$(command -v lxd-imagebuilder)
