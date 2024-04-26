@@ -671,11 +671,23 @@ actions:
     #!/bin/sh
     set -eux
 
-    # Enable systemd-networkd
-    systemctl enable systemd-networkd
-
     # Disable UA attach
     systemctl mask ua-auto-attach
+
+  # Ubuntu Desktop images come with NetworkManager by default,
+  # so we should stop enabling systemd-networkd from Noble onwards.
+- trigger: post-packages
+  action: |-
+    #!/bin/sh
+    set -eux
+
+    # Enable systemd-networkd
+    systemctl enable systemd-networkd
+  releases:
+  - bionic
+  - focal
+  - jammy
+  - mantic
 
 - trigger: post-packages
   action: |-

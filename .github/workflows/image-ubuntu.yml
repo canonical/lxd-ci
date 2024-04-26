@@ -22,7 +22,7 @@ jobs:
           - focal
           - jammy
           - mantic
-          # - noble
+          - noble
         variant:
           - desktop
           # - default
