@@ -36,7 +36,7 @@ runs:
         echo "==> TEST: ${TEST_ID}"
 
         VIRT_ENABLED=$(lxc query /1.0 | jq '.environment.driver | contains("qemu")')
-        if [ ${TYPE} = "vm" ] && [ "${VIRT_ENABLED}" != "true" ]; then
+        if [ "${TYPE}" = "vm" ] && [ "${VIRT_ENABLED}" != "true" ]; then
             echo "==> FAIL: Virtualization is not supported"
             exit 1
         fi
