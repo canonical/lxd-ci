@@ -41,12 +41,10 @@ runs:
             exit 1
         fi
 
-        ./bin/test-image "${TYPE}" "${DISTRO}" "${RELEASE}" "${VARIANT}" "${TARGET}"
-
-        if [ "$?" = "0" ]; then
+        if ./bin/test-image "${TYPE}" "${DISTRO}" "${RELEASE}" "${VARIANT}" "${TARGET}"; then
             echo "==> PASS: ${TEST_ID}"
             exit 0
         fi
 
         echo "==> FAIL: ${TEST_ID}"
-        exit 0
+        exit 1
