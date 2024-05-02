@@ -37,11 +37,11 @@ mkdir -p "${TEST_DIR}"
 
 echo "==> Fetching the image"
 if [ "${TYPE}" = "container" ]; then
-    cp "${TARGET}/lxd.tar.xz" "${TEST_DIR}/meta"
-    cp "${TARGET}/rootfs.squashfs" "${TEST_DIR}/root"
+    TEST_IMAGE_META="${TARGET}/lxd.tar.xz"
+    TEST_IMAGE_ROOT="${TARGET}/rootfs.squashfs"
 elif [ "${TYPE}" = "vm" ]; then
-    cp "${TARGET}/lxd.tar.xz" "${TEST_DIR}/meta"
-    cp "${TARGET}/disk.qcow2" "${TEST_DIR}/root"
+    TEST_IMAGE_META="${TARGET}/lxd.tar.xz"
+    TEST_IMAGE_ROOT="${TARGET}/disk.qcow2"
 else
     echo "==> FAIL: Invalid instance type '${TYPE}'. Valid types: [container, vm]"
     exit 1
@@ -64,7 +64,7 @@ cleanup() {
 FAIL=1
 trap cleanup EXIT HUP INT TERM
 
-lxc image import "${TEST_DIR}/meta" "${TEST_DIR}/root" --alias "${TEST_IMAGE}"
+lxc image import "${TEST_IMAGE_META}" "${TEST_IMAGE_ROOT}" --alias "${TEST_IMAGE}"
 
 echo "==> Creating the instances"
 INSTANCES=""
