@@ -72,8 +72,14 @@ if [ "${TYPE}" = "vm" ]; then
     lxc init "${TEST_IMAGE}" "${TEST_IMAGE}" \
         --vm \
         -c limits.cpu=4 \
-        -c limits.memory=4GiB \
-        -c security.secureboot=false
+        -c limits.memory=4GiB
+
+    # Some distros don't support secure boot.
+    case "${DISTRO}" in
+        alpine|archlinux|gentoo|nixos)
+            lxc config set "${TEST_IMAGE}" security.secureboot=false
+            ;;
+    esac
 
     INSTANCES="${TEST_IMAGE}"
 
