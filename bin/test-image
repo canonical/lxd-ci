@@ -241,7 +241,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
 
     # DNS resolution
     DNS=0
-    for i in $(seq 3); do
+    for _ in $(seq 3); do
         if lxc exec "${name}" -- getent hosts canonical.com >/dev/null 2>&1; then
             DNS=1
             break
@@ -282,7 +282,7 @@ done
 # Check that all instances can be stopped.
 echo "==> Performing shutdown test"
 STOPPED=0
-for i in $(seq 10); do
+for _ in $(seq 10); do
     # shellcheck disable=SC2086
     if lxc stop ${INSTANCES} --timeout=30 >/dev/null 2>&1; then
         STOPPED=1
