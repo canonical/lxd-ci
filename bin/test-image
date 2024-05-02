@@ -11,7 +11,7 @@ if [ "${1:-}" = "" ] || [ "${2:-}" = "" ] || [ "${3:-}" = "" ] || [ "${4:-}" = "
 fi
 
 TYPE=${1}
-DIST=${2}
+DISTRO=${2}
 RELEASE=${3}
 VARIANT=${4}
 TARGET=${5}
@@ -30,7 +30,7 @@ fi
 
 # Setup the test environment.
 TEST_DIR="${HOME}/build-test"
-TEST_IMAGE="${TYPE}-${DIST}-${VARIANT}"
+TEST_IMAGE="${TYPE}-${DISTRO}-${VARIANT}"
 
 rm -Rf "${TEST_DIR}"
 mkdir -p "${TEST_DIR}"
@@ -96,7 +96,7 @@ EOF
     fi
 else
     for PRIV in "priv" "unpriv"; do
-        if [ "${PRIV}" = "priv" ] && [ "${DIST}" = "nixos" ] && [ "${RELEASE}" = "23.11" ]; then
+        if [ "${PRIV}" = "priv" ] && [ "${DISTRO}" = "nixos" ] && [ "${RELEASE}" = "23.11" ]; then
             # NixOS 23.11 will never support privileged containers, but future versions do.
             continue
         fi
@@ -111,12 +111,12 @@ else
             lxc config set "${TEST_IMAGE}-${PRIV}" security.privileged=true
         fi
 
-        if [ "${DIST}" = "voidlinux" ]; then
+        if [ "${DISTRO}" = "voidlinux" ]; then
             # Workaround weird init system.
             lxc config set "${TEST_IMAGE}-${PRIV}" raw.lxc lxc.signal.halt=SIGCONT
         fi
 
-        if [ "${DIST}" = "slackware" ]; then
+        if [ "${DISTRO}" = "slackware" ]; then
             # Workaround weird init system.
             lxc config set "${TEST_IMAGE}-${PRIV}" raw.lxc lxc.signal.halt=SIGKILL
         fi
@@ -150,12 +150,12 @@ done
 # Wait for things to settle.
 echo "==> Waiting for instances to start"
 for i in ${INSTANCES}; do
-    if [ "${DIST}" == "busybox" ]; then
+    if [ "${DISTRO}" == "busybox" ]; then
         # Busybox has only 1 process running when ready.
         MIN_PROC_COUNT=1
     fi
 
-    if [ "${DIST}" == "centos" ]; then
+    if [ "${DISTRO}" == "centos" ]; then
         # Give CentOS a bit more time to boot.
         MAX_WAIT_SECONDS=180
     fi
@@ -174,13 +174,13 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     name=$(echo "${url}" | cut -d/ -f4)
 
     # Skip busybox as it wouldn't pass any test
-    if [ "${DIST}" = "busybox" ]; then
+    if [ "${DISTRO}" = "busybox" ]; then
         echo "===> SKIP: Busybox is untestable"
         continue
     fi
 
     # Skip CentOS 7 VMs due to racy agent
-    if [ "${TYPE}" = "vm" ] && [ "${DIST}" = "centos" ] && [ "${RELEASE}" = "7" ]; then
+    if [ "${TYPE}" = "vm" ] && [ "${DISTRO}" = "centos" ] && [ "${RELEASE}" = "7" ]; then
         echo "===> SKIP: CentOS 7 has an unstable agent: ${name}"
         continue
     fi
