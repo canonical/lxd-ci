@@ -5,7 +5,7 @@ simplestream:
   distro_name: Arch Linux
   requirements:
   - requirements:
-      secure_boot: false
+      secureboot: false
 
 source:
   downloader: archlinux-http

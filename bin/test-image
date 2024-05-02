@@ -11,7 +11,7 @@ if [ "${1:-}" = "" ] || [ "${2:-}" = "" ] || [ "${3:-}" = "" ] || [ "${4:-}" = "
 fi
 
 TYPE=${1}
-DIST=${2}
+DISTRO=${2}
 RELEASE=${3}
 VARIANT=${4}
 TARGET=${5}
@@ -30,18 +30,18 @@ fi
 
 # Setup the test environment.
 TEST_DIR="${HOME}/build-test"
-TEST_IMAGE="${TYPE}-${DIST}-${VARIANT}"
+TEST_IMAGE="${TYPE}-${DISTRO}-${VARIANT}"
 
 rm -Rf "${TEST_DIR}"
 mkdir -p "${TEST_DIR}"
 
 echo "==> Fetching the image"
 if [ "${TYPE}" = "container" ]; then
-    cp "${TARGET}/lxd.tar.xz" "${TEST_DIR}/meta"
-    cp "${TARGET}/rootfs.squashfs" "${TEST_DIR}/root"
+    TEST_IMAGE_META="${TARGET}/lxd.tar.xz"
+    TEST_IMAGE_ROOT="${TARGET}/rootfs.squashfs"
 elif [ "${TYPE}" = "vm" ]; then
-    cp "${TARGET}/lxd.tar.xz" "${TEST_DIR}/meta"
-    cp "${TARGET}/disk.qcow2" "${TEST_DIR}/root"
+    TEST_IMAGE_META="${TARGET}/lxd.tar.xz"
+    TEST_IMAGE_ROOT="${TARGET}/disk.qcow2"
 else
     echo "==> FAIL: Invalid instance type '${TYPE}'. Valid types: [container, vm]"
     exit 1
@@ -64,7 +64,7 @@ cleanup() {
 FAIL=1
 trap cleanup EXIT HUP INT TERM
 
-lxc image import "${TEST_DIR}/meta" "${TEST_DIR}/root" --alias "${TEST_IMAGE}"
+lxc image import "${TEST_IMAGE_META}" "${TEST_IMAGE_ROOT}" --alias "${TEST_IMAGE}"
 
 echo "==> Creating the instances"
 INSTANCES=""
@@ -72,8 +72,14 @@ if [ "${TYPE}" = "vm" ]; then
     lxc init "${TEST_IMAGE}" "${TEST_IMAGE}" \
         --vm \
         -c limits.cpu=4 \
-        -c limits.memory=4GB \
-        -c security.secureboot=false
+        -c limits.memory=4GiB
+
+    # Some distros don't support secure boot.
+    case "${DISTRO}" in
+        alpine|archlinux|gentoo|nixos)
+            lxc config set "${TEST_IMAGE}" security.secureboot=false
+            ;;
+    esac
 
     INSTANCES="${TEST_IMAGE}"
 
@@ -96,7 +102,7 @@ EOF
     fi
 else
     for PRIV in "priv" "unpriv"; do
-        if [ "${PRIV}" = "priv" ] && [ "${DIST}" = "nixos" ] && [ "${RELEASE}" = "23.11" ]; then
+        if [ "${PRIV}" = "priv" ] && [ "${DISTRO}" = "nixos" ] && [ "${RELEASE}" = "23.11" ]; then
             # NixOS 23.11 will never support privileged containers, but future versions do.
             continue
         fi
@@ -111,12 +117,12 @@ else
             lxc config set "${TEST_IMAGE}-${PRIV}" security.privileged=true
         fi
 
-        if [ "${DIST}" = "voidlinux" ]; then
+        if [ "${DISTRO}" = "voidlinux" ]; then
             # Workaround weird init system.
             lxc config set "${TEST_IMAGE}-${PRIV}" raw.lxc lxc.signal.halt=SIGCONT
         fi
 
-        if [ "${DIST}" = "slackware" ]; then
+        if [ "${DISTRO}" = "slackware" ]; then
             # Workaround weird init system.
             lxc config set "${TEST_IMAGE}-${PRIV}" raw.lxc lxc.signal.halt=SIGKILL
         fi
@@ -150,12 +156,12 @@ done
 # Wait for things to settle.
 echo "==> Waiting for instances to start"
 for i in ${INSTANCES}; do
-    if [ "${DIST}" == "busybox" ]; then
+    if [ "${DISTRO}" == "busybox" ]; then
         # Busybox has only 1 process running when ready.
         MIN_PROC_COUNT=1
     fi
 
-    if [ "${DIST}" == "centos" ]; then
+    if [ "${DISTRO}" == "centos" ]; then
         # Give CentOS a bit more time to boot.
         MAX_WAIT_SECONDS=180
     fi
@@ -174,20 +180,20 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     name=$(echo "${url}" | cut -d/ -f4)
 
     # Skip busybox as it wouldn't pass any test
-    if [ "${DIST}" = "busybox" ]; then
+    if [ "${DISTRO}" = "busybox" ]; then
         echo "===> SKIP: Busybox is untestable"
         continue
     fi
 
     # Skip CentOS 7 VMs due to racy agent
-    if [ "${TYPE}" = "vm" ] && [ "${DIST}" = "centos" ] && [ "${RELEASE}" = "7" ]; then
+    if [ "${TYPE}" = "vm" ] && [ "${DISTRO}" = "centos" ] && [ "${RELEASE}" = "7" ]; then
         echo "===> SKIP: CentOS 7 has an unstable agent: ${name}"
         continue
     fi
 
     # Systemd cleanliness.
-    if lxc exec "${name}" -- sh -c "type systemctl" >/dev/null 2>&1; then
-        if lxc exec "${name}" -- systemctl --failed 2>&1 | grep -q '\sfailed\s'; then
+    if lxc exec "${name}" -- test -d /run/systemd/system/; then
+        if lxc exec "${name}" -- systemctl --failed 2>&1 | grep -qwF 'failed'; then
             echo "===> FAIL: systemd clean: ${name}"
 
             # Show the systemd failures.
@@ -218,7 +224,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     fi
 
     # IPv4 address
-    if echo "${address}" | grep "\." -q; then
+    if echo "${address}" | grep -qF "."; then
         echo "===> PASS: IPv4 address: ${name}"
     else
         echo "===> FAIL: IPv4 address: ${name}"
@@ -226,7 +232,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     fi
 
     # IPv6 address
-    if echo "${address}" | grep ":" -q; then
+    if echo "${address}" | grep -qF ":"; then
         echo "===> PASS: IPv6 address: ${name}"
     else
         echo "===> FAIL: IPv6 address: ${name}"
@@ -235,7 +241,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
 
     # DNS resolution
     DNS=0
-    for i in $(seq 3); do
+    for _ in $(seq 3); do
         if lxc exec "${name}" -- getent hosts canonical.com >/dev/null 2>&1; then
             DNS=1
             break
@@ -276,13 +282,13 @@ done
 # Check that all instances can be stopped.
 echo "==> Performing shutdown test"
 STOPPED=0
-for i in $(seq 10); do
+for _ in $(seq 10); do
     # shellcheck disable=SC2086
     if lxc stop ${INSTANCES} --timeout=30 >/dev/null 2>&1; then
         STOPPED=1
         break
     else
-        COUNT="$(lxc list "${TEST_IMAGE}" | grep -c RUNNING)"
+        COUNT="$(lxc list -f csv -c n,s "${TEST_IMAGE}" | grep -cw 'RUNNING$')"
         if [ "${COUNT}" = "0" ]; then
             STOPPED=1
             break
