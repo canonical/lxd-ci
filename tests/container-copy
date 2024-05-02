@@ -18,6 +18,12 @@ loopdev="$(losetup --show --find "${loopimg}")"
 # Begin Test.
 set -x
 
+echo "==> Wait for the host time to be synchronized with NTP"
+for _ in $(seq 6); do
+    [ "$(timedatectl show --property=NTPSynchronized --value)" = "yes" ] && break
+    sleep 10
+done
+
 echo "==> Launch a VM which will be the target of the copy"
 lxc launch "${IMAGE}" target --vm
 waitInstanceBooted target
