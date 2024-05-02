@@ -30,8 +30,7 @@ waitInstanceBooted target
 
 echo "==> Setup LXD on the target VM"
 lxc exec target -- snap install lxd --channel "${LXD_SNAP_CHANNEL}"
-lxc exec target -- lxd init --auto
-lxc exec target -- lxc config set core.https_address=:8443
+lxc exec target -- lxd init --auto --network-address "[::]" --network-port "8443"
 
 echo "==> Wait for the target VM time to be synchronized with NTP"
 for _ in $(seq 6); do
