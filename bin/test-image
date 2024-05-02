@@ -193,7 +193,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
 
     # Systemd cleanliness.
     if lxc exec "${name}" -- test -d /run/systemd/system/; then
-        if lxc exec "${name}" -- systemctl --failed 2>&1 | grep -q '\sfailed\s'; then
+        if lxc exec "${name}" -- systemctl --failed 2>&1 | grep -qwF 'failed'; then
             echo "===> FAIL: systemd clean: ${name}"
 
             # Show the systemd failures.
@@ -224,7 +224,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     fi
 
     # IPv4 address
-    if echo "${address}" | grep "\." -q; then
+    if echo "${address}" | grep -qF "."; then
         echo "===> PASS: IPv4 address: ${name}"
     else
         echo "===> FAIL: IPv4 address: ${name}"
@@ -232,7 +232,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     fi
 
     # IPv6 address
-    if echo "${address}" | grep ":" -q; then
+    if echo "${address}" | grep -qF ":"; then
         echo "===> PASS: IPv6 address: ${name}"
     else
         echo "===> FAIL: IPv6 address: ${name}"
@@ -288,7 +288,7 @@ for i in $(seq 10); do
         STOPPED=1
         break
     else
-        COUNT="$(lxc list "${TEST_IMAGE}" | grep -c RUNNING)"
+        COUNT="$(lxc list -f csv -c n,s "${TEST_IMAGE}" | grep -cw 'RUNNING$')"
         if [ "${COUNT}" = "0" ]; then
             STOPPED=1
             break
