@@ -14,6 +14,17 @@ TIMEOUT=${4}
 TARGET=${5}
 shift 5
 
+debug_logs() {
+    set +e
+    if [ -e "${TARGET}/rootfs/debootstrap/debootstrap.log" ]; then
+        echo
+        echo "Debootstrap log:"
+        cat "${TARGET}/rootfs/debootstrap/debootstrap.log"
+    fi
+}
+
+trap debug_logs EXIT HUP INT TERM
+
 # Setup build directory.
 CACHE_DIR="${TARGET}/cache"
 mkdir -p "${CACHE_DIR}"
