@@ -24,6 +24,11 @@ for _ in $(seq 6); do
     sleep 10
 done
 
+echo "==> DEBUG:"
+modprobe kvm
+modprobe vhost_vsock
+lsmod
+
 echo "==> Launch a VM which will be the target of the copy"
 lxc launch "${IMAGE}" target --vm
 waitInstanceBooted target
