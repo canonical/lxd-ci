@@ -1,0 +1,44 @@
+#!/bin/sh
+set -eu
+
+# Install LXD
+install_lxd
+
+# Configure LXD
+lxd init --auto
+
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
+vmName="test-vm"
+
+# Launch test instance
+lxc init "${IMAGE}" "${vmName}" --vm
+
+echo "==> Try starting a VM with two TPM devices"
+lxc config device add "${vmName}" tpm1 tpm
+lxc config device add "${vmName}" tpm2 tpm
+! lxc start "${vmName}" || false
+
+echo "==> Starting VM with TPM"
+lxc config device remove "${vmName}" tpm2
+lxc start "${vmName}"
+waitInstanceReady "${vmName}"
+
+echo "==> Check if TPM files are present"
+lxc exec "${vmName}" -- stat /dev/tpm0
+lxc exec "${vmName}" -- stat /dev/tpmrm0
+
+echo "==> Try removing TPM from a running VM"
+! lxc config device remove "${vmName}" tpm1 || false
+lxc exec "${vmName}" -- stat /dev/tpm0
+lxc exec "${vmName}" -- stat /dev/tpmrm0
+
+echo "==> Stopping VM and removing TPM"
+lxc stop "${vmName}" --force
+lxc config device remove "${vmName}" tpm1
+
+echo "==> Check if TPM was indeed removed"
+lxc start "${vmName}"
+waitInstanceReady "${vmName}"
+! lxc exec "${vmName}" -- stat /dev/tpm0 || false
+! lxc exec "${vmName}" -- stat /dev/tpmrm0 || false
+lxc stop "${vmName}" --force
