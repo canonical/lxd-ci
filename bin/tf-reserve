@@ -3,7 +3,8 @@
 # testflinger-reserve
 tf-reserve() {
     queue="${1:-anything}"
-    data="${2:-jammy}"
+    data="${2:-noble}"
+    lp_user="${LP_USER:-$(whoami)}"
     if echo "${data}" | grep -q ^http; then
         provision_data="url: ${data}"
     else
@@ -16,7 +17,7 @@ provision_data:
   ${provision_data}
 reserve_data:
   ssh_keys:
-    - lp:$(whoami)
+    - lp:${lp_user}
   timeout: 21600
 EOF
 }
