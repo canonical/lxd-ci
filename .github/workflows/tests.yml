@@ -98,6 +98,7 @@ jobs:
           - "storage-vm lvm-thin"
           - "storage-vm zfs"
           - storage-volumes-vm
+          - tpm-vm
           - vm-nesting
         exclude:
           - test: efi-vars-editor-vm # not compatible with 5.0/*
