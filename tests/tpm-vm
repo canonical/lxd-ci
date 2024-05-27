@@ -42,3 +42,13 @@ waitInstanceReady "${vmName}"
 ! lxc exec "${vmName}" -- stat /dev/tpm0 || false
 ! lxc exec "${vmName}" -- stat /dev/tpmrm0 || false
 lxc stop "${vmName}" --force
+
+# TPM names are included on the swtpm socket path and long socket paths can cause problems if not handled correctly.
+echo "==> Test handling TPMs with long names"
+longName="tpm-device-with-long-name-for-testing"
+lxc config device add "${vmName}" "${longName}" tpm
+lxc start "${vmName}"
+waitInstanceReady "${vmName}"
+lxc exec "${vmName}" -- stat /dev/tpm0
+lxc exec "${vmName}" -- stat /dev/tpmrm0
+lxc delete "${vmName}" --force
