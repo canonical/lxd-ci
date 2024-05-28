@@ -1,0 +1,278 @@
+#!/bin/sh
+set -eu
+
+# Source helper functions.
+. ./bin/helpers
+
+install_deps jq unzip
+
+# Install LXD
+install_lxd
+
+set -x
+
+# Install go from Snap.
+snap install go --classic
+
+# Install latest lxd-migrate binary tool.
+CGO_ENABLED=0 go install github.com/canonical/lxd/lxd-migrate@latest
+
+export PATH="${HOME}/go/bin:${PATH}"
+
+# Configure LXD
+lxd init --auto --network-address "[::]" --network-port "8443"
+
+checkIPAddresses() {
+    instName=$1
+
+    address=$(lxc query "/1.0/instances/${instName}/state" | jq -r ".network.eth0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
+    if [ -z "${address}" ]; then
+        address=$(lxc query "/1.0/instances/${instName}/state" | jq -r ".network.enp5s0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
+    fi
+
+    if [ -z "${address}" ]; then
+        echo "===> FAIL: No network interface: ${instName}"
+
+        # Show the network state.
+        echo "===> DEBUG: network state: ${instName}"
+        lxc info "${instName}"
+        return 1
+    fi
+
+    fail=0
+
+    # IPv4 address
+    if echo "${address}" | grep -qF "."; then
+        echo "===> PASS: IPv4 address: ${instName}"
+    else
+        echo "===> FAIL: IPv4 address: ${instName}"
+        fail=1
+    fi
+
+    # IPv6 address
+    if echo "${address}" | grep -qF ":"; then
+        echo "===> PASS: IPv6 address: ${instName}"
+    else
+        echo "===> FAIL: IPv6 address: ${instName}"
+        fail=1
+    fi
+
+    return "${fail}"
+}
+
+checkDNS() {
+    instName=$1
+
+    # Test lxd-agent and DNS resolution.
+    if lxc exec "${instName}" -- nslookup canonical.com >/dev/null 2>&1; then
+        echo "===> PASS: DNS resolution: ${instName}"
+        return 0
+    fi
+
+    if lxc exec "${instName}" -- getent hosts canonical.com >/dev/null 2>&1; then
+        echo "===> PASS: DNS resolution: ${instName}"
+        return 0
+    fi
+
+    echo "===> FAIL: DNS resolution: ${instName}"
+    return 1
+}
+
+# conversion_vm creates a new LXD virtual machine from the image on the given path.
+# A dedicated storage pool of the given type will be created for a new virtual machine.
+#
+# Input arguments:
+# 1: Name of new virtual machine.
+# 2: Type of the storage pool.
+# 3: Path to the image.
+conversion_vm() {
+    conversion vm "$1" "$2" "$3" "$4"
+}
+
+# conversion_container creates a new LXD container from the filesystem of the existing container.
+#
+# Input arguments:
+# 1: Name of the existing container.
+conversion_container() {
+    conversion container "$1" "" "/" "no"
+}
+
+# conversion runs lxd-migrate for the given image path. For virtual machine, lxd-migrate is
+# executed on the localhost. For container, lxd-migrate will be installed and executed from
+# an existing container.
+conversion() {
+    instType=$1
+    instName=$2
+    poolType=$3
+    imgPath=$4
+    uefi_sb=$5
+
+    if [ "${instType}" = "vm" ]; then
+        echo "==> TEST: Conversion: Import virtual-machine '${instName}' on '${poolType}' storage pool"
+
+        poolName="conversion-${poolType}"
+        hostAddr="127.0.0.1"
+        instTypeCode="2" # VM in migration questioneer.
+
+        lxdMigrateCmd="lxd-migrate --conversion format"
+
+        # Create storage pool.
+        lxc storage create "${poolName}" "${poolType}"
+
+    elif [ "${instType}" = "container" ]; then
+        echo "==> TEST: Conversion: Import container '${instName}'"
+
+        poolName=""
+        hostAddr=$(lxc network get lxdbr0 ipv4.address | cut -d/ -f1)
+        instTypeCode="1" # Container.
+
+        lxdMigrateCmd="lxc exec ${instName} -- /root/go/bin/lxd-migrate"
+
+        # Install rsync and lxd-migrate.
+        lxc exec "${instName}" -- apt-get update
+        lxc exec "${instName}" -- apt-get install --no-install-recommends -y rsync file
+        lxc exec "${instName}" -- snap install go --classic
+        lxc exec "${instName}" --env CGO_ENABLED=0 -- go install github.com/canonical/lxd/lxd-migrate@latest
+
+        # Set instName to the name of the new container that will be created
+        # from the existing one.
+        instName="${instName}-migration"
+    else
+        echo "Invalid instance type '${instType}'. Valid types are 'container' and 'vm'."
+        return 1
+    fi
+
+    # Generate trust token for conversion.
+    token="$(lxc config trust add --quiet --name migrate)"
+    if [ -z "${token}" ]; then
+        echo "Failed to generate LXD trust token!"
+        return 1
+    fi
+
+    # Migration questions.
+    {
+        if [ "${instType}" = "vm" ]; then
+            echo "n"           # Do not use local unix socket.
+        fi
+
+        echo "${hostAddr}"     # Address of the target LXD server.
+        sleep 1
+        echo "y"               # Yes, this is correct fingerprint.
+        sleep 1
+        echo "1"               # Use a certificate token.
+        echo "${token}"        # Token.
+        echo "${instTypeCode}" # Instace type (1 == container, 2 == virtual-machine).
+
+        if [ "$(lxc project ls -f csv | wc -l)" -gt 1 ]; then
+            echo "default"     # Project name (required if there is more then 1 project)
+        fi
+
+        echo "${instName}"     # Instance name.
+        echo "${imgPath}"      # Local image path (or filesystem path in case of container).
+        echo "${uefi_sb}"      # Enable UEFI secure boot.
+
+        # Configure storage pool.
+        if [ "${poolName}" != "" ]; then
+            echo "4"           # Change storage pool settings.
+            echo "${poolName}" # Pool name.
+            echo "yes"         # Configure pool size?
+            echo "10GiB"       # Pool size.
+        fi
+
+        # Begin the migration with the above configuration
+        sleep 1
+        echo "1"
+    } | $lxdMigrateCmd
+
+    # Start the instance.
+    echo "Starting instance ${instName}..."
+    lxc start "${instName}"
+
+    # Wait for the instance to be ready and ensure it has global ip address.
+    echo "Waiting instance ${instName} to start..."
+    waitInstanceBooted "${instName}"
+    sleep 10
+
+    # Print the instances.
+    lxc list
+
+    echo "Check network connectivity of instance ${instName}..."
+    checkIPAddresses "${instName}"
+
+    echo "Check DNS resolution of instance ${instName}..."
+    checkDNS "${instName}"
+
+    # Cleanup.
+    lxc delete -f "${instName}"
+
+    if [ "${poolName}" != "" ]; then
+        lxc storage delete "${poolName}"
+    fi
+}
+
+# Test container migration using conversion mode. If server does not
+# support conversion API extension, lxd-migrate must fallback to
+# migration mode and successfully transfer the rootfs.
+lxc launch ubuntu-minimal-daily:24.04 c1
+conversion_container "c1"
+lxc delete -f c1
+
+# Unblock images remote.
+sed -i '/images\.lxd\.canonical\.com/d' /etc/hosts
+
+tmpdir="$(mktemp -d)"
+
+# Create an instance and export it to get raw image.
+lxc init images:alpine/edge vm-tmp --vm
+lxc export vm-tmp "${tmpdir}/vm-tmp.tar.gz"
+lxc delete vm-tmp
+
+# Extract raw image from exported backup.
+tar -xzf "${tmpdir}/vm-tmp.tar.gz" -C "${tmpdir}" "backup/virtual-machine.img"
+rm "${tmpdir}/vm-tmp.tar.gz"
+
+# Test VM migration using conversion mode. If server does not support
+# conversion API extension, lxd-migrate must fallback to migration
+# mode and successfully transfer the VM disk.
+conversion_vm vm-alpine-raw-zfs zfs "${tmpdir}/backup/virtual-machine.img" "no"
+rm -rf "${tmpdir}/backup"
+
+# Test VM conversion using non-raw disk formats only if server supports
+# conversion API extension.
+if hasNeededAPIExtension instance_import_conversion; then
+    # Test QCOW2 images.
+    IMAGE_PATH="${tmpdir}/image"
+
+    lxc image export images:alpine/edge "${IMAGE_PATH}" --vm
+    conversion_vm vm-alpine-qcow2-zfs zfs "${IMAGE_PATH}.root" "no"
+
+    lxc image export images:centos/9-Stream "${IMAGE_PATH}" --vm
+    conversion_vm vm-centos9-qcow2-btrfs btrfs "${IMAGE_PATH}.root" "yes"
+
+    rm "${IMAGE_PATH}" "${IMAGE_PATH}.root"
+
+    # Test VMDK image.
+    wget -q -O "${IMAGE_PATH}" https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.vmdk
+
+    conversion_vm vm-u24-vmdk-dir dir "${IMAGE_PATH}" "yes"
+    conversion_vm vm-u24-vmdk-zfs zfs "${IMAGE_PATH}" "yes"
+
+    # Use custom volume for backups. Images for conversion will be uploaded here.
+    lxc storage create backups-pool zfs
+    lxc storage volume create backups-pool backups-vol
+    lxc config set storage.backups_volume=backups-pool/backups-vol
+
+    conversion_vm vm-u24-vmdk-dir-bupvol dir "${IMAGE_PATH}" "yes"
+    conversion_vm vm-u24-vmdk-zfs-bupvol zfs "${IMAGE_PATH}" "yes"
+
+    # Cleanup.
+    rm -rf "${tmpdir}"
+    lxc config unset storage.backups_volume
+    lxc storage volume delete backups-pool backups-vol
+    lxc storage delete backups-pool
+else
+    echo "===> SKIP: VM image conversion skipped. Server does not support API extenison 'instance_import_conversion'"
+fi
+
+# shellcheck disable=SC2034
+FAIL=0
