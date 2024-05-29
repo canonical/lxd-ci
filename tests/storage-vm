@@ -45,6 +45,12 @@ for poolDriver in $poolDriverList; do
                 [ "$(lxc storage get "${poolName}" size)" = "20GiB" ]
         fi
 
+        # Ensure non-power-of-two sizes are rounded appropriately for zfs
+        if [ "${poolDriver}" = "zfs" ]; then
+                lxc init "${IMAGE}" rounded --vm -s "${poolName}" -d root,size=13GB
+                lxc delete rounded
+        fi
+
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Create VM and boot with small root (3.5GiB == 3584MiB)"
                 lxc init "${IMAGE}" v1 --vm -s "${poolName}" -d root,size=3584MiB
