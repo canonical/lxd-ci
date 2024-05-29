@@ -144,7 +144,7 @@ jobs:
       - name: Remove docker
         run: |
           set -eux
-          sudo apt-get autopurge -y containerd.io moby-containerd docker docker-ce podman uidmap
+          sudo apt-get autopurge -y containerd.io docker-ce podman uidmap
           sudo ip link delete docker0
           sudo nft flush ruleset
 
