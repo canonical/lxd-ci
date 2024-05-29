@@ -148,6 +148,18 @@ jobs:
           sudo ip link delete docker0
           sudo nft flush ruleset
 
+      - name: Remove needrestart
+        run: |
+          # XXX: workaround https://bugs.launchpad.net/ubuntu/+source/needrestart/+bug/2067800
+          #      needrestart restarting runner-provisioner.service causes an immediate job failure:
+          #
+          #Restarting services...
+          # /etc/needrestart/restart.d/systemd-manager
+          # systemctl restart packagekit.service php8.3-fpm.service runner-provisioner.service systemd-journald.service systemd-networkd.service systemd-resolved.service systemd-udevd.service udisks2.service walinuxagent.service
+          #Terminated
+          #++ cleanup
+          sudo apt-get autopurge -y needrestart
+
       - name: Checkout
         uses: actions/checkout@v4
 
