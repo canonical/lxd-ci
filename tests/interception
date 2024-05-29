@@ -112,6 +112,18 @@ if hasNeededAPIExtension container_syscall_intercept_finit_module; then
     # upload module file into the container
     lxc file push "${MODULE_PATH}" "c1/root/"
 
+    # Ubuntu 23.10+ ships kernel modules individually compressed to speed up
+    # boot and initramfs generation
+    # (https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2028568)
+    # XXX: This compression seems to prevent proper parsing by the `container_syscall_intercept_finit_module` feature
+    #      resulting in `Operation not permitted` error
+    if echo "${MODULE_FILE_NAME}" | grep -q "\.zst$"; then
+        lxc exec c1 -- apt-get update -qq
+        lxc exec c1 -- apt-get install --no-install-recommends -y zstd
+        lxc exec c1 -- unzstd "/root/${MODULE_FILE_NAME}"
+        MODULE_FILE_NAME="$(basename "${MODULE_PATH}" .zst)"
+    fi
+
     # negative case 1 (feature is not enabled)
     ! lxc exec c1 -- insmod "/root/${MODULE_FILE_NAME}" || false
 
