@@ -39,7 +39,7 @@ defaults:
 jobs:
   code-tests:
     name: Code
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
     env:
       PURGE_LXD: "1"
     name: ${{ matrix.test }} (${{ matrix.track }})
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
