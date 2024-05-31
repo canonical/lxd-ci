@@ -70,11 +70,12 @@ jobs:
   system-tests:
     env:
       PURGE_LXD: "1"
-    name: ${{ matrix.test }} (${{ matrix.track }})
-    runs-on: ubuntu-24.04
+    name: ${{ matrix.test }} (${{ matrix.track }} - ${{ matrix.os }})
+    runs-on: ubuntu-${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [22.04, 24.04]
         track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge", "5.21/edge", "5.0/edge"]') }}
         test:
           - cgroup
@@ -105,6 +106,10 @@ jobs:
             track: "5.0/edge"
           - test: storage-buckets  # waiting for integration with microceph
           - test: "storage-vm ceph" # waiting for integration with microceph
+          - track: "5.0/edge"
+            os: "24.04"
+          - track: "latest/edge"
+            os: "22.04"
 
     steps:
       - name: Performance tuning
