@@ -86,6 +86,7 @@ jobs:
           - cluster
           - container
           - container-copy
+          - conversion
           - cpu-vm
           - devlxd-vm
           - docker
@@ -118,6 +119,8 @@ jobs:
             os: "24.04"
           # not compatible with 4.0/*
           - test: container-copy
+            track: "4.0/edge"
+          - test: conversion
             track: "4.0/edge"
           - test: cpu-vm
             track: "4.0/edge"
