@@ -81,6 +81,7 @@ jobs:
           - cgroup
           - cluster
           - container-copy
+          - conversion
           - cpu-vm
           - devlxd-vm
           - docker
