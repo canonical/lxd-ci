@@ -21,6 +21,42 @@ lxc profile device add default eth0 nic network=lxdbr0
 MiB="$((1024 * 1024))"
 GiB="$((1024 * MiB))"
 
+# zfs.external
+if echo "${poolDriverList}" | grep -qwF "zfs" && grep -qF zfs.external /snap/lxd/current/commands/daemon.start; then
+    echo "==> Use external ZFS tools"
+    snap set lxd zfs.external=true
+    snap restart lxd
+
+    if command -v zfs; then
+        apt-get autopurge -y zfsutils-linux
+    fi
+
+    echo "==> Creating ZFS storage without external tools should fail"
+    ! lxc storage create zexternal zfs || false
+
+    apt-get install --no-install-recommends -y zfsutils-linux
+
+    echo "==> Creating ZFS storage with external tools should work"
+    lxc storage create zexternal zfs
+    zpool status zexternal
+
+    echo "==> Creating ZFS storage volume"
+    lxc storage volume create zexternal zslice1 size=1GiB
+    zfs list zexternal/custom/default_zslice1
+    [ "$(zfs get -Hpo value quota zexternal/custom/default_zslice1)" = "1073741824" ]
+
+    echo "==> Destroying ZFS pool"
+    lxc storage volume delete zexternal zslice1
+    lxc storage delete zexternal
+    ! zpool status zexternal || false
+
+    echo "==> Use internal ZFS tools"
+    snap unset lxd zfs.external
+    snap restart lxd
+else
+    echo "==> Skipping zfs.external test"
+fi
+
 for poolDriver in $poolDriverList; do
         poolName="vmpool-${poolDriver}-$$"
         echo "==> Create storage pool using driver ${poolDriver}"
