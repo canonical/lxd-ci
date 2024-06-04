@@ -23,7 +23,6 @@ jobs:
       matrix:
         release:
           - 7 # CentOS 7 tests require cgroups v1. They will pass on ubuntu-20.04 runner.
-          - 8-Stream
           - 9-Stream
         variant:
           - default
@@ -71,11 +70,8 @@ jobs:
               EXTRA_ARGS="${EXTRA_ARGS} -o packages.manager=yum"
           fi
 
-          if [ "${RELEASE}" = "8-Stream" ] || [ "${RELEASE}" = "9-Stream" ]; then
-              EXTRA_ARGS="${EXTRA_ARGS} -o source.variant=boot"
-          fi
-
           if [ "${RELEASE}" = "9-Stream" ]; then
+              EXTRA_ARGS="${EXTRA_ARGS} -o source.variant=boot"
               EXTRA_ARGS="${EXTRA_ARGS} -o source.url=https://mirror1.hs-esslingen.de/pub/Mirrors/centos-stream"
           fi
 
