@@ -321,7 +321,6 @@ files:
   types:
   - vm
   releases:
-  - 8-Stream
   - 9-Stream
 
 - generator: fstab
@@ -364,7 +363,6 @@ files:
   content: |-
     ENV{ID_NET_DRIVER}=="veth", ENV{NM_UNMANAGED}="0"
   releases:
-  - 8-Stream
   - 9-Stream
 
 - name: network
@@ -426,7 +424,6 @@ files:
   variants:
   - cloud
   releases:
-  - 8-Stream
   - 9-Stream
 
 - name: user-data
@@ -442,16 +439,6 @@ files:
 - generator: lxd-agent
   types:
   - vm
-
-- name: ipmi_si
-  path: /etc/modprobe.d/blacklist-ipmi.conf
-  generator: dump
-  content: |-
-    blacklist ipmi_si
-  types:
-  - vm
-  releases:
-  - 8-Stream
 
 packages:
   manager: dnf
@@ -485,7 +472,6 @@ packages:
     - NetworkManager
     action: install
     releases:
-    - 8-Stream
     - 9-Stream
 
   - packages:
@@ -529,7 +515,6 @@ packages:
     - vm
     releases:
     - 7
-    - 8-Stream
     - 9-Stream
 
   - packages:
@@ -547,7 +532,6 @@ packages:
     types:
     - vm
     releases:
-    - 8-Stream
     - 9-Stream
 
   - packages:
@@ -557,7 +541,6 @@ packages:
     - vm
     releases:
     - 7
-    - 8-Stream
     - 9-Stream
     architectures:
     - x86_64
@@ -569,7 +552,6 @@ packages:
     - vm
     releases:
     - 7
-    - 8-Stream
     architectures:
     - aarch64
 
@@ -648,24 +630,6 @@ actions:
 
     # Note: This will be reverted at the end of the build
 
-    # Use baseurl instead of mirrorlist to avoid networking issues
-    for repo in $(ls /etc/yum.repos.d/*.repo); do
-      grep -q '^#baseurl' "${repo}" || continue
-
-      cp "${repo}" "${repo}.bak"
-
-      sed -ri 's/^mirrorlist=.*/#\0/g;s@^#(baseurl=)http://mirror.centos.org/(.*)@\1https://mirror.csclub.uwaterloo.ca/\2@g' "${repo}"
-    done
-  releases:
-  - 8-Stream
-
-- trigger: post-unpack
-  action: |-
-    #!/bin/sh
-    set -eux
-
-    # Note: This will be reverted at the end of the build
-
     for repo in $(ls /etc/yum.repos.d/*.repo); do
       cp "${repo}" "${repo}.bak"
     done
@@ -716,7 +680,6 @@ actions:
   - vm
   releases:
   - 7
-  - 8-Stream
   - 9-Stream
 
 - trigger: post-packages
@@ -775,24 +738,6 @@ actions:
   action: |-
     #!/bin/sh
     set -eux
-
-    # Regenerate initramfs
-    kver=$(ls /boot/initramfs-*.img | sed -r 's#.*initramfs-(.+)\.img#\1#')
-    dracut --kver "${kver}" -f
-
-    target="$(readlink -f /etc/grub2-efi.cfg)"
-    grub2-mkconfig -o "${target}"
-
-    sed -i "s#root=[^ ]*#root=/dev/sda2#g" "${target}"
-  types:
-  - vm
-  releases:
-  - 8-Stream
-
-- trigger: post-files
-  action: |-
-    #!/bin/sh
-    set -eux
     kver=$(ls /boot/initramfs-*.img | sed -r 's#.*initramfs-(.+)\.img#\1#')
     target=/boot/efi/EFI/centos/grub.cfg
 
@@ -832,7 +777,6 @@ actions:
 
     systemctl enable NetworkManager.service
   releases:
-  - 8-Stream
   - 9-Stream
 
 - trigger: post-files
