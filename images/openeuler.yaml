@@ -5,6 +5,9 @@ image:
 
 simplestream:
   distro_name: openEuler
+  requirements:
+  - requirements:
+      secureboot: false
 
 source:
   downloader: openeuler-http
