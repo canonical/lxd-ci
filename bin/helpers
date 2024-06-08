@@ -68,6 +68,30 @@ waitInstanceBooted() (
   return 0 # Success.
 )
 
+# isSystemdClean: wait for instance to be booted and check for systemd failures.
+# ==> Returns 1 if systemd state is clean (no failure), 1 otherwise.
+isSystemdClean() (
+  set +x
+  instName="$1"
+  instProj="${2:-}"
+  if [ -z "${instProj}" ]; then
+    # Find the currently selected project.
+    instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
+  fi
+
+  # Wait for the instance to be booted
+  waitInstanceBooted "${instName}" "${instProj}"
+
+  # Return 0 if `systemctl --quiet --failed` output is empty, 1 otherwise.
+  if [ "$(lxc exec --project "${instProj}" "${instName}" -- systemctl --quiet --failed)" = "" ]; then
+      return 0 # Success.
+  fi
+
+  # List failed units
+  lxc exec --project "${instProj}" "${instName}" -- systemctl --failed
+  return 1 # Failed.
+)
+
 # enableSRIOV: enable SR-IOV on a NIC.
 enableNICSRIOV() (
   set +x
