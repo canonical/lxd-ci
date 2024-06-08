@@ -1,0 +1,43 @@
+#!/bin/sh
+set -eu
+
+# Install LXD
+install_lxd
+
+# Configure LXD
+lxd init --auto
+
+# Test
+set -x
+
+for release in 20.04 22.04 24.04; do
+    IMAGE="ubuntu-minimal-daily:${release}"
+
+    echo "==> unprivileged container (${release})"
+    lxc launch "${IMAGE}" u1
+    isSystemdClean u1
+    lxc delete -f u1
+
+    echo "==> privileged container (${release})"
+    lxc launch "${IMAGE}" p1 -c security.privileged=true
+    isSystemdClean p1
+    lxc delete -f p1
+
+    echo "==> isolated container (${release})"
+    lxc launch "${IMAGE}" i1 -c security.idmap.isolated=true
+    isSystemdClean i1
+    lxc delete -f i1
+
+    echo "==> nested container (${release})"
+    lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
+    isSystemdClean n1
+    lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+    lxc exec n1 -- lxd init --auto
+    lxc exec n1 -- lxc launch "${IMAGE}" n11
+    sleep 5
+    [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ]
+    lxc delete -f n1
+done
+
+# shellcheck disable=SC2034
+FAIL=0
