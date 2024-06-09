@@ -80,6 +80,7 @@ jobs:
         test:
           - cgroup
           - cluster
+          - container
           - container-copy
           - cpu-vm
           - devlxd-vm
