@@ -25,7 +25,7 @@ waitInstanceReady() (
   processes=0
   for _ in $(seq "${maxWait}"); do
       processes="$(lxc info --project "${instProj}" "${instName}" | awk '{if ($1 == "Processes:") print $2}')"
-      if [ "${processes}" -ge "${MIN_PROC_COUNT:-2}" ]; then
+      if [ "${processes:-0}" -ge "${MIN_PROC_COUNT:-2}" ]; then
           return 0 # Success.
       fi
       sleep 1
