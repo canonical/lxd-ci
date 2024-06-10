@@ -51,14 +51,21 @@ waitInstanceBooted() (
 
   # Then wait for the boot sequence to complete.
   sleep 1
-  state="$(lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" systemctl is-system-running --wait || true)"
-  if [ "${state}" = "running" ]; then
-    return 0 # Success.
+  rc=0
+  state="$(lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" systemctl is-system-running --wait)" || rc="$?"
+
+  # rc=124 is when `timeout` is hit.
+  # Other rc values are ignored as it doesn't matter if the system is fully
+  # operational (`running`) as it is booted.
+  if [ "${rc}" -eq 124 ]; then
+    echo "::error::Instance ${instName} (${instProj}) not booted after ${maxWait}s"
+    lxc list --project "${instProj}" "${instName}"
+    return 1 # Failed.
+  elif [ "${state}" != "running" ]; then
+    echo "::warning::Instance ${instName} (${instProj}) booted but not fully operational: ${state} != running"
   fi
 
-  echo "Instance ${instName} (${instProj}) not booted after ${maxWait}s"
-  lxc list --project "${instProj}" "${instName}"
-  return 1 # Failed.
+  return 0 # Success.
 )
 
 # enableSRIOV: enable SR-IOV on a NIC.
