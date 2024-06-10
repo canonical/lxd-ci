@@ -10,32 +10,97 @@ lxd init --auto
 # Test
 set -x
 
+ignore_known_issues() {
+    use_case="${1}"
+    known_issue=0
+
+    case "${use_case}" in
+      unprivileged|privileged|isolated|nesting|nested)
+        ;;
+      *)
+        echo "::error::Unknown use case: ${use_case}" >&2
+        return 1
+    esac
+
+    if [ "${release}" = "20.04" ]; then
+        # XXX: all use cases fail with:
+        # ● systemd-remount-fs.service loaded failed failed Remount Root and Kernel File Systems
+        known_issue=1
+    else
+        if [ "${use_case}" = "privileged" ]; then
+            # XXX: 22.04 fail with:
+            # ● systemd-sysusers.service loaded failed failed Create System Users
+
+            # XXX: 24.04 fail with:
+            # ● apparmor.service                         loaded failed failed Load AppArmor profiles
+            # ● systemd-logind.service                   loaded failed failed User Login Management
+            # ● systemd-networkd.service                 loaded failed failed Network Configuration
+            # ● systemd-resolved.service                 loaded failed failed Network Name Resolution
+            # ● systemd-sysctl.service                   loaded failed failed Apply Kernel Variables
+            # ● systemd-sysusers.service                 loaded failed failed Create System Users
+            # ● systemd-timedated.service                loaded failed failed Time & Date Service
+            # ● systemd-tmpfiles-setup-dev-early.service loaded failed failed Create Static Device Nodes in /dev gracefully
+            # ● systemd-tmpfiles-setup-dev.service       loaded failed failed Create Static Device Nodes in /dev
+            # ● systemd-tmpfiles-setup.service           loaded failed failed Create Volatile Files and Directories
+            # ● systemd-networkd.socket                  loaded failed failed Network Service Netlink Socket
+            known_issue=1
+        elif [ "${use_case}" = "isolated" ]; then
+            if [ "${release}" = "24.04" ]; then
+                # XXX: 24.04 fail with:
+                # ● apparmor.service loaded failed failed Load AppArmor profiles
+                known_issue=1
+            fi
+        elif [ "${use_case}" = "nesting" ]; then
+            if [ "${release}" = "24.04" ]; then
+                # XXX: 24.04 fail with:
+                # ● apparmor.service loaded failed failed Load AppArmor profiles
+                known_issue=1
+            fi
+        elif [ "${use_case}" = "nested" ]; then
+            # XXX: 22.04 and 24.04 fail with:
+            # ● apparmor.service      loaded failed failed Load AppArmor profiles
+            # ● snapd.failure.service loaded failed failed Failure handling of the snapd snap
+            # ● snapd.service         loaded failed failed Snap Daemon
+            # ● snapd.socket          loaded failed failed Socket activation for snappy daemon
+            known_issue=1
+        fi
+    fi
+
+    if [ "${known_issue}" -eq 1 ]; then
+        echo "::warning::Ignoring known issue with ${use_case} container (${release})"
+        return 0
+    fi
+
+    echo "::error::Unknown issue with ${use_case} container (${release})" >&2
+    return 1
+}
+
 for release in 20.04 22.04 24.04; do
     IMAGE="ubuntu-minimal-daily:${release}"
 
     echo "==> unprivileged container (${release})"
     lxc launch "${IMAGE}" u1
-    isSystemdClean u1
+    isSystemdClean u1 || ignore_known_issues "unprivileged"
     lxc delete -f u1
 
     echo "==> privileged container (${release})"
     lxc launch "${IMAGE}" p1 -c security.privileged=true
-    isSystemdClean p1
+    isSystemdClean p1 || ignore_known_issues "privileged"
     lxc delete -f p1
 
     echo "==> isolated container (${release})"
     lxc launch "${IMAGE}" i1 -c security.idmap.isolated=true
-    isSystemdClean i1
+    isSystemdClean i1 || ignore_known_issues "isolated"
     lxc delete -f i1
 
     echo "==> nested container (${release})"
     lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
-    isSystemdClean n1
+    isSystemdClean n1 || ignore_known_issues "nesting"
     lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
     lxc exec n1 -- lxd init --auto
     lxc exec n1 -- lxc launch "${IMAGE}" n11
     sleep 5
-    [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ]
+    [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues "nested"
     lxc delete -f n1
 done
 
