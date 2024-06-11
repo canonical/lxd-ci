@@ -3,7 +3,7 @@ on:
   push:
   pull_request:
   schedule:
-    - cron: '38 9 * * *'
+    - cron: '38 6 * * *'
   workflow_dispatch:
     inputs:
       snap-tracks:
