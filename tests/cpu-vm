@@ -47,15 +47,15 @@ lxc info v1
 
 # Get number of CPUs
 # shellcheck disable=SC2010
-cpuCount="$(ls /sys/devices/system/cpu | grep -Ec 'cpu[[:digit:]]+')"
+cpuCount="$(ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')"
 
 # VMs should have only 1 CPU per default
-[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -Ec 'cpu[[:digit:]]+')" -eq "1" ]
+[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "1" ]
 
 # Set valid CPU limits (low to high)
 for i in $(seq 2 "${cpuCount}"); do
   lxc config set v1 limits.cpu="${i}"
-  [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -Ec 'cpu[[:digit:]]+')" -eq "${i}" ]
+  [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${i}" ]
 done
 
 # Try setting more CPUs than available
@@ -64,7 +64,7 @@ done
 # Set valid CPU limits (high to low)
 for i in $(seq "${cpuCount}" -1 1); do
   lxc config set v1 limits.cpu="${i}"
-  [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -Ec 'cpu[[:digit:]]+')" -eq "${i}" ]
+  [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${i}" ]
 done
 
 # Try doing pinning while VM is running (shouldn't work)
@@ -72,7 +72,7 @@ done
 
 # Set max CPU count
 lxc config set v1 limits.cpu="${cpuCount}"
-[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -Ec 'cpu[[:digit:]]+')" -eq "${cpuCount}" ]
+[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${cpuCount}" ]
 
 # check that CPU affinity is automatically set if feature present
 QEMU_PID=$(lxc info v1 | awk '/^PID:/ {print $2}')
@@ -97,7 +97,7 @@ fi
 lxc config unset v1 limits.cpu
 
 # Unsetting the limit should leave the VM with 1 CPU
-[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -Ec 'cpu[[:digit:]]+')" -eq "1" ]
+[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "1" ]
 
 echo "==> Stopping and deleting ephemeral VM"
 # Stop VM and check its deleted.
