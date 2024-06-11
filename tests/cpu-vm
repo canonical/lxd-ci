@@ -78,7 +78,7 @@ lxc config set v1 limits.cpu="${cpuCount}"
 QEMU_PID=$(lxc info v1 | awk '/^PID:/ {print $2}')
 if journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.service | grep "Scheduler: virtual-machine"; then
   # Check that there are processes with pinning set
-  # It will be shown like this:
+  # It will be shown like this (for limits.cpu=2):
   # pid 2894's current affinity list: 6
   # pid 2895's current affinity list: 8
   # pid 2897's current affinity list: 0-15
