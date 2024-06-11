@@ -19,7 +19,7 @@ systemctl restart snap.lxd.daemon.service
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 
-IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 poolName="vmpool$$"
 poolDriver=dir
