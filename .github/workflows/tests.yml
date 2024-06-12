@@ -102,7 +102,13 @@ jobs:
           - storage-volumes-vm
           - tpm-vm
           - vm-nesting
+        include:
+          - test: cluster # cluster requires fan to be working so use 22.04 with latest/edge
+            track: "latest/edge"
+            os: "22.04"
         exclude:
+          - test: cluster # fan is not yet working on 24.04 kernel: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2064508
+            os: "24.04"
           - test: efi-vars-editor-vm # not compatible with 5.0/*
             track: "5.0/edge"
           - test: storage-buckets  # waiting for integration with microceph
