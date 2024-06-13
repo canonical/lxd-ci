@@ -10,6 +10,8 @@ lxd init --auto
 # Test
 set -x
 
+RELEASES="${RELEASES:-"20.04 22.04 24.04"}"
+
 ignore_known_issues() {
     use_case="${1}"
     known_issue=0
@@ -75,7 +77,7 @@ ignore_known_issues() {
     return 1
 }
 
-for release in 20.04 22.04 24.04; do
+for release in $RELEASES; do
     IMAGE="ubuntu-minimal-daily:${release}"
 
     echo "==> unprivileged container (${release})"
