@@ -25,7 +25,7 @@ waitInstanceReady() (
   processes=0
   for _ in $(seq "${maxWait}"); do
       processes="$(lxc info --project "${instProj}" "${instName}" | awk '{if ($1 == "Processes:") print $2}')"
-      if [ "${processes}" -ge "${MIN_PROC_COUNT:-2}" ]; then
+      if [ "${processes:-0}" -ge "${MIN_PROC_COUNT:-2}" ]; then
           return 0 # Success.
       fi
       sleep 1
@@ -51,13 +51,44 @@ waitInstanceBooted() (
 
   # Then wait for the boot sequence to complete.
   sleep 1
-  state="$(lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" systemctl is-system-running --wait || true)"
-  if [ "${state}" = "running" ]; then
-    return 0 # Success.
+  rc=0
+  state="$(lxc exec --project "${instProj}" "${instName}" -- timeout "${maxWait}" systemctl is-system-running --wait)" || rc="$?"
+
+  # rc=124 is when `timeout` is hit.
+  # Other rc values are ignored as it doesn't matter if the system is fully
+  # operational (`running`) as it is booted.
+  if [ "${rc}" -eq 124 ]; then
+    echo "::error::Instance ${instName} (${instProj}) not booted after ${maxWait}s"
+    lxc list --project "${instProj}" "${instName}"
+    return 1 # Failed.
+  elif [ "${state}" != "running" ]; then
+    echo "::warning::Instance ${instName} (${instProj}) booted but not fully operational: ${state} != running"
   fi
 
-  echo "Instance ${instName} (${instProj}) not booted after ${maxWait}s"
-  lxc list --project "${instProj}" "${instName}"
+  return 0 # Success.
+)
+
+# isSystemdClean: wait for instance to be booted and check for systemd failures.
+# ==> Returns 1 if systemd state is clean (no failure), 1 otherwise.
+isSystemdClean() (
+  set +x
+  instName="$1"
+  instProj="${2:-}"
+  if [ -z "${instProj}" ]; then
+    # Find the currently selected project.
+    instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
+  fi
+
+  # Wait for the instance to be booted
+  waitInstanceBooted "${instName}" "${instProj}"
+
+  # Return 0 if `systemctl --quiet --failed` output is empty, 1 otherwise.
+  if [ "$(lxc exec --project "${instProj}" "${instName}" -- systemctl --quiet --failed)" = "" ]; then
+      return 0 # Success.
+  fi
+
+  # List failed units
+  lxc exec --project "${instProj}" "${instName}" -- systemctl --failed
   return 1 # Failed.
 )
 

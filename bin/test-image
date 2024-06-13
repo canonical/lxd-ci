@@ -193,12 +193,8 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
 
     # Systemd cleanliness.
     if lxc exec "${name}" -- test -d /run/systemd/system/; then
-        if lxc exec "${name}" -- systemctl --failed 2>&1 | grep -qwF 'failed'; then
+        if ! isSystemdClean "${name}"; then
             echo "===> FAIL: systemd clean: ${name}"
-
-            # Show the systemd failures.
-            echo "===> DEBUG: systemd failed: ${name}"
-            lxc exec "${name}" -- systemctl --failed
             FAIL=1
         else
             echo "===> PASS: systemd clean: ${name}"
