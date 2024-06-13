@@ -12,8 +12,19 @@ set -x
 
 RELEASES="${RELEASES:-"20.04 22.04 24.04"}"
 
+known_systemd_remount_fs_issue() {
+    ctn_name="${1}"
+    if [ "$(lxc exec "${ctn_name}" -- systemctl --failed | grep -wF failed | cut -d' ' -f2)" = "systemd-remount-fs.service" ]; then
+        if lxc exec "${ctn_name}" -- journalctl -o cat --unit=systemd-remount-fs.service | grep -xF "mount: /: can't find LABEL=cloudimg-rootfs."; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
 ignore_known_issues() {
-    use_case="${1}"
+    ctn_name="${1}"
+    use_case="${2}"
     known_issue=0
 
     case "${use_case}" in
@@ -24,11 +35,23 @@ ignore_known_issues() {
         return 1
     esac
 
-    if [ "${release}" = "20.04" ]; then
-        # XXX: all use cases fail with:
-        # ● systemd-remount-fs.service loaded failed failed Remount Root and Kernel File Systems
-        known_issue=1
-    else
+    if [ "${use_case}" = "nested" ]; then
+        # XXX: 20.04, 22.04 and 24.04 fail with:
+        # ● apparmor.service      loaded failed failed Load AppArmor profiles
+        # ● snapd.failure.service loaded failed failed Failure handling of the snapd snap
+        # ● snapd.service         loaded failed failed Snap Daemon
+        # ● snapd.socket          loaded failed failed Socket activation for snappy daemon
+        echo "::warning::Ignoring known issue with ${use_case} container (${release})"
+        return 0
+    fi
+
+    # XXX: ignore a specific failure with `systemd-remount-fs.service`
+    if known_systemd_remount_fs_issue "${ctn_name}"; then
+        echo "::warning::Ignoring known issue with systemd-remount-fs.service"
+        return 0
+    fi
+
+    if [ "${release}" != "20.04" ]; then
         if [ "${use_case}" = "privileged" ]; then
             # XXX: 22.04 fail with:
             # ● systemd-sysusers.service loaded failed failed Create System Users
@@ -46,25 +69,16 @@ ignore_known_issues() {
             # ● systemd-tmpfiles-setup.service           loaded failed failed Create Volatile Files and Directories
             # ● systemd-networkd.socket                  loaded failed failed Network Service Netlink Socket
             known_issue=1
-        elif [ "${use_case}" = "isolated" ]; then
-            if [ "${release}" = "24.04" ]; then
+        elif [ "${release}" = "24.04" ]; then
+            if [ "${use_case}" = "isolated" ]; then
+                # XXX: 24.04 fail with:
+                # ● apparmor.service loaded failed failed Load AppArmor profiles
+                known_issue=1
+            elif [ "${use_case}" = "nesting" ]; then
                 # XXX: 24.04 fail with:
                 # ● apparmor.service loaded failed failed Load AppArmor profiles
                 known_issue=1
             fi
-        elif [ "${use_case}" = "nesting" ]; then
-            if [ "${release}" = "24.04" ]; then
-                # XXX: 24.04 fail with:
-                # ● apparmor.service loaded failed failed Load AppArmor profiles
-                known_issue=1
-            fi
-        elif [ "${use_case}" = "nested" ]; then
-            # XXX: 22.04 and 24.04 fail with:
-            # ● apparmor.service      loaded failed failed Load AppArmor profiles
-            # ● snapd.failure.service loaded failed failed Failure handling of the snapd snap
-            # ● snapd.service         loaded failed failed Snap Daemon
-            # ● snapd.socket          loaded failed failed Socket activation for snappy daemon
-            known_issue=1
         fi
     fi
 
@@ -87,27 +101,27 @@ for release in $RELEASES; do
 
     echo "==> unprivileged container (${release})"
     lxc launch "${IMAGE}" u1
-    isSystemdClean u1 || ignore_known_issues "unprivileged"
+    isSystemdClean u1 || ignore_known_issues "u1" "unprivileged"
     lxc delete -f u1
 
     echo "==> privileged container (${release})"
     lxc launch "${IMAGE}" p1 -c security.privileged=true
-    isSystemdClean p1 || ignore_known_issues "privileged"
+    isSystemdClean p1 || ignore_known_issues "p1" "privileged"
     lxc delete -f p1
 
     echo "==> escapable container (${release})"
     lxc launch "${IMAGE}" e1 -c security.privileged=true -c security.nesting=true
-    isSystemdClean e1 || ignore_known_issues "escapable"
+    isSystemdClean e1 || ignore_known_issues "e1" "escapable"
     lxc delete -f e1
 
     echo "==> isolated container (${release})"
     lxc launch "${IMAGE}" i1 -c security.idmap.isolated=true
-    isSystemdClean i1 || ignore_known_issues "isolated"
+    isSystemdClean i1 || ignore_known_issues "i1" "isolated"
     lxc delete -f i1
 
     echo "==> nested container (${release})"
     lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
-    isSystemdClean n1 || ignore_known_issues "nesting"
+    isSystemdClean n1 || ignore_known_issues "n1" "nesting"
     lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
     lxc exec n1 -- lxd init --auto
 
@@ -118,7 +132,7 @@ for release in $RELEASES; do
     fi
     lxc exec n1 -- lxc launch "${IMAGE}" n11
     sleep 5
-    [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues "nested"
+    [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues "n11" "nested"
     lxc delete -f n1
 done
 
