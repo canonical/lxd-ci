@@ -7,7 +7,7 @@ install_lxd
 # Configure LXD
 lxd init --auto
 
-IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 PREFIX="cluster-$$"
 SIZE="$1"
@@ -89,8 +89,9 @@ sleep 10
 lxc exec "${PREFIX}-1" -- lxc list
 
 U2_IPV4="$(lxc exec "${PREFIX}-1" -- lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
-lxc exec "${PREFIX}-1" -- lxc exec u1 -- ping -c1 "${U2_IPV4}"
-lxc exec "${PREFIX}-1" -- ping -c1 "${U2_IPV4}"
+# XXX: replace ping (not on -minimal images) by a TCP probe on ssh port
+lxc exec "${PREFIX}-1" -- lxc exec u1 -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
+lxc exec "${PREFIX}-1" -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
 
 tmp_cert_dir="$(mktemp -d)"
 
