@@ -630,10 +630,23 @@ ovn_forward_tests() {
     lxc network forward create ovn-virtual-network 2001:db8:1:2::1
     ovn-nbctl list load_balancer | grep -cF name | grep -xF 0
 
+    allocated_ipv4_address=''
+    allocated_ipv6_address=''
+    if hasNeededAPIExtension network_allocate_external_ips; then
+      echo "==> Check forwards can be created with an allocated IP address"
+      allocated_ipv4_address="$(lxc network forward create ovn-virtual-network --allocate=ipv4 | cut -d' ' -f3)"
+      allocated_ipv6_address="$(lxc network forward create ovn-virtual-network --allocate=ipv6 | cut -d' ' -f3)"
+    fi
+
     if hasNeededAPIExtension network_load_balancer; then
       echo "==> Check load balancer cannot be created on same listen address as forward"
       ! lxc network load-balancer create ovn-virtual-network 192.0.2.1 || false
       ! lxc network load-balancer create ovn-virtual-network 2001:db8:1:2::1 || false
+      if hasNeededAPIExtension network_allocate_external_ips; then
+        echo "==> Check load balancer cannot be created on same listen address as allocated forward"
+        ! lxc network load-balancer create ovn-virtual-network "${allocated_ipv4_address}" || false
+        ! lxc network load-balancer create ovn-virtual-network "${allocated_ipv6_address}" || false
+      fi
     fi
 
     echo "==> Check user config is allowed, but unknown keys are not"
@@ -645,8 +658,19 @@ ovn_forward_tests() {
     lxc network forward set ovn-virtual-network 192.0.2.1 target_address="${ip4AddressPrefix}.2"
     lxc network forward set ovn-virtual-network 2001:db8:1:2::1  target_address="${ip6AddressPrefix}::2"
     ovn-nbctl list load_balancer | grep -cF name | grep -xF 2
+    if hasNeededAPIExtension network_allocate_external_ips; then
+      echo "==> Check basic forward default target address can be set on allocated forward (to non-existent target address)"
+      lxc network forward set ovn-virtual-network "${allocated_ipv4_address}" target_address="${ip4AddressPrefix}.3"
+      lxc network forward set ovn-virtual-network "${allocated_ipv6_address}"  target_address="${ip6AddressPrefix}::3"
+      ovn-nbctl list load_balancer | grep -cF name | grep -xF 4
+    fi
+
     lxc network forward delete ovn-virtual-network 192.0.2.1
     lxc network forward delete ovn-virtual-network 2001:db8:1:2::1
+    if hasNeededAPIExtension network_allocate_external_ips; then
+      lxc network forward delete ovn-virtual-network "${allocated_ipv4_address}"
+      lxc network forward delete ovn-virtual-network "${allocated_ipv6_address}"
+    fi
     ovn-nbctl list load_balancer | grep -cF name | grep -xF 0
 
     echo "==> Check basic forward can be created with target address (to non-existent target address)"
@@ -859,6 +883,11 @@ ovn_load_balancer_tests() {
     echo "==> Check load balancers can be created"
     lxc network load-balancer create ovn-virtual-network 192.0.2.1
     lxc network load-balancer create ovn-virtual-network 2001:db8:1:2::1
+    if hasNeededAPIExtension network_allocate_external_ips; then
+      echo "==> Check load balancers can be created with allocated IP addresses"
+      allocated_ipv4_address="$(lxc network load-balancer create ovn-virtual-network --allocate=ipv4 | cut -d' ' -f4)"
+      allocated_ipv6_address="$(lxc network load-balancer create ovn-virtual-network --allocate=ipv6 | cut -d' ' -f4)"
+    fi
 
     echo "==> Check no OVN config yet as not fully setup"
     ovn-nbctl list load_balancer | grep -cF name -c | grep -xF 0
@@ -866,6 +895,11 @@ ovn_load_balancer_tests() {
     echo "==> Check forward cannot be created on same listen address as load balancer"
     ! lxc network forward create ovn-virtual-network 192.0.2.1 || false
     ! lxc network forward create ovn-virtual-network 2001:db8:1:2::1 || false
+    if hasNeededAPIExtension network_allocate_external_ips; then
+      echo "==> Check forward cannot be created on same listen address as allocated load balancer"
+      ! lxc network forward create ovn-virtual-network "${allocated_ipv4_address}" || false
+      ! lxc network forward create ovn-virtual-network "${allocated_ipv6_address}" || false
+    fi
 
     echo "==> Check user config is allowed, but unknown keys are not"
     lxc network load-balancer set ovn-virtual-network 192.0.2.1 user.foo=bar
@@ -875,6 +909,10 @@ ovn_load_balancer_tests() {
     echo "==> Check duplicate load balancers cannot be created"
     ! lxc network load-balancer create ovn-virtual-network 192.0.2.1 || false
     ! lxc network load-balancer create ovn-virtual-network 2001:db8:1:2::1 || false
+    if hasNeededAPIExtension network_allocate_external_ips; then
+      ! lxc network load-balancer create ovn-virtual-network "${allocated_ipv4_address}" || false
+      ! lxc network load-balancer create ovn-virtual-network "${allocated_ipv6_address}" || false
+    fi
 
     echo "==> Check a load balancer on another ovn network connected to same uplink cannot conflict with an existing load balancer"
     lxc network create ovn-virtual-network2 --type=ovn network=lxdbr0
@@ -883,6 +921,15 @@ ovn_load_balancer_tests() {
 
     ! lxc network load-balancer create ovn-virtual-network2 192.0.2.1 || false
     ! lxc network load-balancer create ovn-virtual-network2 2001:db8:1:2::1|| false
+    if hasNeededAPIExtension network_allocate_external_ips; then
+      ! lxc network load-balancer create ovn-virtual-network2 "${allocated_ipv4_address}" || false
+      ! lxc network load-balancer create ovn-virtual-network2 "${allocated_ipv6_address}" || false
+
+      # Creation of load balancers below may fail if the allocated IP address conflicts with the hardcoded ones.
+      # Delete the allocated ones to prevent flaky tests.
+      lxc network load-balancer delete ovn-virtual-network "${allocated_ipv4_address}"
+      lxc network load-balancer delete ovn-virtual-network "${allocated_ipv6_address}"
+    fi
     lxc network load-balancer create ovn-virtual-network2 192.0.2.2
     lxc network load-balancer create ovn-virtual-network2 2001:db8:1:2::2
 
