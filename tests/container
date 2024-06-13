@@ -70,7 +70,12 @@ ignore_known_issues() {
             # ● systemd-networkd.socket                  loaded failed failed Network Service Netlink Socket
             known_issue=1
         elif [ "${release}" = "24.04" ]; then
-            if [ "${use_case}" = "isolated" ]; then
+            if [ "${use_case}" = "escapable" ]; then
+                # https://github.com/canonical/lxd/issues/13607
+                # XXX: 24.04 fail with:
+                # ● systemd-binfmt.service loaded failed failed Set Up Additional Binary Formats
+                known_issue=1
+            elif [ "${use_case}" = "isolated" ]; then
                 # XXX: 24.04 fail with:
                 # ● apparmor.service loaded failed failed Load AppArmor profiles
                 known_issue=1
