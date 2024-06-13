@@ -1,5 +1,5 @@
 #!/bin/sh
-set -eu
+set -eux
 
 # Install LXD
 install_lxd
@@ -52,3 +52,6 @@ waitInstanceReady "${vmName}"
 lxc exec "${vmName}" -- stat /dev/tpm0
 lxc exec "${vmName}" -- stat /dev/tpmrm0
 lxc delete "${vmName}" --force
+
+# shellcheck disable=SC2034
+FAIL=0
