@@ -15,7 +15,7 @@ ignore_known_issues() {
     known_issue=0
 
     case "${use_case}" in
-      unprivileged|privileged|isolated|nesting|nested)
+      unprivileged|privileged|escapable|isolated|nesting|nested)
         ;;
       *)
         echo "::error::Unknown use case: ${use_case}" >&2
@@ -92,6 +92,11 @@ for release in 20.04 22.04 24.04; do
     lxc launch "${IMAGE}" p1 -c security.privileged=true
     isSystemdClean p1 || ignore_known_issues "privileged"
     lxc delete -f p1
+
+    echo "==> escapable container (${release})"
+    lxc launch "${IMAGE}" e1 -c security.privileged=true -c security.nesting=true
+    isSystemdClean e1 || ignore_known_issues "escapable"
+    lxc delete -f e1
 
     echo "==> isolated container (${release})"
     lxc launch "${IMAGE}" i1 -c security.idmap.isolated=true
