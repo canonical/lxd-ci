@@ -16,6 +16,14 @@ export PURGE_LXD=1
 
 Note: if you need to run tests on temporary machines, [Testflinger reservations](https://docs.google.com/document/d/11Kot68mnBY9Wq9DXRzTVrKpx5cMkkhBC5RrM51eyybY) might be useful.
 
+To test a custom build of LXD, you can set the `LXD_SIDELOAD_PATH` environment variable.
+This will be copied to `/var/snap/lxd/common/lxd.debug` and the daemon will be reloaded before the test run.
+
+```
+export LXD_SIDELOAD_PATH=/tmp/lxd
+./bin/local-run tests/interception latest/edge
+```
+
 
 # Running tests on OpenStack (ProdStack)
 
