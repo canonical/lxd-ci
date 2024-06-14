@@ -24,6 +24,7 @@ jobs:
         release:
           - unstable
           - 23.11
+          - 24.05
         variant:
           - default
         architecture:
