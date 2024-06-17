@@ -109,8 +109,8 @@ waitInstanceReady v1
 lxc exec v1 -- ls -l /mnt/foo1
 lxc stop -f v1
 
-# Check adding a disk to a vm with a long name to test possible problems with long socket paths or long qemu device tags
-LONG_DEVICE_NAME="device-with-very-long-name-for-long-qemu-property-handling-test"
+# Check adding a disk to a vm with a long name (max 63) and slash to test possible problems with long socket paths or long qemu device tags
+LONG_DEVICE_NAME="device-with-very-long-name-and-/-4-qemu-property-handling-test_"
 
 lxc init "${IMAGE}" v2 --vm
 lxc config device add v2 "${LONG_DEVICE_NAME}" disk source="${testRoot}/allowed1" path="/mnt/bar1"
@@ -118,8 +118,13 @@ lxc start v2
 waitInstanceReady v2
 lxc exec v2 -- mountpoint /mnt/bar1
 lxc config device remove v2 "${LONG_DEVICE_NAME}"
+sleep 1
+! lxc exec v2 -- mountpoint /mnt/bar1 || false # Just tests for mountpoint disconnected, not unmount.
 lxc config device add v2 "${LONG_DEVICE_NAME}" disk source="${testRoot}/allowed1" path="/mnt/bar2" # Test hotplugging as well
 lxc exec v2 -- mountpoint /mnt/bar2
+lxc config device remove v2 "${LONG_DEVICE_NAME}"
+sleep 1
+! lxc exec v2 -- mountpoint /mnt/bar2 || false # Just tests for mountpoint disconnected, not unmount.
 lxc delete -f v2
 
 # Check adding a disk with a source path that is allowed that symlinks to another allowed source path isn't
