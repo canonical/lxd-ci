@@ -204,6 +204,20 @@ for poolDriver in $poolDriverList; do
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
         fi
         lxc delete -f v2
+
+        echo "==> Checking moving VM to a different storage pool"
+        lxc copy v1 v2 --stateless
+        lxc move v2 -s "${poolName}2"
+        lxc start v2
+        waitInstanceReady v2
+        lxc stop -f v2
+
+        echo "==> Checking moving VM back to the original storage pool"
+        lxc move v2 -s "${poolName}"
+        lxc start v2
+        waitInstanceReady v2
+
+        lxc delete -f v2
         lxc delete v1/snap0
         lxc remote rm localhost
         lxc config trust rm "$(lxc query /1.0/certificates?recursion=1 | jq -r '.[].fingerprint')"
