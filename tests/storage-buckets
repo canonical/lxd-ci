@@ -13,7 +13,9 @@ fi
 
 # Grab the architecture so we can install the correct pre-built minio.
 arch="$(uname -m)"
-if [ "${arch}" = "aarch64" ]; then
+if [ "${arch}" = "x86_64" ]; then
+  arch="amd64"
+elif [ "${arch}" = "aarch64" ]; then
   arch="arm64"
 elif [ "${arch}" = "ppc64el" ]; then
   arch="ppc64le"
@@ -28,12 +30,16 @@ fi
 poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
 
 if echo "${poolDriverList}" | grep -qwF "ceph"; then
+  echo "::warning::Skipping test on ceph until we can integrate with microceph"
+  poolDriverList="$(echo "${poolDriverList}" | sed 's/ \?\bceph\b//')"
+fi
+
+if echo "${poolDriverList}" | grep -qwF "ceph"; then
+  # XXX: LXD will be reloaded further down
   snap set lxd ceph.external=true
-  lxd waitready --timeout=300
 
   # Install dependencies
-  apt-get update
-  apt-get install --no-install-recommends --yes ceph-common
+  install_deps ceph-common
 fi
 
 # Clean up the build dir in case it hung around from a failed test.
@@ -42,11 +48,11 @@ mkdir -p /opt/minio
 
 # Download the minio server.
 curl -sSfL "https://dl.min.io/server/minio/release/linux-${arch}/minio" --output "/opt/minio/minio"
-chmod +x "opt/minio/minio"
+chmod +x "/opt/minio/minio"
 
 # Also grab the latest minio client to maintain compatibility with the server.
 curl -sSfL "https://dl.min.io/client/mc/release/linux-${arch}/mc" --output "/opt/minio/mc"
-chmod +x "opt/minio/mc"
+chmod +x "/opt/minio/mc"
 
 # Set the snap config key for minio and reload LXD to have it take effect.
 snap set lxd minio.path=/opt/minio
