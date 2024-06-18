@@ -34,8 +34,7 @@ if echo "${poolDriverList}" | grep -qwF "ceph"; then
   lxd waitready --timeout=300
 
   # Install dependencies
-  apt-get update
-  apt-get install --no-install-recommends --yes ceph-common
+  install_deps ceph-common
 fi
 
 # Clean up the build dir in case it hung around from a failed test.
