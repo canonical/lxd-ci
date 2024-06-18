@@ -30,8 +30,8 @@ fi
 poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
 
 if echo "${poolDriverList}" | grep -qwF "ceph"; then
+  # XXX: LXD will be reloaded further down
   snap set lxd ceph.external=true
-  lxd waitready --timeout=300
 
   # Install dependencies
   install_deps ceph-common
