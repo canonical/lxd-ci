@@ -30,6 +30,11 @@ fi
 poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
 
 if echo "${poolDriverList}" | grep -qwF "ceph"; then
+  echo "::warning::Skipping test on ceph until we can integrate with microceph"
+  poolDriverList="$(echo "${poolDriverList}" | sed 's/ \?\bceph\b//')"
+fi
+
+if echo "${poolDriverList}" | grep -qwF "ceph"; then
   # XXX: LXD will be reloaded further down
   snap set lxd ceph.external=true
 
