@@ -13,7 +13,9 @@ fi
 
 # Grab the architecture so we can install the correct pre-built minio.
 arch="$(uname -m)"
-if [ "${arch}" = "aarch64" ]; then
+if [ "${arch}" = "x86_64" ]; then
+  arch="amd64"
+elif [ "${arch}" = "aarch64" ]; then
   arch="arm64"
 elif [ "${arch}" = "ppc64el" ]; then
   arch="ppc64le"
