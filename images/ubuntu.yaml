@@ -3,7 +3,6 @@ image:
 
 simplestream:
   release_aliases:
-    # bionic: 18.04
     focal: 20.04
     jammy: 22.04
     mantic: 23.10
@@ -353,7 +352,6 @@ files:
           dhcp4: true
           dhcp-identifier: mac
   releases:
-  - bionic
   - focal
   - jammy
   - mantic
@@ -374,7 +372,6 @@ files:
           dhcp4: true
           dhcp-identifier: mac
   releases:
-  - bionic
   - focal
   - jammy
   - mantic
@@ -453,7 +450,6 @@ packages:
   - packages:
     - fuse
     releases:
-    - bionic
     - focal
     action: install
 
@@ -487,7 +483,6 @@ packages:
     architectures:
     - ppc64el
     releases:
-    - bionic
     - jammy
     - mantic
     - noble
@@ -539,7 +534,6 @@ packages:
     - linux-image-virtual
     action: install
     releases:
-    - bionic
     - focal
     - jammy
     - mantic
@@ -620,7 +614,6 @@ actions:
     # Enable systemd-networkd
     systemctl enable systemd-networkd
   releases:
-  - bionic
   - focal
   - jammy
   - mantic
