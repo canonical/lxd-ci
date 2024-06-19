@@ -3,17 +3,12 @@ image:
 
 simplestream:
   release_aliases:
-    # xenial: 16.04
     # bionic: 18.04
     focal: 20.04
     jammy: 22.04
     mantic: 23.10
     noble: 24.04
   requirements:
-  # - requirements:
-  #     cgroup: v1
-  #   releases:
-  #   - xenial
   - requirements:
       cgroup: v2
     releases:
@@ -368,25 +363,6 @@ files:
   variants:
   - default
 
-- path: /etc/network/interfaces
-  generator: dump
-  content: |-
-    # This file describes the network interfaces available on your system
-    # and how to activate them. For more information, see interfaces(5).
-
-    # The loopback network interface
-    auto lo
-    iface lo inet loopback
-
-    auto eth0
-    iface eth0 inet dhcp
-
-    source /etc/network/interfaces.d/*.cfg
-  releases:
-  - xenial
-  types:
-  - container
-
 - path: /etc/netplan/10-lxc.yaml
   generator: dump
   mode: 0600
@@ -408,25 +384,6 @@ files:
   variants:
   - default
   - desktop
-
-- path: /etc/network/interfaces
-  generator: dump
-  content: |-
-    # This file describes the network interfaces available on your system
-    # and how to activate them. For more information, see interfaces(5).
-
-    # The loopback network interface
-    auto lo
-    iface lo inet loopback
-
-    auto enp5s0
-    iface enp5s0 inet dhcp
-
-    source /etc/network/interfaces.d/*.cfg
-  releases:
-  - xenial
-  types:
-  - vm
 
 - name: meta-data
   generator: cloud-init
@@ -496,7 +453,6 @@ packages:
   - packages:
     - fuse
     releases:
-    - xenial
     - bionic
     - focal
     action: install
@@ -531,7 +487,6 @@ packages:
     architectures:
     - ppc64el
     releases:
-    - xenial
     - bionic
     - jammy
     - mantic
@@ -549,17 +504,6 @@ packages:
     releases:
     - mantic
     - noble
-
-  - packages:
-    - acpid
-    action: install
-    architectures:
-    - amd64
-    - arm64
-    releases:
-    - xenial
-    types:
-    - vm
 
   - packages:
     - grub-efi-amd64-signed
@@ -588,14 +532,6 @@ packages:
     - jammy
     - mantic
     - noble
-    types:
-    - vm
-
-  - packages:
-    - linux-image-virtual-hwe-16.04
-    action: install
-    releases:
-    - xenial
     types:
     - vm
 
