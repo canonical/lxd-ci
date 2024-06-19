@@ -351,11 +351,6 @@ files:
         eth0:
           dhcp4: true
           dhcp-identifier: mac
-  releases:
-  - focal
-  - jammy
-  - mantic
-  - noble
   types:
   - container
   variants:
@@ -371,11 +366,6 @@ files:
         enp5s0:
           dhcp4: true
           dhcp-identifier: mac
-  releases:
-  - focal
-  - jammy
-  - mantic
-  - noble
   types:
   - vm
   variants:
@@ -522,22 +512,12 @@ packages:
     action: install
     architectures:
     - arm64
-    releases:
-    - focal
-    - jammy
-    - mantic
-    - noble
     types:
     - vm
 
   - packages:
     - linux-image-virtual
     action: install
-    releases:
-    - focal
-    - jammy
-    - mantic
-    - noble
     types:
     - vm
 
