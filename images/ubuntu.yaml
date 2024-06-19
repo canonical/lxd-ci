@@ -691,12 +691,11 @@ actions:
     echo LANG=en_US.UTF-8 > /etc/locale.conf
 
     # User
-    USERNAME="ubuntu"
-    useradd ${USERNAME} -s /bin/bash -m -U -G adm,video,users
+    useradd ubuntu -s /bin/bash -m -U -G adm,video,users
 
     cat << EOF > /etc/gdm3/custom.conf
     [daemon]
-    AutomaticLogin=${USERNAME}
+    AutomaticLogin=ubuntu
     AutomaticLoginEnable=true
     EOF
 
