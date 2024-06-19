@@ -17,7 +17,6 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          # - bionic
           - focal
           - jammy
           - mantic
@@ -30,7 +29,6 @@ jobs:
           - amd64
           # - arm64
         exclude:
-          - {variant: desktop, release: bionic}
           - {variant: desktop, architecture: arm64}
 
     env:
