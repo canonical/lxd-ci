@@ -60,8 +60,7 @@ jobs:
           ./bin/build-distro "${YAML}" "${ARCH}" "${TYPE}" "${TIMEOUT}" "${{ env.target }}" \
               -o image.architecture=${{ matrix.architecture }} \
               -o image.release=${{ matrix.release }} \
-              -o image.variant=${{ matrix.variant }} \
-              -o source.url="https://deb.debian.org/debian"
+              -o image.variant=${{ matrix.variant }}
 
       - name: Print build artifacts
         run: ls -lah "${{ env.target }}"
