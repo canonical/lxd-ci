@@ -101,6 +101,14 @@ do
 	lxc storage volume attach "${poolName}" vol2 v1
 	lxc storage volume attach "${poolName}" vol3 v1
 
+	echo "==> Share a custom block volume"
+	! lxc storage volume attach "${poolName}" vol2 v2 || false
+	lxc storage volume set default vol2 security.shared true
+	lxc storage volume attach "${poolName}" vol2 v2
+	! lxc storage volume set default vol2 security.shared false || false
+	lxc storage volume detach "${poolName}" vol2 v2
+	lxc storage volume set default vol2 security.shared false
+
     if hasNeededAPIExtension custom_volume_iso; then
 	  echo "==> Attach custom ISO volumes to VM"
 	  lxc storage volume attach "${poolName}" vol5 v1
