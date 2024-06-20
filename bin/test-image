@@ -76,7 +76,7 @@ if [ "${TYPE}" = "vm" ]; then
 
     # Some distros don't support secure boot.
     case "${DISTRO}" in
-        alpine|archlinux|gentoo|nixos)
+        alpine|archlinux|gentoo|nixos|openeuler)
             lxc config set "${TEST_IMAGE}" security.secureboot=false
             ;;
     esac
