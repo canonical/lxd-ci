@@ -47,11 +47,11 @@ lxc exec c1 -- mknod /dev/mknod-test c 1 3
 lxc exec c1 -- mknod /root/mknod-test1 c 1 3
 
 ## bpf (needs 5.9 or higher)
-if runsMinimumKernel 5.9; then
+if runsMinimumKernel 5.9 && hasNeededAPIExtension container_syscall_intercept_bpf_devices; then
     lxc config set c1 security.syscalls.intercept.bpf=true security.syscalls.intercept.bpf.devices=true
     lxc restart c1 -f
 else
-    echo "Skipping security.syscalls.intercept.bpf config as the kernel is too old"
+    echo "Skipping security.syscalls.intercept.bpf config as the kernel is too old or LXD support missing"
 fi
 
 ## mount
