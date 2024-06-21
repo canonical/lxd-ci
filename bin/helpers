@@ -234,7 +234,7 @@ cleanup() {
         # Report some more information for diagnostic purposes
         snap list lxd
         uname -a
-        lxc list --all-projects
+        lxc list --all-projects || lxc list
 
         # LXD daemon logs
         echo "::group::lxd logs"
