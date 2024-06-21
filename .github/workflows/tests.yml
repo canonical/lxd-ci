@@ -158,7 +158,7 @@ jobs:
           set -eux
           sudo apt-get autopurge -y containerd.io docker-ce podman uidmap
           sudo ip link delete docker0
-          sudo nft flush ruleset
+          sudo nft flush ruleset || sudo iptables -I DOCKER-USER -j ACCEPT
 
       - name: Checkout
         uses: actions/checkout@v4
