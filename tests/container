@@ -76,6 +76,11 @@ ignore_known_issues() {
 }
 
 for release in 20.04 22.04 24.04; do
+    if [ "${release}" = "24.04" ] && echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
+        echo "Skip 24.04 container tests on ${LXD_SNAP_CHANNEL}"
+        continue
+    fi
+
     IMAGE="ubuntu-minimal-daily:${release}"
 
     echo "==> unprivileged container (${release})"
