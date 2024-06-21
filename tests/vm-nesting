@@ -6,9 +6,17 @@ set -eux
 # Install LXD.
 install_lxd
 
+storageDriver="zfs"
+if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/" && modinfo zfs | grep -qE '^version:\s*2\.2\.'; then
+    storageDriver="lvm"
+    # Allow more time to boot instances
+    export MAX_WAIT_SECONDS=180
+    echo "${LXD_SNAP_CHANNEL} does not support ZFS 2.2, falling back to ${storageDriver}"
+fi
+
 # Configure LXD.
 lxc project switch default
-lxc storage create default zfs size=30GiB
+lxc storage create default "${storageDriver}" size=30GiB
 lxc network create lxdbr0
 
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
