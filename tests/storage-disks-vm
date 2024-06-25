@@ -122,14 +122,24 @@ lxc config device add v2 "${LONG_DEVICE_NAME}" disk source="${testRoot}/allowed1
 lxc start v2
 waitInstanceReady v2
 lxc exec v2 -- mountpoint /mnt/bar1
-lxc config device remove v2 "${LONG_DEVICE_NAME}"
-sleep 1
-! lxc exec v2 -- mountpoint /mnt/bar1 || false # Just tests for mountpoint disconnected, not unmount.
-lxc config device add v2 "${LONG_DEVICE_NAME}" disk source="${testRoot}/allowed1" path="/mnt/bar2" # Test hotplugging as well
-lxc exec v2 -- mountpoint /mnt/bar2
-lxc config device remove v2 "${LONG_DEVICE_NAME}"
-sleep 1
-! lxc exec v2 -- mountpoint /mnt/bar2 || false # Just tests for mountpoint disconnected, not unmount.
+if [ "${LONG_DEVICE_NAME}" = "notSoLongName" ]; then
+    lxc stop -f v2
+    lxc config device remove v2 "${LONG_DEVICE_NAME}"
+    lxc start v2
+    waitInstanceReady v2
+    ! lxc exec v2 -- mountpoint /mnt/bar2 || false  # Make sure nothing is mounted
+    lxc config device add v2 "${LONG_DEVICE_NAME}" disk source="${testRoot}/allowed1" path="/mnt/bar2" # Test hotplugging as well
+    lxc exec v2 -- mountpoint /mnt/bar2
+else
+    lxc config device remove v2 "${LONG_DEVICE_NAME}"
+    sleep 1
+    ! lxc exec v2 -- mountpoint /mnt/bar1 || false # Just tests for mountpoint disconnected, not unmount.
+    lxc config device add v2 "${LONG_DEVICE_NAME}" disk source="${testRoot}/allowed1" path="/mnt/bar2" # Test hotplugging as well
+    lxc exec v2 -- mountpoint /mnt/bar2
+    lxc config device remove v2 "${LONG_DEVICE_NAME}"
+    sleep 1
+    ! lxc exec v2 -- mountpoint /mnt/bar2 || false # Just tests for mountpoint disconnected, not unmount.
+fi
 lxc delete -f v2
 
 # Check adding a disk with a source path that is allowed that symlinks to another allowed source path isn't
