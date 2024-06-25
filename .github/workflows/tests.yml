@@ -83,6 +83,7 @@ jobs:
           - cluster
           - container
           - container-copy
+          - conversion
           - cpu-vm
           - devlxd-vm
           - docker
