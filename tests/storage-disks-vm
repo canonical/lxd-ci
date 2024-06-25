@@ -111,6 +111,11 @@ lxc stop -f v1
 
 # Check adding a disk to a vm with a long name (max 63) and slash to test possible problems with long socket paths or long qemu device tags
 LONG_DEVICE_NAME="device-with-very-long-name-and-/-4-qemu-property-handling-test_"
+# XXX: LXD releases 5.21 and earlier don't support long names (yet)
+if echo "${LXD_SNAP_CHANNEL}" | grep -E '^([45]\.0|5\.21)/'; then
+    echo "::warning::${LXD_SNAP_CHANNEL} detected, using a shorter name"
+    LONG_DEVICE_NAME="notSoLongName"
+fi
 
 lxc init "${IMAGE}" v2 --vm
 lxc config device add v2 "${LONG_DEVICE_NAME}" disk source="${testRoot}/allowed1" path="/mnt/bar1"
