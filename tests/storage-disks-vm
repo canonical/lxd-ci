@@ -121,6 +121,7 @@ lxc config device remove v2 "${LONG_DEVICE_NAME}"
 sleep 1
 ! lxc exec v2 -- mountpoint /mnt/bar1 || false # Just tests for mountpoint disconnected, not unmount.
 lxc config device add v2 "${LONG_DEVICE_NAME}" disk source="${testRoot}/allowed1" path="/mnt/bar2" # Test hotplugging as well
+sleep 1
 lxc exec v2 -- mountpoint /mnt/bar2
 lxc config device remove v2 "${LONG_DEVICE_NAME}"
 sleep 1
