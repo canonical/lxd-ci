@@ -1,8 +1,7 @@
 name: Submit a test job to Testflinger
 on:
-  push:
-    branches: [CERTTF-330-testflinger-runner-poc]
-    workflow_dispatch:
+  workflow_dispatch:
+
 jobs:
   testflinger-submit:
     runs-on: [self-hosted, testflinger]
