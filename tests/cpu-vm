@@ -4,6 +4,7 @@ set -eux
 architecture="$(uname -m)"
 if [ "${architecture}" != "x86_64" ] && [ "${architecture}" != "s390x" ]; then
   echo "Skipping test as CPU hotplugging not supported on ${architecture}"
+  exit 0
 fi
 
 # Install LXD
