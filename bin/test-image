@@ -75,9 +75,11 @@ if [ "${TYPE}" = "vm" ]; then
         -c limits.memory=4GiB
 
     # Some distros don't support secure boot.
-    if [ "$(lxc image get-property "${TEST_IMAGE}" requirements.secureboot 2>/dev/null)" = "false" ]; then
-        lxc config set "${TEST_IMAGE}" security.secureboot=false
-    fi
+    case "${DISTRO}" in
+        alpine|archlinux|gentoo|nixos|openeuler)
+            lxc config set "${TEST_IMAGE}" security.secureboot=false
+            ;;
+    esac
 
     INSTANCES="${TEST_IMAGE}"
 
