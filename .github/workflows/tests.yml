@@ -127,6 +127,10 @@ jobs:
           - test: storage-buckets  # not compatible with 4.0/*
             track: "4.0/stable"
           - test: "storage-vm ceph"  # waiting for integration with microceph
+          - track: "4.0/edge"
+            os: "24.04"
+          - track: "4.0/stable"
+            os: "24.04"
           - track: "5.0/edge"
             os: "24.04"
           - track: "5.0/stable"
