@@ -56,6 +56,7 @@ To run the VM storage tests on the Dell PowerFlex driver, provide the following 
 * `POWERFLEX_GATEWAY_VERIFY`: Whether to verify the HTTP gateway's certificate. The default is `true`.
 * `POWERFLEX_USER`: Name of the PowerFlex user
 * `POWERFLEX_PASSWORD`: Password of the PowerFlex user
+* `POWERFLEX_MODE`: Operation mode for the consumption of storage volumes. The default is `nvme`.
 
 # Infrastructure managed by IS
 

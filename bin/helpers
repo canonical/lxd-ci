@@ -199,7 +199,8 @@ createPowerFlexPool() (
     powerflex.gateway="${POWERFLEX_GATEWAY}" \
     powerflex.gateway.verify="${POWERFLEX_GATEWAY_VERIFY:-true}" \
     powerflex.user.name="${POWERFLEX_USER}" \
-    powerflex.user.password="${POWERFLEX_PASSWORD}"
+    powerflex.user.password="${POWERFLEX_PASSWORD}" \
+    powerflex.mode="${POWERFLEX_MODE:-nvme}"
 )
 
 # createCertificateAndKey: creates a new key pair.
