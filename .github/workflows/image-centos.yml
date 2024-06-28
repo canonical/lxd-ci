@@ -2,8 +2,8 @@ name: Build CentOS Images
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Build amd64 (Daily at 00:00 UTC).
-    - cron: '0 0 * * 1' # Build arm64 (Weekly on Monday at 00:00 UTC).
+    - cron: '0 0 * * *'  # Build amd64 (Daily at 00:00 UTC).
+    - cron: '0 0 * * 1'  # Build arm64 (Weekly on Monday at 00:00 UTC).
   workflow_dispatch:
     inputs:
       publish:
@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 7 # CentOS 7 tests require cgroups v1. They will pass on ubuntu-20.04 runner.
+          - 7  # CentOS 7 tests require cgroups v1. They will pass on ubuntu-20.04 runner.
           - 9-Stream
         variant:
           - default
