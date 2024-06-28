@@ -143,6 +143,8 @@ jobs:
             os: "20.04"
           - track: "latest/edge"
             os: "22.04"
+          - track: "latest/stable"
+            os: "22.04"
           - track: "latest/edge"
             os: "20.04"
           - track: "latest/stable"
