@@ -73,6 +73,12 @@ cluster:
   cluster_token: "${TOKEN}"
 EOF
     fi
+
+    # add minimal remotes if needed (TODO: remove once 4.0.10 is in 4.0/stable)
+    if [ "$(lxc exec "${PREFIX}-$i" -- lxc remote list -f csv | grep -cwF "minimal")" -lt 2 ]; then
+        lxc exec "${PREFIX}-$i" -- lxc remote add ubuntu-minimal https://cloud-images.ubuntu.com/minimal/releases/ --protocol simplestreams || true
+        lxc exec "${PREFIX}-$i" -- lxc remote add ubuntu-minimal-daily https://cloud-images.ubuntu.com/minimal/daily/ --protocol simplestreams || true
+    fi
 done
 
 echo "==> Validating the cluster"
