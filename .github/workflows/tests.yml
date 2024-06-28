@@ -112,43 +112,25 @@ jobs:
             os: "24.04"
           - test: devlxd-vm  # not compatible with 4.0/*
             track: "4.0/edge"
-          - test: devlxd-vm  # not compatible with 4.0/*
-            track: "4.0/stable"
           - test: efi-vars-editor-vm  # not compatible with 5.0/*
             track: "5.0/edge"
-          - test: efi-vars-editor-vm  # not compatible with 5.0/*
-            track: "5.0/stable"
           - test: efi-vars-editor-vm  # not compatible with 4.0/*
             track: "4.0/edge"
-          - test: efi-vars-editor-vm  # not compatible with 4.0/*
-            track: "4.0/stable"
           - test: storage-buckets  # not compatible with 4.0/*
             track: "4.0/edge"
-          - test: storage-buckets  # not compatible with 4.0/*
-            track: "4.0/stable"
           - test: "storage-vm ceph"  # waiting for integration with microceph
           - track: "4.0/edge"
             os: "24.04"
-          - track: "4.0/stable"
-            os: "24.04"
           - track: "5.0/edge"
-            os: "24.04"
-          - track: "5.0/stable"
             os: "24.04"
           - track: "5.0/edge"
             os: "20.04"
           - track: "5.21/edge"
             os: "20.04"
-          - track: "5.21/stable"
+          - track: "latest/edge"
             os: "20.04"
           - track: "latest/edge"
             os: "22.04"
-          - track: "latest/stable"
-            os: "22.04"
-          - track: "latest/edge"
-            os: "20.04"
-          - track: "latest/stable"
-            os: "20.04"
 
     steps:
       - name: Performance tuning
