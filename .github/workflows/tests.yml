@@ -121,6 +121,8 @@ jobs:
             track: "4.0/edge"
           - test: storage-buckets
             track: "4.0/edge"
+          - test: storage-disks-vm
+            track: "4.0/edge"
           - test: "storage-vm dir"
             track: "4.0/edge"
           - test: "storage-vm btrfs"
