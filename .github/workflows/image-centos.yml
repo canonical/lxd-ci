@@ -17,20 +17,17 @@ on:
 
 jobs:
   centos:
-    runs-on: ${{ matrix.architecture == 'arm64' && 'Ubuntu_ARM64_4C_16G_01' || 'ubuntu-20.04' }}
+    runs-on: ${{ matrix.architecture == 'arm64' && 'Ubuntu_ARM64_4C_16G_01' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
         release:
-          - 7  # CentOS 7 tests require cgroups v1. They will pass on ubuntu-20.04 runner.
           - 9-Stream
         variant:
           - default
           - cloud
         architecture:
           - ${{ (inputs.build-arm64 == true || github.event.schedule == '0 0 * * 1') && 'arm64' ||'amd64' }}
-        exclude:
-          - {architecture: arm64, release: 7}
     env:
       type: "container"
       distro: "${{ github.job }}"
@@ -62,14 +59,6 @@ jobs:
           [ "${ARCH}" = "arm64" ] && IMAGE_ARCH="aarch64"
 
           EXTRA_ARGS=""
-          if [ "${RELEASE}" = "7" ] && [ "${ARCH}" != "amd64" ]; then
-              EXTRA_ARGS="-o source.url=http://mirror.math.princeton.edu/pub/centos-altarch/ -o source.skip_verification=true"
-          fi
-
-          if [ "${RELEASE}" = "7" ]; then
-              EXTRA_ARGS="${EXTRA_ARGS} -o packages.manager=yum"
-          fi
-
           if [ "${RELEASE}" = "9-Stream" ]; then
               EXTRA_ARGS="${EXTRA_ARGS} -o source.variant=boot"
               EXTRA_ARGS="${EXTRA_ARGS} -o source.url=https://mirror1.hs-esslingen.de/pub/Mirrors/centos-stream"
