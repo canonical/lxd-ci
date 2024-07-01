@@ -22,7 +22,6 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 20.03
           - 22.03
           - 23.03
           - 24.03
