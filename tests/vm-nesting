@@ -94,7 +94,8 @@ start 5
 wait 5
 cmd 5 "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
 cmd 5 "lxd init --auto"
-cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB -d root,size=3584MiB"
+cmd 5 "lxc profile device set default root size=3584MiB"
+cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB"
 delete 5
 
 echo "==> Test 5 containers each with one nested VM"
@@ -108,7 +109,8 @@ device_add 5 vsock unix-char source=/dev/vsock
 start 5
 cmd 5 "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
 cmd 5 "lxd init --auto"
-cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB -d root,size=3584MiB"
+cmd 5 "lxc profile device set default root size=3584MiB"
+cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB"
 
 echo "==> Cleaning up"
 instCount="$(lxc list -f csv -c n t | wc -l)"
