@@ -30,7 +30,7 @@ iptables --version 2>&1 | grep legacy
 ip6tables --version 2>&1 | grep legacy
 ebtables --version 2>&1 | grep legacy
 
-# Setup bridge filter and unmanaged bridge.s
+# Setup bridge filter and unmanaged bridges
 modprobe br_netfilter
 ip link add lxdbr0unmanaged type bridge
 
