@@ -3,11 +3,6 @@ image:
 
 simplestream:
   distro_name: CentOS
-  requirements:
-  - requirements:
-      cgroup: v1
-    releases:
-    - 7
 
 source:
   downloader: centos-http
@@ -138,39 +133,6 @@ files:
 - path: /var/lib/dbus/machine-id
   generator: remove
 
-- name: ifcfg-eth0
-  path: /etc/sysconfig/network-scripts/ifcfg-eth0
-  generator: dump
-  templated: true
-  content: |-
-    DEVICE=eth0
-    BOOTPROTO=dhcp
-    ONBOOT=yes
-    HOSTNAME=LXC_NAME
-    NM_CONTROLLED=no
-    TYPE=Ethernet
-    MTU=
-    DHCP_HOSTNAME=LXC_NAME
-  releases:
-  - 7
-  types:
-  - container
-
-- name: ifcfg-eth0.lxd
-  path: /etc/sysconfig/network-scripts/ifcfg-eth0
-  generator: template
-  content: |-
-    DEVICE=eth0
-    BOOTPROTO=dhcp
-    ONBOOT=yes
-    HOSTNAME={{ container.name }}
-    NM_CONTROLLED=no
-    TYPE=Ethernet
-    MTU=
-    DHCP_HOSTNAME={{ container.name }}
-  releases:
-  - 7
-
 - path: /etc/default/grub
   generator: dump
   content: |-
@@ -190,15 +152,6 @@ files:
 - path: /etc/dracut.conf.d/lxd.conf
   generator: dump
   content: |-
-    add_drivers+=" virtio_scsi virtio_pci virtio_console "
-  types:
-  - vm
-  releases:
-  - 7
-
-- path: /etc/dracut.conf.d/lxd.conf
-  generator: dump
-  content: |-
     add_drivers+=" virtio_scsi virtio_console sd_mod "
   types:
   - vm
@@ -208,36 +161,6 @@ files:
 - generator: fstab
   types:
   - vm
-
-- name: lxd-agent-workaround.service
-  path: /etc/systemd/system/lxd-agent-workaround.service
-  generator: dump
-  content: |-
-    [Unit]
-    Description=LXD - agent (centos workaround)
-    Before=lxd-agent.service
-
-    [Service]
-    Type=oneshot
-    ExecStart=-/bin/mkdir /run/lxd_agent
-
-    [Install]
-    WantedBy=multi-user.target
-  types:
-  - vm
-  releases:
-  - 7
-
-- name: lxd-agent.override
-  path: /etc/systemd/system/lxd-agent.service.d/lxd.conf
-  generator: dump
-  content: |-
-    [Service]
-    WorkingDirectory=/run/lxd_agent
-  types:
-  - vm
-  releases:
-  - 7
 
 - name: 86-nm-unmanaged.rules
   path: /etc/udev/rules.d/86-nm-unmanaged.rules
@@ -266,40 +189,6 @@ files:
   generator: cloud-init
   variants:
   - cloud
-
-- name: network-config
-  generator: cloud-init
-  variants:
-  - cloud
-  releases:
-  - 7
-  types:
-  - container
-
-- name: network-config
-  generator: cloud-init
-  content: |-
-    {%- if config_get("cloud-init.network-config", "") == "" -%}
-    {%- if config_get("user.network-config", "") == "" -%}
-    version: 1
-    config:
-    - type: physical
-      name: eth0
-      subnets:
-      - type: dhcp
-        control: auto
-    {%- else -%}
-    {{- config_get("user.network-config", "") -}}
-    {%- endif -%}
-    {%- else -%}
-    {{- config_get("cloud-init.network-config", "") -}}
-    {%- endif %}
-  variants:
-  - cloud
-  releases:
-  - 7
-  types:
-  - vm
 
 - name: network-config
   generator: cloud-init
@@ -342,12 +231,6 @@ packages:
     - rsyslog
     - vim-minimal
     action: install
-
-  - packages:
-    - cronie-noanacron
-    action: install
-    releases:
-    - 7
 
   - packages:
     - cronie-anacron
@@ -396,17 +279,7 @@ packages:
     types:
     - vm
     releases:
-    - 7
     - 9-Stream
-
-  - packages:
-    - kernel-plus
-    - irqbalance
-    action: install
-    types:
-    - vm
-    releases:
-    - 7
 
   - packages:
     - kernel
@@ -422,7 +295,6 @@ packages:
     types:
     - vm
     releases:
-    - 7
     - 9-Stream
     architectures:
     - x86_64
@@ -432,24 +304,10 @@ packages:
     action: install
     types:
     - vm
-    releases:
-    - 7
     architectures:
     - aarch64
 
 actions:
-- trigger: post-unpack
-  action: |-
-    #!/bin/sh
-    set -eux
-
-    # Enable the centosplus repo which has a kernel with 9p support
-    sed -i 's/^enabled=0/enabled=1/' /etc/yum.repos.d/CentOS-Base.repo
-  types:
-  - vm
-  releases:
-  - 7
-
 - trigger: post-unpack
   action: |-
     #!/bin/sh
@@ -461,49 +319,6 @@ actions:
     if [ -f /etc/yum/pluginconf.d/fastestmirror.conf ]; then
       sed -ri 's/enabled=1/enabled=0/g' /etc/yum/pluginconf.d/fastestmirror.conf
     fi
-
-- trigger: post-unpack
-  action: |-
-    #!/bin/sh
-    set -eux
-
-    # Note: This will be reverted at the end of the build
-
-    # Use baseurl instead of mirrorlist to avoid networking issues
-    for repo in $(ls /etc/yum.repos.d/*.repo); do
-      grep -q '^#baseurl' "${repo}" || continue
-
-      cp "${repo}" "${repo}.bak"
-
-      sed -ri 's/^mirrorlist=.*/#\0/g;s@^#(baseurl=)http://mirror.centos.org/(.*)@\1https://mirror.csclub.uwaterloo.ca/\2@g' "${repo}"
-    done
-  releases:
-  - 7
-  architectures:
-  - x86_64
-
-- trigger: post-unpack
-  action: |-
-    #!/bin/sh
-    set -eux
-
-    # Note: This will be reverted at the end of the build
-
-    # Use baseurl instead of mirrorlist to avoid networking issues
-    for repo in $(ls /etc/yum.repos.d/*.repo); do
-      grep -q '^#baseurl' "${repo}" || continue
-
-      cp "${repo}" "${repo}.bak"
-
-      sed -ri 's/^mirrorlist=.*/#\0/g;s@^#(baseurl=)http://mirror.centos.org/altarch/(.*)@\1https://mirror.init7.net/centos-altarch/\2@g' "${repo}"
-    done
-  releases:
-  - 7
-  architectures:
-  - aarch64
-  - armhfp
-  - ppc64le
-  - i386
 
 - trigger: post-unpack
   action: |-
@@ -561,7 +376,6 @@ actions:
   types:
   - vm
   releases:
-  - 7
   - 9-Stream
 
 - trigger: post-packages
@@ -589,32 +403,6 @@ actions:
     # Set default locale
     localedef -i en_US -f UTF-8 en_US.UTF-8
     echo 'LANG=en_US.utf8' > /etc/locale.conf
-
-- trigger: post-files
-  action: |-
-    #!/bin/sh
-    set -eux
-
-    mount -t tmpfs tmpfs /sys/firmware
-    mkdir /sys/firmware/efi
-
-    # Regenerate initramfs
-    kver=$(ls /boot/initramfs-*.img | sed -r 's#.*initramfs-(.+)\.img#\1#')
-    dracut --kver "${kver}" -f
-
-    target="$(readlink -f /etc/grub2-efi.cfg)"
-    grub2-mkconfig -o "${target}"
-
-    umount /sys/firmware
-
-    sed -i "s#root=[^ ]*#root=/dev/sda2#g" "${target}"
-
-    # Workaround for broken systemd in centos7
-    systemctl enable lxd-agent-workaround.service
-  types:
-  - vm
-  releases:
-  - 7
 
 - trigger: post-files
   action: |-
