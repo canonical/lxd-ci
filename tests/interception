@@ -73,17 +73,13 @@ lxc exec c1 -- mount /dev/sda /mnt
 [ "$(lxc exec c1 -- stat --format=%u:%g /mnt)" = "0:0" ]
 lxc exec c1 -- umount /mnt
 
-if hasNeededAPIExtension container_syscall_intercept_mount_fuse; then
-    lxc config unset c1 security.syscalls.intercept.mount.allowed
-    lxc config set c1 security.syscalls.intercept.mount.fuse=ext4=fuse2fs
-    lxc restart c1 -f
+lxc config unset c1 security.syscalls.intercept.mount.allowed
+lxc config set c1 security.syscalls.intercept.mount.fuse=ext4=fuse2fs
+lxc restart c1 -f
 
-    lxc exec c1 -- mount /dev/sda /mnt
-    [ "$(lxc exec c1 -- stat --format=%u:%g /mnt)" = "0:0" ]
-    lxc exec c1 -- umount /mnt
-else
-    echo "Skipping mount fuse tests as the container_syscall_intercept_mount_fuse API extension is missing"
-fi
+lxc exec c1 -- mount /dev/sda /mnt
+[ "$(lxc exec c1 -- stat --format=%u:%g /mnt)" = "0:0" ]
+lxc exec c1 -- umount /mnt
 
 if hasNeededAPIExtension container_syscall_intercept_finit_module; then
     # it can be any module which is present in the host filesystem and at the same time not used and can be unloaded
