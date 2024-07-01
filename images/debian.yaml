@@ -1019,11 +1019,6 @@ files:
     ClientIdentifier=mac
   types:
   - container
-  releases:
-  - bullseye
-  - bookworm
-  - sid
-  - trixie
 
 - path: /etc/systemd/network/enp5s0.network
   generator: dump
@@ -1043,11 +1038,6 @@ files:
   - vm
   variants:
   - default
-  releases:
-  - bullseye
-  - bookworm
-  - sid
-  - trixie
 
 - path: /etc/default/grub.d/50-lxd.cfg
   generator: dump
@@ -1125,11 +1115,6 @@ packages:
   - packages:
     - udev
     action: install
-    releases:
-    - bullseye
-    - bookworm
-    - sid
-    - trixie
 
   - packages:
     - dbus
@@ -1180,11 +1165,6 @@ packages:
     - vm
     architectures:
     - amd64
-    releases:
-    - bullseye
-    - sid
-    - bookworm
-    - trixie
 
   - packages:
     - grub-efi-arm64
@@ -1200,11 +1180,6 @@ packages:
     action: install
     types:
     - vm
-    releases:
-    - bullseye
-    - sid
-    - bookworm
-    - trixie
 
   repositories:
   - name: sources.list
@@ -1294,11 +1269,6 @@ actions:
   - vm
   variants:
   - default
-  releases:
-  - bullseye
-  - bookworm
-  - sid
-  - trixie
 
 - trigger: post-packages
   action: |-
@@ -1404,11 +1374,6 @@ actions:
     sed -i "s#root=[^ ]*#root=/dev/sda2#g" /boot/grub/grub.cfg
   types:
   - vm
-  releases:
-  - bullseye
-  - sid
-  - bookworm
-  - trixie
 
 - trigger: post-files
   action: |-
