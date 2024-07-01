@@ -135,6 +135,8 @@ jobs:
             track: "4.0/edge"
           - test: "storage-vm zfs"
             track: "4.0/edge"
+          - test: tpm-vm
+            track: "4.0/edge"
           # not compatible with 5.0/*
           - test: efi-vars-editor-vm  # not compatible with 5.0/*
             track: "5.0/edge"
