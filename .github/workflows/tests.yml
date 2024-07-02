@@ -111,6 +111,8 @@ jobs:
           - test: cluster  # fan is not yet working on 24.04 kernel: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2064508
             os: "24.04"
           # not compatible with 4.0/*
+          - test: container-copy
+            track: "4.0/edge"
           - test: cpu-vm
             track: "4.0/edge"
           - test: devlxd-vm
