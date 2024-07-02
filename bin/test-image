@@ -102,11 +102,6 @@ EOF
     fi
 else
     for PRIV in "priv" "unpriv"; do
-        if [ "${PRIV}" = "priv" ] && [ "${DISTRO}" = "nixos" ] && [ "${RELEASE}" = "23.11" ]; then
-            # NixOS 23.11 will never support privileged containers, but future versions do.
-            continue
-        fi
-
         lxc init "${TEST_IMAGE}" "${TEST_IMAGE}-${PRIV}"
         INSTANCES="${INSTANCES} ${TEST_IMAGE}-${PRIV}"
 

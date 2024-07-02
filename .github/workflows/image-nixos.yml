@@ -23,7 +23,6 @@ jobs:
       matrix:
         release:
           - unstable
-          - 23.11
           - 24.05
         variant:
           - default
