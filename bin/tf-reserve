@@ -4,13 +4,21 @@
 tf-reserve() {
     queue="${1:-anything}"
     data="${2:-noble}"
+    boot_media="${3}"
     lp_user="${LP_USER:-$(whoami)}"
     if echo "${data}" | grep -q ^http; then
         provision_data="url: ${data}"
     else
         provision_data="distro: ${data}"
     fi
-    echo "Will reserve the system ${queue} and install ${data} on it"
+
+    boot_media_msg=""
+    if [ -n "$boot_media" ]; then
+      provision_data=$(echo -e "${provision_data}\n  media: ${boot_media}")
+      boot_media_msg=" with boot media of type ${boot_media} "
+    fi
+
+    echo "Will reserve the system ${queue} and install ${data} on it ${boot_media_msg}for user ${lp_user}"
     testflinger-cli submit --poll - << EOF
 job_queue: ${queue}
 provision_data:
