@@ -175,7 +175,7 @@ jobs:
           echo "force-unsafe-io" | sudo tee /etc/dpkg/dpkg.cfg.d/force-unsafe-io
 
       - name: Reclaim some space (storage tests only)
-        if: ${{ startsWith(matrix.test, 'storage') }}
+        if: ${{ startsWith(matrix.test, 'storage') || matrix.test == 'vm-nesting' }}
         run: |
           set -eux
           df -h
