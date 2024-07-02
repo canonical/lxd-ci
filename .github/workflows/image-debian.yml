@@ -22,7 +22,6 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - buster
           - bullseye
           - sid
           - bookworm
