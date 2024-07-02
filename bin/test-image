@@ -180,12 +180,6 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
         continue
     fi
 
-    # Skip CentOS 7 VMs due to racy agent
-    if [ "${TYPE}" = "vm" ] && [ "${DISTRO}" = "centos" ] && [ "${RELEASE}" = "7" ]; then
-        echo "===> SKIP: CentOS 7 has an unstable agent: ${name}"
-        continue
-    fi
-
     # Systemd cleanliness.
     if lxc exec "${name}" -- test -d /run/systemd/system/; then
         if lxc exec "${name}" -- systemctl --failed 2>&1 | grep -qwF 'failed'; then
