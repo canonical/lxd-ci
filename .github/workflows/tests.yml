@@ -117,6 +117,9 @@ jobs:
             track: "4.0/edge"
           - test: efi-vars-editor-vm
             track: "4.0/edge"
+          - test: network-bridge-firewall
+            os: 20.04
+            track: "4.0/edge"
           - test: network-ovn
             track: "4.0/edge"
           - test: storage-buckets
