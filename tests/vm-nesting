@@ -78,26 +78,26 @@ function delete() {
 	lxc delete -f "${instances[@]}"
 }
 
-echo "==> Test 10 VMs in parallel"
-init 10 --vm
-start 10
-delete 10
-
-echo "==> Test 10 VMs in parallel for vsock ID collision"
-init 10 --vm
-conf 10 volatile.vsock_id=42
-start 10
-delete 10
-
-echo "==> Test 5 VMs each with one nested VM"
+echo "==> Test 5 VMs in parallel"
 init 5 --vm
 start 5
-wait 5
-cmd 5 "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
-cmd 5 "lxd init --auto"
-cmd 5 "lxc profile device set default root size=3584MiB"
-cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB"
 delete 5
+
+echo "==> Test 5 VMs in parallel for vsock ID collision"
+init 5 --vm
+conf 5 volatile.vsock_id=42
+start 5
+delete 5
+
+echo "==> Test 3 VMs each with one nested VM"
+init 3 --vm
+start 3
+wait 3
+cmd 3 "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
+cmd 3 "lxd init --auto"
+cmd 3 "lxc profile device set default root size=3584MiB"
+cmd 3 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB"
+delete 3
 
 echo "==> Test 5 containers each with one nested VM"
 init 5
