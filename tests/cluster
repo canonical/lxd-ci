@@ -60,7 +60,12 @@ for i in $(seq "${SIZE}"); do
         MEMBER_IP=$(lxc exec "${PREFIX}-$i" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
 
         # Get a join token
-        TOKEN="$(lxc exec "${PREFIX}-1" -- lxc cluster add --quiet "${PREFIX}-${i}")"
+        if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
+            # 4.0 doesn't support --quiet
+            TOKEN="$(lxc exec "${PREFIX}-1" -- lxc cluster add "${PREFIX}-${i}" | tail -n1)"
+        else
+            TOKEN="$(lxc exec "${PREFIX}-1" -- lxc cluster add --quiet "${PREFIX}-${i}")"
+        fi
 
         lxc exec "${PREFIX}-$i" -- lxd init --preseed << EOF
 cluster:
@@ -72,6 +77,12 @@ cluster:
   server_address: ${MEMBER_IP}:8443
   cluster_token: "${TOKEN}"
 EOF
+    fi
+
+    # add minimal remotes if needed (TODO: remove once 4.0.10 is in 4.0/stable)
+    if [ "$(lxc exec "${PREFIX}-$i" -- lxc remote list -f csv | grep -cwF "minimal")" -lt 2 ]; then
+        lxc exec "${PREFIX}-$i" -- lxc remote add ubuntu-minimal https://cloud-images.ubuntu.com/minimal/releases/ --protocol simplestreams || true
+        lxc exec "${PREFIX}-$i" -- lxc remote add ubuntu-minimal-daily https://cloud-images.ubuntu.com/minimal/daily/ --protocol simplestreams || true
     fi
 done
 
@@ -95,35 +106,51 @@ lxc exec "${PREFIX}-1" -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV
 
 tmp_cert_dir="$(mktemp -d)"
 
-echo "==> Add restricted and unrestricted certificates"
-createCertificateAndKey "${tmp_cert_dir}/cert.key" "${tmp_cert_dir}/cert.crt" "cert.local"
-createCertificateAndKey "${tmp_cert_dir}/cert-restricted.key" "${tmp_cert_dir}/cert-restricted.crt" "cert-restricted.local"
-lxc config trust add "${tmp_cert_dir}/cert.crt"
-lxc config trust add "${tmp_cert_dir}/cert-restricted.crt" --restricted --projects default
-unrestricted_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/cert.crt")"
-restricted_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/cert-restricted.crt")"
+if hasNeededAPIExtension certificate_project; then
+    TEST_RESTRICTED=1
+else
+    echo "Skipping restricted certificate test, not supported"
+    TEST_RESTRICTED=0
+fi
 
-echo "==> Check the certificates for its permissions"
+echo "==> Add unrestricted certificate"
+createCertificateAndKey "${tmp_cert_dir}/cert.key" "${tmp_cert_dir}/cert.crt" "cert.local"
+lxc config trust add "${tmp_cert_dir}/cert.crt"
+unrestricted_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/cert.crt")"
+
+if [ "${TEST_RESTRICTED}" = "1" ]; then
+  echo "==> Add restricted certificate"
+  createCertificateAndKey "${tmp_cert_dir}/cert-restricted.key" "${tmp_cert_dir}/cert-restricted.crt" "cert-restricted.local"
+  lxc config trust add "${tmp_cert_dir}/cert-restricted.crt" --restricted --projects default
+  restricted_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/cert-restricted.crt")"
+fi
+
+echo "==> Check the certificates for their permissions"
 lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".restricted" | grep -xF false
 lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".type" | grep -xF client
-lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".restricted" | grep -xF true
-lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".type" | grep -xF client
-lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".projects[0]" | grep -xF default
 
-echo "==> Add restricted and unrestricted metrics certificates"
-createCertificateAndKey "${tmp_cert_dir}/metrics.key" "${tmp_cert_dir}/metrics.crt" "metrics.local"
-createCertificateAndKey "${tmp_cert_dir}/metrics-restricted.key" "${tmp_cert_dir}/metrics-restricted.crt" "metrics-restricted.local"
-lxc config trust add "${tmp_cert_dir}/metrics.crt" --type metrics
-lxc config trust add "${tmp_cert_dir}/metrics-restricted.crt" --type metrics --restricted --projects default
-unrestricted_metrics_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/metrics.crt")"
-restricted_metrics_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/metrics-restricted.crt")"
+if [ "${TEST_RESTRICTED}" = "1" ]; then
+  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".restricted" | grep -xF true
+  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".type" | grep -xF client
+  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+fi
 
-echo "==> Check the metrics certificates for its permissions"
-lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF false
-lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
-lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF true
-lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
-lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+if [ "${TEST_RESTRICTED}" = "1" ]; then
+  echo "==> Add restricted and unrestricted metrics certificates"
+  createCertificateAndKey "${tmp_cert_dir}/metrics.key" "${tmp_cert_dir}/metrics.crt" "metrics.local"
+  createCertificateAndKey "${tmp_cert_dir}/metrics-restricted.key" "${tmp_cert_dir}/metrics-restricted.crt" "metrics-restricted.local"
+  lxc config trust add "${tmp_cert_dir}/metrics.crt" --type metrics
+  lxc config trust add "${tmp_cert_dir}/metrics-restricted.crt" --type metrics --restricted --projects default
+  unrestricted_metrics_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/metrics.crt")"
+  restricted_metrics_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/metrics-restricted.crt")"
+
+  echo "==> Check the metrics certificates for its permissions"
+  lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF false
+  lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
+  lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF true
+  lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
+  lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+fi
 
 echo "==> Upgrading the cluster"
 for i in $(seq "${SIZE}"); do
@@ -150,16 +177,20 @@ lxc exec "${PREFIX}-1" -- lxc cluster list
 echo "==> Check the certificates for its permissions after cluster upgrade"
 lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".restricted" | grep -xF false
 lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".type" | grep -xF client
-lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".restricted" | grep -xF true
-lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".type" | grep -xF client
-lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+if [ "${TEST_RESTRICTED}" = "1" ]; then
+    lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".restricted" | grep -xF true
+    lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".type" | grep -xF client
+    lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+fi
 
-echo "==> Check the metrics certificates for its permissions after cluster upgrade"
-lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF false
-lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
-lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF true
-lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
-lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+if [ "${TEST_RESTRICTED}" = "1" ]; then
+    echo "==> Check the metrics certificates for its permissions after cluster upgrade"
+    lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF false
+    lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
+    lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF true
+    lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
+    lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+fi
 
 echo "==> Deleting the cluster"
 for i in $(seq "${SIZE}"); do
