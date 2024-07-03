@@ -63,10 +63,10 @@ for poolDriver in $poolDriverList; do
         lxc info v1
 
         echo "==> Check /dev/disk/by-id"
-        lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root
-        lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part1
+        lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root
+        lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part1
         if lxc exec v1 -- mount | grep -qwF /boot/efi; then
-            lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part15
+                lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part15
         fi
 
         echo "==> Check config drive is readonly"
@@ -82,10 +82,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM root disk size is 3584MiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking VM root disk size is 8GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "8" ]
         fi
 
         echo "foo" | lxc exec v1 -- tee /root/foo.txt
@@ -126,10 +126,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM snapshot copy root disk size is 3584MiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking VM snapshot copy root disk size is 8GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "8" ]
         fi
         lxc delete -f v2
 
@@ -160,10 +160,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM snapshot copy root disk size is 3584MiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking VM snapshot copy root disk size is 8GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "8" ]
         fi
         lxc delete -f v2
 
@@ -198,10 +198,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM snapshot copy root disk size is 3584MiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking VM snapshot copy root disk size is 8GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "8" ]
         fi
         lxc delete -f v2
 
@@ -271,13 +271,13 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM root disk size is 4GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "4" ]
 
                 echo "==> Check VM shrink is blocked"
                 ! lxc config device set v1 root size=3584MiB || false
         else
                 echo "==> Checking VM root disk size is 16GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
 
                 echo "==> Check VM shrink is blocked"
                 ! lxc config device set v1 root size=8GiB || false
@@ -343,13 +343,13 @@ for poolDriver in $poolDriverList; do
         lxc exec v1 -- rm /srv/rw/lxd-test-rw
         lxc exec v1 -- rm /srv/rw/lxd-test
 
-        # Check block disks are available.
-        lxc exec v1 -- stat -c "%F" /dev/sdb | grep -xF "block special file"
-        lxc exec v1 -- stat -c "%F" /dev/sdc | grep -xF "block special file"
+        # Check /dev/disk/by-id/ links
+        lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro
+        lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1rw
 
         # Check the rw driver accepts writes and the ro does not.
-        ! lxc exec v1 -- dd if=/dev/urandom of=/dev/sdb bs=512 count=2 || false
-        lxc exec v1 -- dd if=/dev/urandom of=/dev/sdc bs=512 count=2
+        ! lxc exec v1 -- dd if=/dev/urandom of=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro bs=512 count=2 || false
+        lxc exec v1 -- dd if=/dev/urandom of=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1rw bs=512 count=2
 
         # Remove temporary directory (should now be empty aside from block file).
         echo "==> Stopping VM"
@@ -378,10 +378,13 @@ for poolDriver in $poolDriverList; do
         fi
         lxc storage volume attach "${poolName}" vol1 v1
         sleep 3
-        lxc exec v1 -- stat -c "%F" /dev/sdb | grep -xF "block special file"
+
+        BLOCK_SPECIAL_FILE="$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_vol1)"
+        lxc exec v1 -- test -b "$BLOCK_SPECIAL_FILE"
         lxc storage volume detach "${poolName}" vol1 v1
         sleep 3
-        ! lxc exec v1 -- stat -c "%F" /dev/sdb || false
+        ! lxc exec v1 -- stat "$BLOCK_SPECIAL_FILE" || false
+        ! lxc exec v1 -- stat /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_vol1 || false
         lxc storage volume delete "${poolName}" vol1
 
         lxc config device add v1 block1 disk source="/tmp/lxd-test-${poolName}/lxd-test-block" readonly=true
@@ -399,10 +402,13 @@ for poolDriver in $poolDriverList; do
         # Hot plug cloud-init:config ISO.
         lxc config device add v1 cloudinit disk source=cloud-init:config
         sleep 3
-        lxc exec v1 -- mount -t iso9660 -o ro /dev/sr0 /mnt
-        lxc exec v1 -- umount /dev/sr0
+        BLOCK_SPECIAL_FILE="$(readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_cloudinit)"
+        lxc exec v1 -- test -b "${BLOCK_SPECIAL_FILE}"
+        lxc exec v1 -- mount -t iso9660 -o ro /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_cloudinit /mnt
+        lxc exec v1 -- umount /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_cloudinit
         lxc config device remove v1 cloudinit
-        ! lxc exec v1 -- stat /dev/sr0 || false
+        ! lxc exec v1 -- stat "${BLOCK_SPECIAL_FILE}" || false
+        ! lxc exec v1 -- stat /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_cloudinit || false
 
         # Remove temporary directory.
         echo "==> Stopping VM"
@@ -427,10 +433,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM root disk size is 4GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "4" ]
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "4" ]
         else
                 echo "==> Checking VM root disk size is 16GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
         fi
 
         echo "==> Deleting VM and reset pool volume.size"
@@ -473,10 +479,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking VM root disk size is 3584MiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking VM root disk size is 8GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "8" ]
         fi
         lxc stop -f v1
 
@@ -500,10 +506,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking copied VM root disk size is 3584MiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking copied VM root disk size is 8GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "8" ]
         fi
         lxc delete -f v2
         lxc storage delete "${poolName}-2"
@@ -522,10 +528,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking copied VM root disk size is 3584MiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / MiB))" -eq "3584" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / MiB))" -eq "3584" ]
         else
                 echo "==> Checking copied VM root disk size is 8GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "8" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "8" ]
         fi
         lxc delete -f v2
 
@@ -543,10 +549,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking copied VM root disk size is 5GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "5" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "5" ]
         else
                 echo "==> Checking copied VM root disk size is 16GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
         fi
         lxc delete -f v2
         lxc storage delete "${poolName}-${dstPoolDriver}"
@@ -576,10 +582,10 @@ for poolDriver in $poolDriverList; do
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking new VM root disk size has default volume size of 10GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "10" ]
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "10" ]
         else
                 echo "==> Checking new VM root disk size has default volume size of 16GiB"
-                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/sda) / GiB))" -eq "16" ]
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
         fi
 
         echo "===> Renaming VM"
