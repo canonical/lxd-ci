@@ -32,7 +32,11 @@ lxc config device add v1 eth0 nic \
     ipv4.address=192.0.2.2,192.0.2.3 \
     ipv6.address=2001:db8::2,2001:db8::3
 
-lxc config set v1 cloud-init.network-config - << EOF
+NET_CONFIG_KEY="cloud-init.network-config"
+if ! hasNeededAPIExtension cloud_init; then
+    NET_CONFIG_KEY="user.network-config"
+fi
+lxc config set v1 "${NET_CONFIG_KEY}" - << EOF
 network:
   version: 2
   ethernets:

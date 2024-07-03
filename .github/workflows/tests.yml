@@ -76,8 +76,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [22.04, 24.04]
-        track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge", "5.21/edge", "5.0/edge"]') }}
+        os: [20.04, 22.04, 24.04]
+        track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge", "5.21/edge", "5.0/edge", "4.0/edge"]') }}
         test:
           - cgroup
           - cluster
@@ -110,11 +110,59 @@ jobs:
         exclude:
           - test: cluster  # fan is not yet working on 24.04 kernel: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2064508
             os: "24.04"
+          # not compatible with 4.0/*
+          - test: container-copy
+            track: "4.0/edge"
+          - test: cpu-vm
+            track: "4.0/edge"
+          - test: devlxd-vm
+            track: "4.0/edge"
+          - test: efi-vars-editor-vm
+            track: "4.0/edge"
+          - test: network-bridge-firewall
+            os: 20.04
+            track: "4.0/edge"
+          - test: network-ovn
+            track: "4.0/edge"
+          # https://github.com/canonical/pylxd/issues/590
+          - test: pylxd
+            track: "4.0/edge"
+          - test: storage-buckets
+            track: "4.0/edge"
+          - test: storage-disks-vm
+            track: "4.0/edge"
+          - test: "storage-vm dir"
+            track: "4.0/edge"
+          - test: "storage-vm btrfs"
+            track: "4.0/edge"
+          - test: "storage-vm ceph"
+            track: "4.0/edge"
+          - test: "storage-vm lvm"
+            track: "4.0/edge"
+          - test: "storage-vm lvm-thin"
+            track: "4.0/edge"
+          - test: "storage-vm zfs"
+            track: "4.0/edge"
+          - test: storage-volumes-vm
+            track: "4.0/edge"
+          - test: tpm-vm
+            track: "4.0/edge"
+          # not compatible with 5.0/*
           - test: efi-vars-editor-vm  # not compatible with 5.0/*
             track: "5.0/edge"
-          - test: "storage-vm ceph"  # waiting for integration with microceph
+          # waiting for integration with microceph
+          - test: "storage-vm ceph"
+          # skip track/os combinaisons that are too far appart
+          - track: "4.0/edge"
+            os: "24.04"
           - track: "5.0/edge"
             os: "24.04"
+          - track: "5.0/edge"
+            os: "20.04"
+          - track: "5.21/edge"
+            os: "20.04"
+          - track: "latest/edge"
+            os: "20.04"
           - track: "latest/edge"
             os: "22.04"
 
@@ -132,7 +180,7 @@ jobs:
           echo "force-unsafe-io" | sudo tee /etc/dpkg/dpkg.cfg.d/force-unsafe-io
 
       - name: Reclaim some space (storage tests only)
-        if: ${{ startsWith(matrix.test, 'storage') }}
+        if: ${{ startsWith(matrix.test, 'storage') || matrix.test == 'vm-nesting' }}
         run: |
           set -eux
           df -h
@@ -158,19 +206,7 @@ jobs:
           set -eux
           sudo apt-get autopurge -y containerd.io docker-ce podman uidmap
           sudo ip link delete docker0
-          sudo nft flush ruleset
-
-      - name: Remove needrestart
-        run: |
-          # XXX: workaround https://bugs.launchpad.net/ubuntu/+source/needrestart/+bug/2067800
-          #      needrestart restarting runner-provisioner.service causes an immediate job failure:
-          #
-          #Restarting services...
-          # /etc/needrestart/restart.d/systemd-manager
-          # systemctl restart packagekit.service php8.3-fpm.service runner-provisioner.service systemd-journald.service systemd-networkd.service systemd-resolved.service systemd-udevd.service udisks2.service walinuxagent.service
-          #Terminated
-          #++ cleanup
-          sudo apt-get autopurge -y needrestart
+          sudo nft flush ruleset || sudo iptables -I DOCKER-USER -j ACCEPT
 
       - name: Checkout
         uses: actions/checkout@v4

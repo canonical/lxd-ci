@@ -6,9 +6,29 @@ set -eux
 # Install LXD.
 install_lxd
 
+VM_IN_CTN=1
+VMs=10
+nestedVMs=5
+storageDriver="zfs"
+if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
+    # VMs on 4.0 are more resource intensive and slower to boot
+    export MAX_WAIT_SECONDS=240
+
+    # VMs inside containers do not work
+    VM_IN_CTN=0
+
+    VMs=3
+    nestedVMs=2
+
+    if modinfo zfs | grep -qE '^version:\s*2\.2\.'; then
+        storageDriver="lvm"
+        echo "${LXD_SNAP_CHANNEL} does not support ZFS 2.2, falling back to ${storageDriver}"
+    fi
+fi
+
 # Configure LXD.
 lxc project switch default
-lxc storage create default zfs size=30GiB
+lxc storage create default "${storageDriver}" size=30GiB
 lxc network create lxdbr0
 
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
@@ -69,38 +89,44 @@ function delete() {
 	lxc delete -f "${instances[@]}"
 }
 
-echo "==> Test 10 VMs in parallel"
-init 10 --vm
-start 10
-delete 10
+echo "==> Test ${VMs} VMs in parallel"
+init "${VMs}" --vm
+start "${VMs}"
+delete "${VMs}"
 
-echo "==> Test 10 VMs in parallel for vsock ID collision"
-init 10 --vm
-conf 10 volatile.vsock_id=42
-start 10
-delete 10
+echo "==> Test ${VMs} VMs in parallel for vsock ID collision"
+init "${VMs}" --vm
+conf "${VMs}" volatile.vsock_id=42
+start "${VMs}"
+delete "${VMs}"
 
-echo "==> Test 5 VMs each with one nested VM"
-init 5 --vm
-start 5
-wait 5
-cmd 5 "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
-cmd 5 "lxd init --auto"
-cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB -d root,size=3584MiB"
-delete 5
+echo "==> Test ${nestedVMs} VMs each with one nested VM"
+init "${nestedVMs}" --vm
+start "${nestedVMs}"
+wait "${nestedVMs}"
+cmd "${nestedVMs}" "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
+cmd "${nestedVMs}" "lxd init --auto"
+cmd "${nestedVMs}" "lxc profile device set default root size=3584MiB"
+cmd "${nestedVMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB"
+delete "${nestedVMs}"
 
-echo "==> Test 5 containers each with one nested VM"
-init 5
-conf 5 security.devlxd.images=true
-conf 5 security.nesting=true
-device_add 5 kvm unix-char source=/dev/kvm
-device_add 5 vhost-net unix-char source=/dev/vhost-net
-device_add 5 vhost-vsock unix-char source=/dev/vhost-vsock
-device_add 5 vsock unix-char source=/dev/vsock
-start 5
-cmd 5 "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
-cmd 5 "lxd init --auto"
-cmd 5 "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB -d root,size=3584MiB"
+if [ "${VM_IN_CTN}" = "1" ]; then
+    echo "==> Test ${nestedVMs} containers each with one nested VM"
+    init "${nestedVMs}"
+    conf "${nestedVMs}" security.devlxd.images=true
+    conf "${nestedVMs}" security.nesting=true
+    device_add "${nestedVMs}" kvm unix-char source=/dev/kvm
+    device_add "${nestedVMs}" vhost-net unix-char source=/dev/vhost-net
+    device_add "${nestedVMs}" vhost-vsock unix-char source=/dev/vhost-vsock
+    device_add "${nestedVMs}" vsock unix-char source=/dev/vsock
+    start "${nestedVMs}"
+    cmd "${nestedVMs}" "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
+    cmd "${nestedVMs}" "lxd init --auto"
+    cmd "${nestedVMs}" "lxc profile device set default root size=3584MiB"
+    cmd "${nestedVMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=510MiB"
+else
+    echo "Skipping VM in container tests on ${LXD_SNAP_CHANNEL}"
+fi
 
 echo "==> Cleaning up"
 instCount="$(lxc list -f csv -c n t | wc -l)"
