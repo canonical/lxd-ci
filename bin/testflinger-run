@@ -13,11 +13,18 @@ test_name="$(basename "${script}")"
 queue="$(awk '/^# testflinger_queue:/ {print $3}' "${script}")"
 queue="${queue:-anything}"
 
+# Look in the test script if there is a suggested url for the image to use
+img_url="$(awk '/^# testflinger_img_url:/ {print $3}' "${script}")"
+
+# Look in the test script if there is a suggested boot media
+boot_media="$(awk '/^# testflinger_boot_media:/ {print $3}' "${script}")"
+
 testflinger_yaml_job() {
     cat << EOF
 job_queue: ${queue}
 provision_data:
-  distro: ${serie}
+$(if [ -n "${img_url}" ]; then echo "  url: \"${img_url}\""; else echo "  distro: \"${serie}\""; fi)
+$(if [ -n "${boot_media}" ]; then echo "  media: \"${boot_media}\""; fi)
 test_data:
   test_cmds: |
     #!/bin/bash
