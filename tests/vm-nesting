@@ -6,12 +6,16 @@ set -eux
 # Install LXD.
 install_lxd
 
+VM_IN_CTN=1
 VMs=10
 nestedVMs=5
 storageDriver="zfs"
 if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
     # VMs on 4.0 are more resource intensive and slower to boot
     export MAX_WAIT_SECONDS=240
+
+    # VMs inside containers do not work
+    VM_IN_CTN=0
 
     VMs=3
     nestedVMs=2
@@ -106,19 +110,23 @@ cmd "${nestedVMs}" "lxc profile device set default root size=3584MiB"
 cmd "${nestedVMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB"
 delete "${nestedVMs}"
 
-echo "==> Test ${VMs} containers each with one nested VM"
-init "${VMs}"
-conf "${VMs}" security.devlxd.images=true
-conf "${VMs}" security.nesting=true
-device_add "${VMs}" kvm unix-char source=/dev/kvm
-device_add "${VMs}" vhost-net unix-char source=/dev/vhost-net
-device_add "${VMs}" vhost-vsock unix-char source=/dev/vhost-vsock
-device_add "${VMs}" vsock unix-char source=/dev/vsock
-start "${VMs}"
-cmd "${VMs}" "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
-cmd "${VMs}" "lxd init --auto"
-cmd "${VMs}" "lxc profile device set default root size=3584MiB"
-cmd "${VMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB"
+if [ "${VM_IN_CTN}" = "1" ]; then
+    echo "==> Test ${nestedVMs} containers each with one nested VM"
+    init "${nestedVMs}"
+    conf "${nestedVMs}" security.devlxd.images=true
+    conf "${nestedVMs}" security.nesting=true
+    device_add "${nestedVMs}" kvm unix-char source=/dev/kvm
+    device_add "${nestedVMs}" vhost-net unix-char source=/dev/vhost-net
+    device_add "${nestedVMs}" vhost-vsock unix-char source=/dev/vhost-vsock
+    device_add "${nestedVMs}" vsock unix-char source=/dev/vsock
+    start "${nestedVMs}"
+    cmd "${nestedVMs}" "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
+    cmd "${nestedVMs}" "lxd init --auto"
+    cmd "${nestedVMs}" "lxc profile device set default root size=3584MiB"
+    cmd "${nestedVMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=510MiB"
+else
+    echo "Skipping VM in container tests on ${LXD_SNAP_CHANNEL}"
+fi
 
 echo "==> Cleaning up"
 instCount="$(lxc list -f csv -c n t | wc -l)"
