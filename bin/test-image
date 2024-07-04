@@ -268,6 +268,28 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     fi
 done
 
+# Check that cloud variants can be rebooted cleanly.
+if [ "${VARIANT}" = "cloud" ]; then
+    for name in ${INSTANCES}; do
+        echo "==> Performing post cloud-init reboot test"
+        lxc exec "${name}" -- cloud-init status --wait --long
+
+        # If systemd is available, use it to wait for any other job to complete before the restart
+        lxc exec "${name}" -- systemctl is-system-running --wait || true
+
+        lxc restart "${name}"
+        waitInstanceReady "${name}"
+
+        # cloud-init status.
+        if lxc exec "${name}" -- cloud-init status --wait --long; then
+            echo "===> PASS: cloud-init reboot: ${name}"
+        else
+            echo "===> FAIL: cloud-init reboot: ${name}"
+            FAIL=1
+        fi
+    done
+fi
+
 # Check that all instances can be stopped.
 echo "==> Performing shutdown test"
 STOPPED=0
