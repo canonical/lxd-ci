@@ -270,8 +270,8 @@ done
 
 # Check that cloud variants can be rebooted cleanly.
 if [ "${VARIANT}" = "cloud" ]; then
+    echo "==> Performing post cloud-init reboot test"
     for name in ${INSTANCES}; do
-        echo "==> Performing post cloud-init reboot test"
         lxc exec "${name}" -- cloud-init status --wait --long
 
         # If systemd is available, use it to wait for any other job to complete before the restart
