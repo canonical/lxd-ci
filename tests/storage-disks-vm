@@ -27,6 +27,11 @@ ln -s "${testRoot}/not-allowed1" "${testRoot}/allowed1/not-allowed1"
 ln -s "${testRoot}/allowed2" "${testRoot}/allowed1/not-allowed2"
 (cd "${testRoot}/allowed1" || false; ln -s foo1 foolink)
 
+# Create block device source inside allowed directory
+touch "${testRoot}/allowed1/lxd-block-test"
+truncate -s 5m "${testRoot}/allowed1/lxd-block-test"
+touch "${testRoot}/allowed1/lxd-test"
+
 # Create loop device to use as NVMe disk
 loopimg="$(mktemp)"
 truncate -s 100M "${loopimg}"
@@ -40,6 +45,96 @@ lxc storage create default zfs size=20GB volume.size=5GB
 lxc profile device add default root disk path="/" pool=default
 lxc profile device add default eth0 nic network=lxdbr0
 lxc profile show default
+
+echo "==> Checking additional disk device support"
+lxc init "${IMAGE}" v1 --vm
+
+# Add disks
+lxc config device add v1 dir1rw disk source="${testRoot}/allowed1" path="/srv/rw"
+lxc config device add v1 dir1ro disk source="${testRoot}/allowed1" path="/srv/ro" readonly=true
+lxc config device add v1 block1ro disk source="${testRoot}/allowed1/lxd-block-test" readonly=true
+lxc config device add v1 block1rw disk source="${testRoot}/allowed1/lxd-block-test"
+lxc start v1
+waitInstanceReady v1
+
+lxc exec v1 -- mount | grep -F /srv/
+
+echo "==> Testing VM lxd-agent drive mounts"
+# Check there is only 1 mount for each directory disk and that it is mounted with the appropriate options.
+[ "$(lxc exec v1 -- mount | grep -cF '/srv/rw type')" = "1" ]
+[ "$(lxc exec v1 -- mount | grep -cF '/srv/ro type')" = "1" ]
+
+# RW disks should use virtio-fs when used with the snap.
+lxc exec v1 -- mount | grep 'lxd_dir1rw on /srv/rw type virtiofs (rw,relatime)'
+
+# RO disks should use virtio-fs when used with the snap but be mounted readonly.
+lxc exec v1 -- mount | grep 'lxd_dir1ro on /srv/ro type virtiofs (ro,relatime)'
+
+# Check UID/GID are correct.
+[ "$(lxc exec v1 -- stat -c '%u:%g' /srv/rw)" = '0:0' ]
+[ "$(lxc exec v1 -- stat -c '%u:%g' /srv/ro)" = '0:0' ]
+
+# Remount the readonly disk as rw inside VM and check that the disk is still readonly at the LXD layer.
+lxc exec v1 -- mount -oremount,rw /srv/ro
+lxc exec v1 -- mount | grep -F /srv/
+lxc exec v1 -- mount | grep 'lxd_dir1ro on /srv/ro type virtiofs (rw,relatime)'
+! lxc exec v1 -- touch /srv/ro/lxd-test-ro || false
+! lxc exec v1 -- mkdir /srv/ro/lxd-test-ro || false
+! lxc exec v1 -- rm /srv/ro/lxd-test.txt || false
+! lxc exec v1 -- chmod 777 /srv/ro || false
+
+## Mount the readonly disk as rw inside VM using 9p and check the disk is still readonly at the LXD layer.
+lxc exec v1 -- mkdir /srv/ro9p
+lxc exec v1 -- mount -t 9p lxd_dir1ro /srv/ro9p
+lxc exec v1 -- mount | grep -F /srv/
+lxc exec v1 -- mount | grep -x 'lxd_dir1ro on /srv/ro9p type 9p (rw,.*,access=client,trans=virtio)'
+! lxc exec v1 -- touch /srv/ro9p/lxd-test-ro || false
+! lxc exec v1 -- mkdir /srv/ro9p/lxd-test-ro || false
+! lxc exec v1 -- rm /srv/ro9p/lxd-test.txt || false
+! lxc exec v1 -- chmod 777 /srv/ro9p || false
+
+# Check writable disk is writable.
+lxc exec v1 -- touch /srv/rw/lxd-test-rw
+[ "$(stat -c '%u:%g' "${testRoot}/allowed1/lxd-block-test")" = "0:0" ]
+lxc exec v1 -- rm /srv/rw/lxd-test-rw
+lxc exec v1 -- rm /srv/rw/lxd-test
+
+# Check /dev/disk/by-id/ links
+lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro
+lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1rw
+
+# Check the rw driver accepts writes and the ro does not.
+! lxc exec v1 -- dd if=/dev/urandom of=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro bs=512 count=2 || false
+lxc exec v1 -- dd if=/dev/urandom of=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1rw bs=512 count=2
+
+echo "==> Checking disk device hotplug support"
+lxc config device remove v1 block1rw
+lxc config device remove v1 block1ro
+lxc config device add v1 block1 disk source="${testRoot}/allowed1/lxd-block-test" readonly=true
+# shellcheck disable=SC2016
+lxc exec v1 -- sh -c 'for i in $(seq 10); do test -e /sys/block/sdb/ro && break; echo "Waiting for sys file to appear (${i}s)"; sleep 1; done'
+[ "$(lxc exec v1 -- cat /sys/block/sdb/ro)" -eq 1 ]
+lxc config device set v1 block1 readonly=false
+# shellcheck disable=SC2016
+lxc exec v1 -- sh -c 'for i in $(seq 10); do test -e /sys/block/sdb/ro && break; echo "Waiting for sys file to appear (${i}s)"; sleep 1; done'
+[ "$(lxc exec v1 -- cat /sys/block/sdb/ro)" -eq 0 ]
+
+# Hotplugging directories is not allowed and will fail
+! lxc config device add v1 dir1 disk source="${testRoot}/allowed1" || false
+
+# Hot plug cloud-init:config ISO.
+lxc config device add v1 cloudinit disk source=cloud-init:config
+sleep 3
+BLOCK_SPECIAL_FILE="$(readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_cloudinit)"
+lxc exec v1 -- test -b "${BLOCK_SPECIAL_FILE}"
+lxc exec v1 -- mount -t iso9660 -o ro /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_cloudinit /mnt
+lxc exec v1 -- umount /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_cloudinit
+lxc config device remove v1 cloudinit
+! lxc exec v1 -- test -e "${BLOCK_SPECIAL_FILE}" || false
+! lxc exec v1 -- test -e /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_cloudinit || false
+
+echo "==> Deleting VM"
+lxc delete -f v1
 
 lxc init "${IMAGE}" v1 --vm
 
@@ -113,13 +208,8 @@ lxc stop -f v1
 LONG_DEVICE_NAME="device-/-with-very-long-name-and-4-qemu-property-handling-test_"
 DEVICE_HOTPLUG="1"
 
-lxc launch "${IMAGE}" v2 --vm
-
 echo "==> Check /dev/disk/by-id with escaped long device name"
-# Create block device source inside allowed directory
-touch "${testRoot}/allowed1/lxd-block-test"
-truncate -s 5m "${testRoot}/allowed1/lxd-block-test"
-
+lxc launch "${IMAGE}" v2 --vm
 waitInstanceReady v2
 lxc config device add v2 ${LONG_DEVICE_NAME} disk source="${testRoot}/allowed1/lxd-block-test"
 sleep 3
@@ -170,6 +260,7 @@ if [ "${DEVICE_HOTPLUG}" = "1" ]; then
       ! lxc exec v2 -- mountpoint /mnt/bar2 || false # Just tests for mountpoint disconnected, not unmount.
   fi
 fi
+
 lxc delete -f v2
 
 # Check adding a disk with a source path that is allowed that symlinks to another allowed source path isn't
