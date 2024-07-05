@@ -214,6 +214,11 @@ jobs:
       - name: ${{ matrix.test }} (${{ matrix.track }})
         run: |
           set -eux
+
+          # XXX: prevent accidental usage of `images:` in CI test jobs.
+          #      All tests should be done using officially supported images.
+          echo '127.0.0.1 images.lxd.canonical.com' | sudo tee /etc/hosts
+
           TEST_SCRIPT="$(echo ${{ matrix.test }} | cut -d " " -f 1)"
           EXTRA_ARGS="$(echo ${{ matrix.test }} | cut -d " " -f 2- --only-delimited)"
           if [ "${TEST_SCRIPT}" = "cluster" ]; then
