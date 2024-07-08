@@ -282,6 +282,9 @@ if [ "${VARIANT}" = "cloud" ]; then
         lxc restart "${name}"
         waitInstanceReady "${name}"
 
+        # Give instance extra few seconds to boot properly.
+        sleep 10
+
         # cloud-init status.
         if lxc exec "${name}" -- cloud-init status --wait --long; then
             echo "===> PASS: cloud-init reboot: ${name}"
