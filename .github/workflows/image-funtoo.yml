@@ -17,6 +17,7 @@ on:
 
 jobs:
   funtoo:
+    if: github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci'
     runs-on: ${{ matrix.architecture == 'arm64' && 'Ubuntu_ARM64_4C_16G_01' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false

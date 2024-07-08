@@ -12,6 +12,7 @@ on:
 
 jobs:
   ubuntu:
+    if: github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
