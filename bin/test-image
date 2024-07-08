@@ -275,7 +275,9 @@ if [ "${VARIANT}" = "cloud" ]; then
         lxc exec "${name}" -- cloud-init status --wait --long
 
         # If systemd is available, use it to wait for any other job to complete before the restart
-        lxc exec "${name}" -- systemctl is-system-running --wait || true
+        if lxc exec "${name}" -- test -d /run/systemd/system/; then
+            lxc exec "${name}" -- systemctl is-system-running --wait || true
+        fi
 
         lxc restart "${name}"
         waitInstanceReady "${name}"
