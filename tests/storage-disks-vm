@@ -103,6 +103,11 @@ lxc exec v1 -- rm /srv/rw/lxd-test
 lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro
 lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1rw
 
+# Check /dev/sd*
+[ "$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root)" = "/dev/sda" ]
+[ "$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro)" = "/dev/sdb" ]
+[ "$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1rw)" = "/dev/sdc" ]
+
 # Check the rw driver accepts writes and the ro does not.
 ! lxc exec v1 -- dd if=/dev/urandom of=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro bs=512 count=2 || false
 lxc exec v1 -- dd if=/dev/urandom of=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1rw bs=512 count=2
@@ -112,12 +117,13 @@ lxc config device remove v1 block1rw
 lxc config device remove v1 block1ro
 lxc config device add v1 block1 disk source="${testRoot}/allowed1/lxd-block-test" readonly=true
 # shellcheck disable=SC2016
-lxc exec v1 -- sh -c 'for i in $(seq 10); do test -e /sys/block/sdb/ro && break; echo "Waiting for sys file to appear (${i}s)"; sleep 1; done'
-[ "$(lxc exec v1 -- cat /sys/block/sdb/ro)" -eq 1 ]
+DISK_DEV="$(basename "$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1)")"
+lxc exec v1 -- sh -c "for i in \$(seq 10); do test -e /sys/block/${DISK_DEV}/ro && break; echo \"Waiting for sys file to appear (\${i}s)\"; sleep 1; done"
+[ "$(lxc exec v1 -- cat /sys/block/"${DISK_DEV}"/ro)" -eq 1 ]
 lxc config device set v1 block1 readonly=false
 # shellcheck disable=SC2016
-lxc exec v1 -- sh -c 'for i in $(seq 10); do test -e /sys/block/sdb/ro && break; echo "Waiting for sys file to appear (${i}s)"; sleep 1; done'
-[ "$(lxc exec v1 -- cat /sys/block/sdb/ro)" -eq 0 ]
+lxc exec v1 -- sh -c "for i in \$(seq 10); do test -e /sys/block/${DISK_DEV}/ro && break; echo \"Waiting for sys file to appear (\${i}s)\"; sleep 1; done"
+[ "$(lxc exec v1 -- cat /sys/block/"${DISK_DEV}"/ro)" -eq 0 ]
 
 # Hotplugging directories is not allowed and will fail
 ! lxc config device add v1 dir1 disk source="${testRoot}/allowed1" || false
