@@ -1142,11 +1142,26 @@ packages:
     - bullseye
 
   - packages:
+    - policykit-1
+    action: install
+    architectures:
+    - amd64
+    - arm64
+    releases:
+    - bullseye
+    types:
+    - vm
+
+  - packages:
     - pkexec
     action: install
     architectures:
     - amd64
     - arm64
+    releases:
+    - bookworm
+    - trixie
+    - sid
     types:
     - vm
 
