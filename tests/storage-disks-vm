@@ -125,8 +125,14 @@ lxc config device set v1 block1 readonly=false
 lxc exec v1 -- sh -c "for i in \$(seq 10); do test -e /sys/block/${DISK_DEV}/ro && break; echo \"Waiting for sys file to appear (\${i}s)\"; sleep 1; done"
 [ "$(lxc exec v1 -- cat /sys/block/"${DISK_DEV}"/ro)" -eq 0 ]
 
-# Hotplugging directories is not allowed and will fail
-! lxc config device add v1 dir1 disk source="${testRoot}/allowed1" || false
+if echo "${LXD_SNAP_CHANNEL}" | grep -E '^([45]\.0)/'; then
+  # Hotplugging directories is not allowed and will fail on LXD 4.0 and 5.0
+  ! lxc config device add v1 dir1 disk source="${testRoot}/allowed1" path="/mnt/bar" || false
+else
+  # Hotplugging directories is allowed from LXD 5.21 onwards
+  lxc config device add v1 dir1 disk source="${testRoot}/allowed1" path="/mnt/bar"
+  lxc config device remove v1 dir1
+fi
 
 # Hot plug cloud-init:config ISO.
 lxc config device add v1 cloudinit disk source=cloud-init:config
