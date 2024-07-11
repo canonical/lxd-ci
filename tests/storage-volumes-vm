@@ -114,6 +114,20 @@ do
 	lxc storage volume attach "${poolName}" vol2 v1
 	lxc storage volume attach "${poolName}" vol3 v1
 
+	echo "==> Share a custom block volume"
+	if hasNeededAPIExtension shared_custom_block_volumes; then
+		! lxc storage volume attach "${poolName}" vol2 v2 || false
+		lxc storage volume set "${poolName}" vol2 security.shared true
+		lxc storage volume attach "${poolName}" vol2 v2
+		! lxc storage volume set "${poolName}" vol2 security.shared false || false
+		lxc storage volume detach "${poolName}" vol2 v2
+		lxc storage volume set "${poolName}" vol2 security.shared false
+	else
+		# Sharing is allowed by default without shared_custom_block_volumes extension
+		lxc storage volume attach "${poolName}" vol2 v2
+		lxc storage volume detach "${poolName}" vol2 v2
+	fi
+
     if hasNeededAPIExtension custom_volume_iso; then
 	  echo "==> Attach custom ISO volumes to VM"
 	  lxc storage volume attach "${poolName}" vol5 v1
