@@ -86,7 +86,7 @@ sleep 1
 # Test nvidia runtime
 echo "==> Testing nvidia runtime"
 ! lxc exec c1 -- nvidia-smi || false
-lxc stop c1
+lxc stop -f c1
 lxc config set c1 nvidia.runtime true
 lxc start c1
 waitInstanceReady c1
