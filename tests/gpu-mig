@@ -67,7 +67,7 @@ lxc exec nvidia-mig3 -- nvidia-smi
 lxc start nvidia-mig4
 lxc exec nvidia-mig4 -- nvidia-smi
 
-lxc stop nvidia-mig4
+lxc stop -f nvidia-mig4
 if [ -n "${identical_nvidia_gpus}" ]; then
   # XXX: if there are multiple identical cards the vendorid/productid combo isn't enough to identify the GPU so a
   #      PCI address would be needed as well but that's already been tested before
@@ -88,7 +88,7 @@ lxc exec nvidia-mig4 -- nvidia-smi
 lxc list
 
 # Stop all instances
-lxc stop --all
+lxc stop -f --all
 
 # Cleanup MIG
 nvidia-smi mig -dci
