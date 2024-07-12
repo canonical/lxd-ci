@@ -85,6 +85,7 @@ jobs:
           - container-copy
           - cpu-vm
           - devlxd-vm
+          - devlxd-container
           - docker
           - efi-vars-editor-vm
           - interception
