@@ -1,0 +1,60 @@
+#!/bin/sh
+set -eux
+
+architecture="$(uname -m)"
+if [ "${architecture}" != "x86_64" ]; then
+  echo "Skipping test on ${architecture}"
+  # shellcheck disable=SC2034
+  FAIL=0
+  exit 0
+fi
+
+if ! echo "${LXD_SNAP_CHANNEL}" | grep -q '^latest/edge'; then
+  echo "Skipping test as should only run on latest/edge"
+  # shellcheck disable=SC2034
+  FAIL=0
+  exit 0
+fi
+
+# Install LXD
+install_lxd
+
+# Configure LXD
+lxd init --auto
+
+# Get the source
+git clone --depth=1 "https://github.com/canonical/lxd-pkg-snap.git" -b "latest-edge"
+
+# Install snapcraft
+snap install snapcraft --classic
+
+# Build qemu-for-lxd snap
+cd lxd-pkg-snap/lxd-qemu-snap
+snapcraft # this should produce a qemu-for-lxd_1_amd64.snap file
+
+snap install qemu-for-lxd_*.snap --dangerous
+
+# install gpu-2404 interface snap
+snap install mesa-2404
+
+# connect snaps
+snap connect lxd:gpu-2404 mesa-2404:gpu-2404
+snap connect lxd:qemu-external qemu-for-lxd:qemu-external
+
+# let LXD to reload
+sleep 5
+lxd waitready --timeout=300
+
+# check that qemu-external connect hook works properly
+journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.service | grep "Setting up external QEMU snap integration"
+
+# check that qemu instance driver is activated and is in "external" mode
+lxc query /1.0 | jq '.environment.driver' | grep "qemu"
+lxc query /1.0 | jq '.environment.driver_version' | grep "(external)"
+
+# check that connection with mesa-2404 snap works
+serverPID="$(lxc query /1.0 | jq .environment.server_pid)"
+grep -aF LIBGL_DRIVERS "/proc/${serverPID}/environ"
+
+# shellcheck disable=SC2034
+FAIL=0
