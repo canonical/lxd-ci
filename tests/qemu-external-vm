@@ -25,14 +25,40 @@ lxd init --auto
 # Get the source
 git clone --depth=1 "https://github.com/canonical/lxd-pkg-snap.git" -b "latest-edge"
 
-# Install snapcraft
-snap install snapcraft --classic
-
 # Build qemu-for-lxd snap
 cd lxd-pkg-snap/lxd-qemu-snap
-snapcraft # this should produce a qemu-for-lxd_1_amd64.snap file
 
-snap install qemu-for-lxd_*.snap --dangerous
+CACHE_PATH="/home/runner/work/cache"
+mkdir "${CACHE_PATH}" || true
+
+# debug
+ls -la "${CACHE_PATH}/"
+
+LXD_QEMU_SNAP_FILE_NAME="qemu-for-lxd_1_amd64.snap"
+LXD_QEMU_SNAP_HASHSUM_FILE_PATH="${CACHE_PATH}/${LXD_QEMU_SNAP_FILE_NAME}.source-hash"
+LXD_QEMU_SNAP_CACHED_HASH_SUM=""
+[ -e "${LXD_QEMU_SNAP_HASHSUM_FILE_PATH}" ] && LXD_QEMU_SNAP_CACHED_HASH_SUM=$(cat "${LXD_QEMU_SNAP_HASHSUM_FILE_PATH}")
+LXD_QEMU_SNAP_HASH_SUM=$(find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{ print $1 }')
+
+if [ "${LXD_QEMU_SNAP_CACHED_HASH_SUM}" != "${LXD_QEMU_SNAP_HASH_SUM}" ]; then
+  echo "==> Hash is changed (${LXD_QEMU_SNAP_CACHED_HASH_SUM} != ${LXD_QEMU_SNAP_HASH_SUM}). Rebuild is needed."
+
+  # Install snapcraft
+  snap install snapcraft --classic
+
+  snapcraft # this should produce a qemu-for-lxd_1_amd64.snap file
+
+  # save to cache
+  mv "${LXD_QEMU_SNAP_FILE_NAME}" "${CACHE_PATH}/"
+  echo "${LXD_QEMU_SNAP_HASH_SUM}" > "${LXD_QEMU_SNAP_HASHSUM_FILE_PATH}"
+fi
+
+SNAP_TO_INSTALL_PATH="${CACHE_PATH}/${LXD_QEMU_SNAP_FILE_NAME}"
+
+# debug
+ls -la "${CACHE_PATH}/"
+
+snap install "${SNAP_TO_INSTALL_PATH}" --dangerous
 
 # install gpu-2404 interface snap
 snap install mesa-2404

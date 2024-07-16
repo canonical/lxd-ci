@@ -73,6 +73,9 @@ jobs:
       PURGE_LXD: "1"
     name: ${{ matrix.test }} (${{ matrix.track }} - ${{ matrix.os }})
     runs-on: ubuntu-${{ matrix.os }}
+    permissions:
+      # need that to manipulate caches
+      actions: write
     strategy:
       fail-fast: false
       matrix:
@@ -214,6 +217,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # needed for cache key
+      - name: Get Date
+        id: get-date
+        run: |
+          echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
+        shell: bash
+
+      # for simplicity, just use one cache directory
+      # and make it valid for one day
+      - uses: actions/cache/restore@v3
+        id: cache-restore
+        if: ${{ matrix.test == 'qemu-external-vm' }}
+        with:
+          path: /home/runner/work/cache
+          key: cache-${{ steps.get-date.outputs.date }}
+
       - name: ${{ matrix.test }} (${{ matrix.track }})
         run: |
           set -eux
@@ -230,6 +249,22 @@ jobs:
             EXTRA_ARGS="${EXTRA_ARGS:-3} ${src_track} ${{ matrix.track }}"
           fi
           sudo --preserve-env=PURGE_LXD,TEST_IMG ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
+
+      # always update cache as we have our own logic of
+      # cache invalidation and updates in addition to a date check
+      - name: Delete previous cache
+        if: ${{ steps.cache-restore.outputs.cache-hit }}
+        continue-on-error: true
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "cache-${{ steps.get-date.outputs.date }}" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/cache/save@v4
+        if: ${{ matrix.test == 'qemu-external-vm' }}
+        with:
+          path: /home/runner/work/cache
+          key: cache-${{ steps.get-date.outputs.date }}
 
       - name: Tmate debugging session (self-hosted)
         if: ${{ failure() && inputs.tmate-debug && inputs.self-hosted-runner }}
