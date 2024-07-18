@@ -33,7 +33,7 @@ lxc remote add target "${token}" --accept-certificate
 # Run the test for various filesystems.
 for fs in "xfs" "btrfs" "ext4" ; do
   echo "==> Testing with ${fs}"
-  mkfs.${fs} "${loopdev}"
+  mkfs."${fs}" "${loopdev}"
   disk_dir="$(mktemp -d "${test_dir}/XXX.disk")"
   mount "${loopdev}" "${disk_dir}"
   rm -rf "${disk_dir}/lost+found"
