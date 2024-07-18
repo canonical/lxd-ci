@@ -185,7 +185,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Checking VM can be refreshed remotely (different storage pool)"
         lxc snapshot v1
-        lxc copy v1 localhost:v2 --refresh
+        lxc copy v1 localhost:v2 --refresh -s "${poolName}2"
         [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "2" ]
         lxc rm v1/snap1
         lxc delete -f v2
