@@ -47,9 +47,6 @@ for fs in "xfs" "btrfs" "ext4" ; do
   # Copy the container to the remote LXD.
   lxc copy c1 target:c1 --stateless --refresh --mode=relay
 
-  # Ensure the container exists.
-  lxc config show target:c1 > /dev/null
-
   # Clean up the storage pool for this run.
   lxc delete c1 -f
   lxc delete target:c1 -f
