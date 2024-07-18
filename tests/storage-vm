@@ -317,8 +317,7 @@ for poolDriver in $poolDriverList; do
                 lxc info v1
 
                 echo "==> Ensure the VM volume ignores volume.block.filesystem"
-                volume_fs="$(lxc storage volume get "${poolName}" virtual-machine/v1 block.filesystem)"
-                echo "${volume_fs}" | grep -F "ext4"
+                [ "$(lxc storage volume get "${poolName}" virtual-machine/v1 block.filesystem)" = "ext4" ]
 
                 echo "==> Checking VM config disk filesystem is not XFS"
                 serverPID="$(lxc query /1.0 | jq .environment.server_pid)"
