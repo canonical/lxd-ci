@@ -266,7 +266,7 @@ for poolDriver in $poolDriverList; do
         nsenter --mount=/run/snapd/ns/lxd.mnt -- rm /var/snap/lxd/common/lxd/logs/v1/qemu.monitor
         systemctl reload snap.lxd.daemon
         sleep 5
-        lxc ls v1 | grep ERROR
+        [ "$(lxc list -f csv -c s v1)" = "ERROR" ]
         ! lxc stop v1 || false
         ! lxc start v1 || false
         pgrep -af "${uuid}"
@@ -300,7 +300,7 @@ for poolDriver in $poolDriverList; do
                 echo "==> Increasing VM root disk size for next boot (16GiB)"
                 lxc config device set v1 root size=16GiB
         fi
-        lxc config get v1 volatile.root.apply_quota | grep true
+        [ "$(lxc config get v1 volatile.root.apply_quota)" = "true" ]
         lxc stop -f v1
         lxc start v1
         waitInstanceReady v1
