@@ -419,7 +419,10 @@ for poolDriver in $poolDriverList; do
         [ "${V1_ROOT_GPT_DISK_ID}" = "${V2_ROOT_GPT_DISK_ID}" ]
 
         echo "==> Check the GPT backup table was copied at the new end of the disk"
-        # `fdisk --list` would print `The backup GPT table is corrupt, but the primary appears OK, so that will be used.` to stderr
+        # If the GPT backup table was not copied to the end of the disk, `fdisk --list` would print
+        # `The backup GPT table is corrupt, but the primary appears OK, so that will be used.`
+        # to stderr. This is not fatal as GPT can cope with this but it would indicate an issue with LXD
+        # not updating the backup table. As such, verify that nothing is output to stderr.
         lxc exec v2 -- fdisk --list /dev/sda | grep -xF 'Disklabel type: gpt'
         [ "$(lxc exec v2 -- fdisk --list /dev/sda 2>&1 >/dev/null)" = "" ]
 
@@ -477,7 +480,10 @@ for poolDriver in $poolDriverList; do
         [ "${V1_ROOT_GPT_DISK_ID}" = "${V2_ROOT_GPT_DISK_ID}" ]
 
         echo "==> Check the GPT backup table was copied at the new end of the disk"
-        # `fdisk --list` would print `The backup GPT table is corrupt, but the primary appears OK, so that will be used.` to stderr
+        # If the GPT backup table was not copied to the end of the disk, `fdisk --list` would print
+        # `The backup GPT table is corrupt, but the primary appears OK, so that will be used.`
+        # to stderr. This is not fatal as GPT can cope with this but it would indicate an issue with LXD
+        # not updating the backup table. As such, verify that nothing is output to stderr.
         lxc exec v2 -- fdisk --list /dev/sda | grep -xF 'Disklabel type: gpt'
         [ "$(lxc exec v2 -- fdisk --list /dev/sda 2>&1 >/dev/null)" = "" ]
 
