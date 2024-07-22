@@ -226,7 +226,7 @@ jobs:
 
       # for simplicity, just use one cache directory
       # and make it valid for one day
-      - uses: actions/cache/restore@v3
+      - uses: actions/cache/restore@v4
         id: cache-restore
         if: ${{ matrix.test == 'qemu-external-vm' }}
         with:
