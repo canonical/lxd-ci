@@ -22,7 +22,7 @@ elif [ "${arch}" = "ppc64el" ]; then
 elif [ "${arch}" = "armhf" ]; then
   arch="arm"
 elif [ "${arch}" = "riscv64" ] ; then
-  echo "Skipping test as not supported by architecture $(arch)"
+  echo "Skipping test as not supported by architecture ${arch}"
   FAIL=0
   exit 0
 fi
