@@ -89,6 +89,7 @@ jobs:
           - conversion
           - cpu-vm
           - devlxd-vm
+          - devlxd-container
           - docker
           - efi-vars-editor-vm
           - interception
