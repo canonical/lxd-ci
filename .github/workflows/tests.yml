@@ -108,6 +108,7 @@ jobs:
           - storage-volumes-vm
           - tpm-vm
           - vm-nesting
+          - vm-migration
         include:
           - test: cluster  # cluster requires fan to be working so use 22.04 with latest/edge
             track: "latest/edge"
@@ -175,6 +176,10 @@ jobs:
             os: "20.04"
           - track: "latest/edge"
             os: "22.04"
+          - test: "vm-migration"
+            track: "4.0/edge"
+          - test: "vm-migration"
+            track: "5.0/edge"
 
     steps:
       - name: Performance tuning
