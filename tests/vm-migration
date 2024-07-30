@@ -1,0 +1,134 @@
+#!/bin/sh
+set -eux
+
+# Install dependencies
+install_deps jq
+
+# Install LXD
+install_lxd
+
+# Configure LXD
+lxc network create lxdbr0
+lxc profile device add default eth0 nic network=lxdbr0
+
+poolName="ctpool$$"
+poolDriver=dir
+
+echo "==> Create storage pool using driver ${poolDriver}"
+lxc storage create "${poolName}" "${poolDriver}"
+lxc profile device add default root disk path="/" pool="${poolName}"
+
+# Create ceph node
+lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" ceph --vm -c limits.cpu=2 -c limits.memory=4GiB
+lxc storage volume create "${poolName}" ceph-disk size=20GiB --type=block
+lxc config device add ceph ceph-disk disk pool="${poolName}" source=ceph-disk
+lxc start ceph
+
+# Wait for snap in ceph instance.
+waitInstanceReady ceph
+# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
+lxc exec ceph -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+
+# Install and configure ceph
+lxc exec ceph -- snap install microceph --edge
+lxc exec ceph -- microceph cluster bootstrap
+lxc exec ceph -- microceph.ceph config set global osd_pool_default_size 1
+lxc exec ceph -- microceph.ceph config set global mon_allow_pool_delete true
+lxc exec ceph -- microceph.ceph config set global osd_memory_target 939524096
+lxc exec ceph -- microceph.ceph osd crush rule rm replicated_rule
+lxc exec ceph -- microceph.ceph osd crush rule create-replicated replicated default osd
+for flag in nosnaptrim noscrub nobackfill norebalance norecover noscrub nodeep-scrub; do
+    lxc exec ceph -- microceph.ceph osd set "${flag}"
+done
+lxc exec ceph -- microceph disk add /dev/sdb
+lxc exec ceph -- microceph.ceph osd pool create cephfs_meta 32
+lxc exec ceph -- microceph.ceph osd pool create cephfs_data 32
+lxc exec ceph -- microceph.ceph fs new cephfs cephfs_meta cephfs_data
+lxc exec ceph -- microceph.ceph fs ls
+for _ in $(seq 60); do
+  if lxc exec ceph -- sudo microceph.ceph pg stat | grep -wF unknown; then
+    sleep 1
+  else
+    break
+  fi
+done
+
+# Launch two instances for our LXD cluster and wait for them to be ready.
+lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member1 --vm -c limits.memory=2GiB
+lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member2 --vm -c limits.memory=2GiB
+waitInstanceReady member1
+waitInstanceReady member2
+# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
+lxc exec member1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
+lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+
+# Install LXD in the first member.
+lxc exec member1 -- snap remove --purge lxd || true
+lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+lxc exec member1 -- lxd waitready --timeout=300
+if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
+    lxc file push "${LXD_SIDELOAD_PATH}" member1/var/snap/lxd/common/lxd.debug
+    lxc exec member1 -- systemctl restart snap.lxd.daemon
+fi
+
+# Initialise and configure LXD in the first member.
+lxc exec member1 -- lxd init --auto
+member1Address="$(lxc query /1.0/instances/member1?recursion=2 | jq -r ".state.network.enp5s0.addresses[0].address")"
+lxc exec member1 -- lxc config set core.https_address="${member1Address}:8443"
+lxc exec member1 -- lxc cluster enable member1
+joinToken="$(lxc exec member1 -- lxc cluster add member2 --quiet)"
+
+# Install LXD on the second member.
+lxc exec member2 -- snap remove --purge lxd || true
+lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+lxc exec member2 -- lxd waitready --timeout=300
+if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
+    lxc file push "${LXD_SIDELOAD_PATH}" member2/var/snap/lxd/common/lxd.debug
+    lxc exec member2 -- systemctl restart snap.lxd.daemon
+fi
+
+# Create a preseed file for member2 to join member1.
+member2Address="$(lxc query /1.0/instances/member2?recursion=2 | jq -r ".state.network.enp5s0.addresses[0].address")"
+preseed="$(
+  cat <<EOF
+cluster:
+  enabled: true
+  server_address: "${member2Address}"
+  cluster_token: "${joinToken}"
+EOF
+)"
+
+# Initialise member2 with the preseed.
+echo "${preseed}" | lxc exec member2 -- lxd init --preseed
+
+# Copy the ceph config from the microceph node into each cluster member.
+rm -rf etc/ceph
+lxc file pull -r ceph/var/snap/microceph/current/conf etc/ceph
+lxc file push -r -p etc/ceph/conf/* member1/etc/ceph/
+lxc file push -r -p etc/ceph/conf/* member2/etc/ceph/
+lxc exec member1 -- chmod +x /etc/ceph
+lxc exec member2 -- chmod +x /etc/ceph
+
+# Create the ceph storage pool
+lxc exec member1 -- lxc storage create ceph ceph --target member1
+lxc exec member1 -- lxc storage create ceph ceph --target member2
+lxc exec member1 -- lxc storage create ceph ceph
+
+# Create a volume in the ceph pool to test that we can live-migrate a VM with this volume attached.
+lxc exec member1 -- lxc storage volume create ceph vol1 --type=block size=500MiB
+
+# Create a VM in the cluster, on member1.
+lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=512MiB
+
+# Add vol1 as a disk device to the VM.
+lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol1
+
+# Start the VM.
+lxc exec member1 -- lxc start v1
+
+# Move the VM, while it is running, to member2
+lxc exec member1 -- lxc move v1 --target member2
+
+# shellcheck disable=SC2034
+FAIL=0
