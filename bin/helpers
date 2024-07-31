@@ -1,12 +1,14 @@
 # shellcheck disable=SC2148
 
 # waitSnapdSeed: wait for snapd to be seeded.
+# Optional argument: timeout in seconds, defaults to 60.
 waitSnapdSeed() (
+  waitSecs="${1:-60}"
   set +x
-  if timeout 60 snap wait system seed.loaded; then
+  if timeout "${waitSecs}" snap wait system seed.loaded; then
     return 0 # Success.
   fi
-  echo "snapd not seeded after 60s"
+  echo "snapd not seeded after ${waitSecs}s"
   return 1 # Failed.
 )
 
