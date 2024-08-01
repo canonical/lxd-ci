@@ -1,29 +1,24 @@
 #!/bin/sh
 set -eux
 
-# Source host information
-# shellcheck disable=SC1091
-[ -e "/etc/os-release" ] && . /etc/os-release
-
-track=${1:-latest}
-channel=${2:-stable}
-
 export PATH="${PATH}:/var/lib/snapd/snap/bin:/snap/bin"
 
 RET=1
+TEST_USER="testuser"
+
 cleanup() {
     REBOOT=0
 
     set +e
     echo "==> Cleaning up"
-    for container in $(lxc list --fast | tail -n+3 | grep "^| " | cut -d' ' -f2); do
+        for container in $(lxc list --fast | tail -n+3 | grep "^| " | cut -d' ' -f2); do
         lxc delete "${container}" -f || true
     done
 
     for image in $(lxc image list | tail -n+3 | grep "^| " | cut -d'|' -f3 | sed "s/^ //g"); do
         lxc image delete "${image}" || true
     done
-
+    
     for profile in $(lxc profile list | tail -n+3 | grep "^| " | cut -d' ' -f2); do
         printf 'config: {}\ndevices: {}' | lxc profile edit "${profile}" || true
     done
@@ -96,14 +91,9 @@ for _ in $(seq 60); do
 done
 
 # Check that user access works
-if [ "${ID}" != "ubuntu-core" ]; then
-    (
-        set -e
-        usermod -G lxd -a jenkins || true
-        LXC=$(which lxc)
-        su jenkins -c "${LXC} info"
-    )
-fi
+useradd -m ${TEST_USER} -G lxd
+LXC=$(command -v lxc)
+su ${TEST_USER} -c "${LXC} info"
 
 # Container creation test
 lxc launch images:alpine/edge unprivileged
