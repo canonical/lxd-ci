@@ -117,7 +117,11 @@ conversion() {
         lxdMigrateCmd="lxd-migrate --conversion format"
 
         # Create storage pool.
-        lxc storage create "${poolName}" "${poolType}"
+        if [ "$poolType" = "dir" ]; then
+            lxc storage create "${poolName}" "${poolType}"
+        else
+            lxc storage create "${poolName}" "${poolType}" size=11GiB
+        fi
 
     elif [ "${instType}" = "container" ]; then
         echo "==> TEST: Conversion: Import container '${instName}'"
@@ -234,7 +238,10 @@ rm "${tmpdir}/vm-tmp.tar.gz"
 # Test VM migration using conversion mode. If server does not support
 # conversion API extension, lxd-migrate must fallback to migration
 # mode and successfully transfer the VM disk.
+conversion_vm vm-alpine-raw-btrfs btrfs "${tmpdir}/backup/virtual-machine.img" "no"
+conversion_vm vm-alpine-raw-lvm lvm "${tmpdir}/backup/virtual-machine.img" "no"
 conversion_vm vm-alpine-raw-zfs zfs "${tmpdir}/backup/virtual-machine.img" "no"
+conversion_vm vm-alpine-raw-dir dir "${tmpdir}/backup/virtual-machine.img" "no"
 rm -rf "${tmpdir}/backup"
 
 # Test VM conversion using non-raw disk formats only if server supports
@@ -255,7 +262,7 @@ if hasNeededAPIExtension instance_import_conversion; then
     wget -q -O "${IMAGE_PATH}" https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.vmdk
 
     conversion_vm vm-u24-vmdk-dir dir "${IMAGE_PATH}" "yes"
-    conversion_vm vm-u24-vmdk-zfs zfs "${IMAGE_PATH}" "yes"
+    conversion_vm vm-u24-vmdk-lvm lvm "${IMAGE_PATH}" "yes"
 
     # Use custom volume for backups. Images for conversion will be uploaded here.
     lxc storage create backups-pool zfs
