@@ -148,6 +148,7 @@ install_lxd() (
     else
         snap remove lxd || true
     fi
+
     snap install lxd --channel="${LXD_SNAP_CHANNEL}"
     snap list lxd
     uname -a
@@ -163,12 +164,6 @@ install_lxd() (
         systemctl stop snap.lxd.daemon
         cp "${LXD_SIDELOAD_PATH}" /var/snap/lxd/common/lxd.debug
         systemctl start snap.lxd.daemon
-    fi
-
-    # TODO remove once 4.0.10 is in 4.0/stable
-    if [ "$(lxc remote list -f csv | grep -cwF "minimal")" -lt 2 ]; then
-        lxc remote add ubuntu-minimal https://cloud-images.ubuntu.com/minimal/releases/ --protocol simplestreams || true
-        lxc remote add ubuntu-minimal-daily https://cloud-images.ubuntu.com/minimal/daily/ --protocol simplestreams || true
     fi
 )
 
