@@ -85,6 +85,7 @@ if hasNeededAPIExtension instance_ready_state; then
   [ "$(lxc config get c1 volatile.last_state.ready)" = "false" ]
 
   lxc start c1
+  waitInstanceBooted c1
 else
   echo "Skipping instance Ready state tests, not supported"
 fi
@@ -99,7 +100,7 @@ fi
 
 # We need snapd to be ready before the next tests. Finagle the waitSnapdSeed function definition into the container and run it.
 # shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
-lxc exec c1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+lxc exec c1 -- snap wait system seed.loaded
 lxc exec c1 -- snap remove --purge lxd || true
 lxc exec c1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec c1 -- /snap/bin/lxd init --auto
