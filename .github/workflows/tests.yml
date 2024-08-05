@@ -110,15 +110,10 @@ jobs:
           - vm-nesting
           - vm-migration
         include:
-          - test: cluster  # cluster requires fan to be working so use 22.04 with latest/edge
-            track: "latest/edge"
-            os: "22.04"
           - test: qemu-external-vm
             track: "latest/edge"
             os: "24.04"
         exclude:
-          - test: cluster  # fan is not yet working on 24.04 kernel: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2064508
-            os: "24.04"
           # not compatible with 4.0/*
           - test: container-copy
             track: "4.0/edge"
