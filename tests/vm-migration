@@ -126,8 +126,7 @@ lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol
 
 # Start the VM.
 lxc exec member1 -- lxc start v1
-
-# Move the VM, while it is running, to member2
+sleep 60
 lxc exec member1 -- lxc move v1 --target member2
 
 # shellcheck disable=SC2034
