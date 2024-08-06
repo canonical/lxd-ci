@@ -3,26 +3,10 @@ set -eux
 
 TEST_USER="testuser"
 
-# Configure to use the proxy
-curl -s http://canonical-lxd.stgraber.org/config/snapd.sh | sh
+# Install lxd without starting daemon
+install_lxd false
 
-if [ "${track}" = "latest" ]; then
-    snapd_channel=${channel}
-else
-    snapd_channel=${track}/${channel}
-fi
-
-echo "==> Installing LXD snap from ${track}/${channel}"
-snap remove lxd || true
-snap version
-snap list
-snap install lxd --channel="${snapd_channel}" --cohort=+
-
-for _ in $(seq 60); do
-    lxd waitready --timeout=10 >/dev/null 2>&1 && break
-done
-
-lxc --version
+lxd waitready --timeout=300
 
 # LXD setup
 lxc storage create default dir
@@ -30,12 +14,6 @@ lxc profile device add default root disk pool=default path=/
 
 lxc network create lxdbr0
 lxc profile device add default eth0 nic nictype=bridged parent=lxdbr0 name=eth0
-
-systemctl restart snap.lxd.daemon.service
-
-for _ in $(seq 60); do
-    lxd waitready --timeout=10 >/dev/null 2>&1 && break
-done
 
 # Check that user access works
 useradd -m ${TEST_USER} -G lxd
