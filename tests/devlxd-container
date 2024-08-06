@@ -58,9 +58,7 @@ echo "==> Checking devlxd can be enabled live"
 
 # Enable devlxd
 lxc config set c1 security.devlxd true
-if hasNeededAPIExtension devlxd_images; then
-  lxc config set c1 security.devlxd.images true
-fi
+lxc config set c1 security.devlxd.images true
 
 # devlxd should be running after the config is enabled
 lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0 | jq
@@ -105,24 +103,19 @@ lxc exec c1 -- snap remove --purge lxd || true
 lxc exec c1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec c1 -- /snap/bin/lxd init --auto
 
-monitorPID=""
-if hasNeededAPIExtension devlxd_images && hasNeededAPIExtension event_lifecycle; then
-  lxc monitor --type lifecycle --format json > monitor.json 2>&1 &
-  monitorPID="${!}"
-fi
+lxc monitor --type lifecycle --format json > monitor.json 2>&1 &
+monitorPID="${!}"
 
 # Launch an image we know is on the host.
 lxc exec c1 -- /snap/bin/lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" c1c1
 lxc exec c1 -- /snap/bin/lxc info c1c1 | grep -F RUNNING
 
-if hasNeededAPIExtension devlxd_images && hasNeededAPIExtension event_lifecycle; then
-  kill -9 "${monitorPID}"
+kill -9 "${monitorPID}"
 
-  # If the guest retrieved the image from the host, the host should emit an "image-retrieved" lifecycle event. The
-  # requestor address tells us that this was definitely the guest.
-  [ "$(grep -wF 'image-retrieved' monitor.json | jq -r '.metadata.requestor.address')" = "@devlxd" ]
-  rm monitor.json
-fi
+# If the guest retrieved the image from the host, the host should emit an "image-retrieved" lifecycle event. The
+# requestor address tells us that this was definitely the guest.
+[ "$(grep -wF 'image-retrieved' monitor.json | jq -r '.metadata.requestor.address')" = "@devlxd" ]
+rm monitor.json
 
 echo "==> Deleting container"
 lxc delete -f c1
