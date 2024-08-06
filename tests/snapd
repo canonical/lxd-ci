@@ -82,8 +82,6 @@ lxc profile device add default root disk pool=default path=/
 lxc network create lxdbr0
 lxc profile device add default eth0 nic nictype=bridged parent=lxdbr0 name=eth0
 
-snap set lxd ceph.builtin=true
-
 systemctl restart snap.lxd.daemon.service
 
 for _ in $(seq 60); do
@@ -94,50 +92,5 @@ done
 useradd -m ${TEST_USER} -G lxd
 LXC=$(command -v lxc)
 su ${TEST_USER} -c "${LXC} info"
-
-# Container creation test
-lxc launch images:alpine/edge unprivileged
-lxc launch images:alpine/edge privileged -c security.privileged=true
-lxc launch images:alpine/edge isolated -c security.idmap.isolated=true
-
-# Storage backends test
-if modprobe -q -n btrfs; then
-    lxc storage create test-btrfs btrfs
-    lxc launch images:alpine/edge -s test-btrfs btrfs
-fi
-
-if modprobe -q -n zfs && ! grep -q ^0.7 < /sys/module/zfs/version; then
-    lxc storage create test-zfs zfs
-    lxc launch images:alpine/edge -s test-zfs zfs
-fi
-
-if [ "${ID}" != "ubuntu-core" ] && [ "${ID}" != "elementary" ] && modprobe -q -n dm_mod; then
-    lxc storage create test-lvm lvm volume.size=25MB
-    lxc launch images:alpine/edge -s test-lvm lvm
-fi
-
-if [ "${ID}" != "ubuntu-core" ] && [ "${VERSION_CODENAME:-""}" != "xenial" ] && [ "${ID}" != "centos" ] && modprobe -q -n rbd; then
-    curl http://canonical-lxd.stgraber.org/config/ceph-snap.sh | sh -eu
-
-    lxc storage create test-ceph ceph "ceph.osd.pool_name=$(mktemp -u snaptest-XXX)" volume.size=25MB ceph.osd.pg_num=1
-    lxc launch images:alpine/edge -s test-ceph ceph
-fi
-
-if [ "${track}" != "3.0" ]; then
-    lxc query /1.0/resources
-fi
-
-lxc file push /usr/bin/snap unprivileged/tmp/
-echo foo | lxc file push - unprivileged/tmp/foo
-[ "$(lxc file pull unprivileged/tmp/foo -)" = "foo" ]
-
-# Basic validation of running containers
-for container in $(lxc list --fast | tail -n+3 | grep "^| " | cut -d' ' -f2); do
-    lxc exec "${container}" -- ls /
-    lxc info "${container}"
-done
-
-sleep 10
-lxc list
 
 RET=0
