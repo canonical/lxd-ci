@@ -168,8 +168,15 @@ install_lxd() (
     touch ~/snap/lxd/common/config/config.yml
 
     if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
-        systemctl stop snap.lxd.daemon
         cp "${LXD_SIDELOAD_PATH}" /var/snap/lxd/common/lxd.debug
+        if [ "$start_daemon" = "true" ]; then
+            systemctl start snap.lxd.daemon
+        fi
+    fi
+
+    if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
+        mount --bind "${LXD_AGENT_SIDELOAD_PATH}" /snap/lxd/current/bin/lxd-agent
+        systemctl restart snap.lxd.daemon
         if [ "$start_daemon" = "true" ]; then
             systemctl start snap.lxd.daemon
         fi
