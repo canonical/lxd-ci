@@ -1,58 +1,7 @@
 #!/bin/sh
 set -eux
 
-export PATH="${PATH}:/var/lib/snapd/snap/bin:/snap/bin"
-
-RET=1
 TEST_USER="testuser"
-
-cleanup() {
-    REBOOT=0
-
-    set +e
-    echo "==> Cleaning up"
-        for container in $(lxc list --fast | tail -n+3 | grep "^| " | cut -d' ' -f2); do
-        lxc delete "${container}" -f || true
-    done
-
-    for image in $(lxc image list | tail -n+3 | grep "^| " | cut -d'|' -f3 | sed "s/^ //g"); do
-        lxc image delete "${image}" || true
-    done
-    
-    for profile in $(lxc profile list | tail -n+3 | grep "^| " | cut -d' ' -f2); do
-        printf 'config: {}\ndevices: {}' | lxc profile edit "${profile}" || true
-    done
-
-    for network in $(lxc network list | grep YES | grep "^| " | cut -d' ' -f2); do
-        lxc network delete "${network}" || true
-    done
-
-    for storage in $(lxc storage list | tail -n+3 | grep "^| " | cut -d' ' -f2); do
-        lxc storage delete "${storage}" || REBOOT=1
-    done
-
-    echo "==> Removing LXD"
-    umount -l /var/snap/lxd/common/shmounts
-    snap remove lxd
-    pkill -x -9 lxd
-    pkill -x -9 dnsmasq
-
-    if [ "${RET}" = "0" ]; then
-        echo ""
-        echo "==> Test passed"
-        exit 0
-    fi
-
-    echo ""
-    echo "==> Test failed"
-
-    if [ "${REBOOT}" = "1" ]; then
-        reboot
-    fi
-
-    exit "${RET}"
-}
-trap cleanup EXIT HUP INT TERM
 
 # Configure to use the proxy
 curl -s http://canonical-lxd.stgraber.org/config/snapd.sh | sh
@@ -93,4 +42,19 @@ useradd -m ${TEST_USER} -G lxd
 LXC=$(command -v lxc)
 su ${TEST_USER} -c "${LXC} info"
 
-RET=0
+# Cleanup
+echo "==> Deleting test user"
+userdel -r ${TEST_USER} 2>/dev/null || true
+
+echo "==> Deleting network device"
+lxc profile device remove default eth0
+
+echo "==> Deleting network"
+lxc network delete lxdbr0
+
+echo "==> Deleting storage"
+lxc profile device remove default root
+lxc storage delete default
+
+# shellcheck disable=SC2034
+FAIL=0
