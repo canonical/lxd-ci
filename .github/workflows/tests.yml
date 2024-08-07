@@ -97,6 +97,7 @@ jobs:
           - network-bridge-firewall
           - network-ovn
           - network-routed
+          - snapd
           - storage-buckets
           - storage-disks-vm
           - "storage-vm dir"

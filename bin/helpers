@@ -139,7 +139,10 @@ install_deps() (
 )
 
 # install_lxd: install LXD from a specific channel or `latest/edge` if none is provided.
+# Optional argument: boolean which indicates whether to start the daemon. Default is true.
 install_lxd() (
+    local start_daemon="${1:-true}"
+
     # Wait for snapd seeding
     waitSnapdSeed
 
@@ -151,11 +154,13 @@ install_lxd() (
         snap remove lxd || true
     fi
 
-    snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+    snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
     snap list lxd
     uname -a
     cat /proc/cmdline
-    lxd waitready --timeout=300
+    if [ "$start_daemon" = "true" ]; then
+        lxd waitready --timeout=300
+    fi
 
     # Silence the "If this is your first time running LXD on this machine" banner
     # on first invocation
@@ -165,7 +170,9 @@ install_lxd() (
     if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
         systemctl stop snap.lxd.daemon
         cp "${LXD_SIDELOAD_PATH}" /var/snap/lxd/common/lxd.debug
-        systemctl start snap.lxd.daemon
+        if [ "$start_daemon" = "true" ]; then
+            systemctl start snap.lxd.daemon
+        fi
     fi
 )
 
