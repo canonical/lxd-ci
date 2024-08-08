@@ -19,9 +19,11 @@ lxc storage create "${poolName}" "${poolDriver}"
 lxc profile device add default root disk path="/" pool="${poolName}"
 
 # Create ceph node
-lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" ceph --vm -c limits.cpu=2 -c limits.memory=4GiB
+lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" ceph --vm -c limits.cpu=4 -c limits.memory=4GiB
 lxc storage volume create "${poolName}" ceph-disk size=20GiB --type=block
 lxc config device add ceph ceph-disk disk pool="${poolName}" source=ceph-disk
+# Disable vGPU to save RAM
+lxc config set ceph raw.qemu.conf='[device "qemu_gpu"]'
 lxc start ceph
 
 # Wait for snap in ceph instance.
@@ -53,15 +55,26 @@ for _ in $(seq 60); do
   fi
 done
 
-# Launch two instances for our LXD cluster and wait for them to be ready.
-lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member1 --vm -c limits.memory=2GiB
-lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member2 --vm -c limits.memory=2GiB
+# Initialise two instances for our LXD cluster. If the host supports `devlxd_images_vm` then set
+# `security.devlxd.images=true` so that we don't have to download the image again.
+if hasNeededAPIExtension devlxd_images_vm; then
+  lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member1 --vm -c limits.cpu=4 -c limits.memory=4GiB -c security.devlxd.images=true
+  lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member2 --vm -c limits.cpu=4 -c limits.memory=4GiB -c security.devlxd.images=true
+else
+  lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member1 --vm
+  lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member2 --vm
+fi
+
+# Disable vGPU to save RAM
+lxc config set member1 raw.qemu.conf='[device "qemu_gpu"]'
+lxc config set member2 raw.qemu.conf='[device "qemu_gpu"]'
+
+# Start the instances and wait for member1 to be ready.
+lxc start member1
+lxc start member2
 waitInstanceReady member1
-waitInstanceReady member2
 # shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
 lxc exec member1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
-# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
-lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
 # Install LXD in the first member.
 lxc exec member1 -- snap remove --purge lxd || true
@@ -71,6 +84,11 @@ if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member1/var/snap/lxd/common/lxd.debug
     lxc exec member1 -- systemctl restart snap.lxd.daemon
 fi
+if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
+  lxc file push "${LXD_AGENT_SIDELOAD_PATH}" "member1/root/$(basename "${LXD_AGENT_SIDELOAD_PATH}")"
+  lxc exec member1 -- mount --bind "$(basename "${LXD_AGENT_SIDELOAD_PATH}")" /snap/lxd/current/bin/lxd-agent
+  lxc exec member1 -- systemctl restart snap.lxd.daemon
+fi
 
 # Initialise and configure LXD in the first member.
 lxc exec member1 -- lxd init --auto
@@ -79,6 +97,11 @@ lxc exec member1 -- lxc config set core.https_address="${member1Address}:8443"
 lxc exec member1 -- lxc cluster enable member1
 joinToken="$(lxc exec member1 -- lxc cluster add member2 --quiet)"
 
+# Ensure member2 is ready.
+waitInstanceReady member2
+# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
+lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+
 # Install LXD on the second member.
 lxc exec member2 -- snap remove --purge lxd || true
 lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
@@ -86,6 +109,11 @@ lxc exec member2 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member2/var/snap/lxd/common/lxd.debug
     lxc exec member2 -- systemctl restart snap.lxd.daemon
+fi
+if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
+  lxc file push "${LXD_AGENT_SIDELOAD_PATH}" "member2/root/$(basename "${LXD_AGENT_SIDELOAD_PATH}")"
+  lxc exec member2 -- mount --bind "$(basename "${LXD_AGENT_SIDELOAD_PATH}")" /snap/lxd/current/bin/lxd-agent
+  lxc exec member2 -- systemctl restart snap.lxd.daemon
 fi
 
 # Create a preseed file for member2 to join member1.
@@ -119,15 +147,35 @@ lxc exec member1 -- lxc storage create ceph ceph
 lxc exec member1 -- lxc storage volume create ceph vol1 --type=block size=500MiB
 
 # Create a VM in the cluster, on member1.
-lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=512MiB
+lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true
 
 # Add vol1 as a disk device to the VM.
 lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol1
 
 # Start the VM.
 lxc exec member1 -- lxc start v1
-sleep 60
+
+# Wait for a long time for it to boot (doubly nested VM takes a while).
+while [ "$(lxc exec member1 -- lxc info v1 | awk '{if ($1 == "Processes:") print $2}')" -le 1 ]; do
+  sleep 30
+done
+
+# vol1 should be available as /dev/sdb. Format it as ext4. Then mount it and create a file.
+lxc exec member1 -- lxc exec v1 -- mkfs -t ext4 /dev/sdb
+lxc exec member1 -- lxc exec v1 -- mkdir /mnt/vol1
+lxc exec member1 -- lxc exec v1 -- mount -t ext4 /dev/sdb /mnt/vol1
+lxc exec member1 -- lxc exec v1 -- cp /etc/hostname /mnt/vol1/bar
+
+# Move the instance
 lxc exec member1 -- lxc move v1 --target member2
 
-# shellcheck disable=SC2034
+# The VM is slow. So the agent isn't immediately available after the live migration.
+while [ "$(lxc exec member1 -- lxc info v1 | awk '{if ($1 == "Processes:") print $2}')" -le 1 ]; do
+  sleep 5
+done
+
+# The volume should be functional, still mounted, and the file we created should still be there with the same contents.
+[ "$(lxc exec member2 -- lxc exec v1 -- cat /mnt/vol1/bar)" = "v1" ]
+
+ shellcheck disable=SC2034
 FAIL=0
