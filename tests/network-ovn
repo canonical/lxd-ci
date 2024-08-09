@@ -13,6 +13,9 @@ ovs-vsctl set open_vswitch . \
   external_ids:ovn-encap-type=geneve \
   external_ids:ovn-encap-ip=127.0.0.1
 
+# Empty controller log so ACL log checks are consistent over repeat runs.
+echo "" > /var/log/ovn/ovn-controller.log
+
 # Configure LXD.
 lxc project switch default
 lxc storage create default zfs
