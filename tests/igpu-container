@@ -1,0 +1,71 @@
+#!/bin/sh
+set -eux
+
+# testflinger_queue: nvidia-jetson-agx-orin
+# testflinger_img_url: https://cdimage.ubuntu.com/nvidia-tegra/ubuntu-server/jammy/daily-preinstalled/current/jammy-preinstalled-server-arm64+tegra-igx.img.xz
+# testflinger_boot_media: usb
+
+# Details of the TF machine can be found at: https://certification.canonical.com/hardware/202306-31646/
+# Here is a setup guide: https://docs.google.com/document/d/1YhwbyWNGz4K8k8zsKhMBqbII5NkuD70cxCfOs5aPOl0/edit
+
+# Make sure that NVIDIA drivers are installed and are compatibles with the CUDA 12.5 version
+# Install CUDA Toolkit v12
+wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/arm64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
+sudo apt-get update
+sudo apt-get -y install cuda-toolkit-12-5 cuda-compat-12-5
+
+# Install LXD
+install_lxd
+
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}"
+
+# Configure LXD
+lxc storage create default zfs
+lxc profile device add default root disk path=/ pool=default
+lxc network create lxdbr0
+lxc profile device add default eth0 nic network=lxdbr0 name=eth0
+
+# Launch a test container
+echo "==> Launching a test container"
+lxc launch "${IMAGE}" c1
+waitInstanceReady c1
+
+# Install CUDA samples
+wget https://github.com/NVIDIA/cuda-samples/archive/refs/tags/v12.4.1.tar.gz
+tar -xzvf v12.4.1.tar.gz
+cd cuda-samples-12.4.1/Samples/1_Utilities/deviceQuery && make -j$(nproc) build && lxc file push deviceQuery c1/root/deviceQuery
+
+# Add the iGPU device to the container
+echo "==> Testing adding a GPU with a fully-qualified CDI name"
+lxc config device add c1 igpu0 gpu gputype=physical id=nvidia.com/igpu=0
+sleep 1
+
+# Check that the iGPU has been passed through using `deviceQuery` (more general than `nvidia-smi`)
+lxc exec c1 -- bash << EOF
+output=$(./deviceQuery)
+if [ $? -ne 0 ]; then
+    echo "Error: deviceQuery failed to run"
+    exit 1
+fi
+
+# Check for the presence of key information
+if ! echo "${output}" | grep -q "Device 0: \"Orin\""; then
+    echo "Error: No CUDA device found"
+    exit 1
+fi
+
+if ! echo "${output}" | grep -q "CUDA Runtime Version = 12.5"; then
+    echo "Error: CUDA Runtime Version information missing"
+    exit 1
+fi
+
+# Check for the "PASS" result
+if ! echo "${output}" | grep -q "Result = PASS"; then
+    echo "Error: deviceQuery did not pass"
+    exit 1
+fi
+EOF
+
+# shellcheck disable=SC2034
+FAIL=0

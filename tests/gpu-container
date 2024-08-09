@@ -116,6 +116,14 @@ sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_nvidia_gpu_with_product_id}" ] || false
 lxc exec c1 -- nvidia-smi
 
+# Test with fully-qualified CDI name
+echo "==> Testing adding a GPU with a fully-qualified CDI name"
+lxc config device remove c1 gpus
+lxc config device add c1 gpu0 gpu id="nvidia.com/gpu=0"
+sleep 1
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${first_card_pci_slot}" ] || false
+lxc exec c1 -- nvidia-smi
+
 echo "==> Cleaning up"
 lxc delete -f c1
 lxc profile device remove default root
