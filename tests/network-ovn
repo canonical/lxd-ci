@@ -216,11 +216,12 @@ ovn_basic_tests() {
     lxc network unset dummy ipv6.routes.anycast --project default
 
     lxc init "${IMAGE}" u1 --project testovn -s default
-    lxc config device add u1 eth0 nic network=ovn-virtual-network name=eth0 --project testovn
 
-    echo "==> Record NAT rules count before u1 started"
+    echo "==> Record NAT rules count before u1 eth0 NIC added"
     natRulesBefore=$(ovn-nbctl --bare --format=csv --column=external_ip,logical_ip,type find nat | wc -l)
+    ovn-nbctl --bare --format=csv --column=external_ip,logical_ip,type find nat
 
+    lxc config device add u1 eth0 nic network=ovn-virtual-network name=eth0 --project testovn
     lxc start u1 --project testovn
 
     echo "==> Test external IPs allocated and published using dnat"
@@ -230,8 +231,10 @@ ovn_basic_tests() {
     ovn-nbctl --bare --format=csv --column=external_ip,logical_ip,type find nat | grep "${U1_EXT_IPV4},${U1_EXT_IPV4},dnat_and_snat"
     ovn-nbctl --bare --format=csv --column=external_ip,logical_ip,type find nat | grep "${U1_EXT_IPV6},${U1_EXT_IPV6},dnat_and_snat"
     lxc stop -f u1 --project testovn
+    lxc config device remove u1 eth0 --project testovn
 
     echo "==> Check NAT rules got cleaned up"
+    ovn-nbctl --bare --format=csv --column=external_ip,logical_ip,type find nat
     natRulesAfter=$(ovn-nbctl --bare --format=csv --column=external_ip,logical_ip,type find nat | wc -l)
     if [ "$natRulesBefore" -ne "$natRulesAfter" ]; then
         echo "NAT rules left over. Started with ${natRulesBefore} now have ${natRulesAfter}"
@@ -247,6 +250,8 @@ ovn_basic_tests() {
 
     echo "==> Record NAT rules count before u1 started again"
     natRulesBefore=$(ovn-nbctl --bare --format=csv --column=external_ip,logical_ip,type find nat | wc -l)
+
+    lxc config device add u1 eth0 nic network=ovn-virtual-network name=eth0 --project testovn
 
     echo "==> Check external routes are not too big (when using l2proxy uplink ingress mode)"
     ! lxc config device set u1 eth0 ipv4.routes.external=198.51.100.0/24 --project testovn || false
@@ -325,6 +330,7 @@ ovn_basic_tests() {
     fi
 
     lxc stop -f u1 --project testovn
+    lxc config device remove u1 eth0 --project testovn
 
     echo "==> Check NAT rules got cleaned up"
     natRulesAfter=$(ovn-nbctl --bare --format=csv --column=external_ip,logical_ip,type find nat | wc -l)
@@ -334,6 +340,7 @@ ovn_basic_tests() {
     fi
 
     echo "==> Check routed ingress mode allows larger subnets and doesn't add DNAT rules"
+    lxc config device add u1 eth0 nic network=ovn-virtual-network name=eth0 --project testovn
     lxc network set dummy ovn.ingress_mode=routed
     lxc config device set u1 eth0 ipv4.routes.external=198.51.100.0/24 --project testovn
     lxc config device set u1 eth0 ipv6.routes.external=2001:db8:1:2::/64 --project testovn
@@ -590,6 +597,7 @@ ovn_basic_tests() {
 
     lxc project switch default
     lxc project delete testovn
+    lxc profile device remove default root
 }
 
 ovn_forward_tests() {
@@ -1222,17 +1230,24 @@ ovn_peering_tests() {
     ovn-nbctl list address_set | grep -F 198.51.100.2/32
     ovn-nbctl list address_set | grep -F 2001:db8:1:2::2/128
 
-    echo "==> Check address set entries deleted for instance NIC when stopped and added when started again"
+    echo "==> Check address set entries deleted for instance NIC when removed and added when added again"
     lxc stop -f ovn1 --project=ovn1
+    lxc config device remove ovn1 eth0 --project=ovn1
     ! ovn-nbctl list address_set | grep -F 198.51.100.1/32 || false
     ! ovn-nbctl list address_set | grep -F 2001:db8:1:2::1/128 || false
     ! ovn-nbctl list address_set | grep -F 198.51.100.2/32 || false
     ! ovn-nbctl list address_set | grep -F 2001:db8:1:2::2/128 || false
-    lxc start ovn1 --project=ovn1
+    lxc config device add ovn1 eth0 nic --project=ovn1 \
+        network=ovn1 \
+        ipv4.routes=198.51.100.1/32 \
+        ipv6.routes=2001:db8:1:2::1/128 \
+        ipv4.routes.external=198.51.100.2/32 \
+        ipv6.routes.external=2001:db8:1:2::2/128
     ovn-nbctl list address_set | grep -F 198.51.100.1/32
     ovn-nbctl list address_set | grep -F 2001:db8:1:2::1/128
     ovn-nbctl list address_set | grep -F 198.51.100.2/32
     ovn-nbctl list address_set | grep -F 2001:db8:1:2::2/128
+    lxc start ovn1 --project=ovn1
 
     echo "==> Check security policies prevent spoofed packets using peer connection"
     waitInstanceBooted ovn1 ovn1
@@ -2128,7 +2143,6 @@ else
     ovn_leases_tests
 fi
 
-lxc profile device get default root type && lxc profile device remove default root
 lxc storage delete default
 
 # shellcheck disable=SC2034
