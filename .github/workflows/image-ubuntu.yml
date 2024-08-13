@@ -20,7 +20,6 @@ jobs:
         release:
           - focal
           - jammy
-          - mantic
           - noble
         variant:
           - desktop
