@@ -5,7 +5,6 @@ simplestream:
   release_aliases:
     focal: 20.04
     jammy: 22.04
-    mantic: 23.10
     noble: 24.04
   requirements:
   - requirements:
@@ -447,7 +446,6 @@ packages:
     - fuse3
     releases:
     - jammy
-    - mantic
     - noble
     action: install
 
@@ -474,7 +472,6 @@ packages:
     - ppc64el
     releases:
     - jammy
-    - mantic
     - noble
 
   - packages:
@@ -487,7 +484,6 @@ packages:
     - systemd-resolved
     action: install
     releases:
-    - mantic
     - noble
 
   - packages:
@@ -596,7 +592,6 @@ actions:
   releases:
   - focal
   - jammy
-  - mantic
 
 - trigger: post-packages
   action: |-
@@ -606,7 +601,6 @@ actions:
     # Ensure /etc/resolv.conf is symlinked to /run/systemd/resolve/stub-resolv.conf
     ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
   releases:
-  - mantic
   - noble
 
 - trigger: post-packages
