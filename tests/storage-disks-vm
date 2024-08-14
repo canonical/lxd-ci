@@ -116,6 +116,7 @@ echo "==> Checking disk device hotplug support"
 lxc config device remove v1 block1rw
 lxc config device remove v1 block1ro
 lxc config device add v1 block1 disk source="${testRoot}/allowed1/lxd-block-test" readonly=true
+sleep 1
 # shellcheck disable=SC2016
 DISK_DEV="$(basename "$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1)")"
 lxc exec v1 -- sh -c "for i in \$(seq 10); do test -e /sys/block/${DISK_DEV}/ro && break; echo \"Waiting for sys file to appear (\${i}s)\"; sleep 1; done"
