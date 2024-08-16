@@ -33,9 +33,19 @@ truncate -s 5m "${testRoot}/allowed1/lxd-block-test"
 touch "${testRoot}/allowed1/lxd-test"
 
 # Create loop device to use as NVMe disk
-loopimg="$(mktemp)"
-truncate -s 100M "${loopimg}"
-loopdev="$(losetup --show --find "${loopimg}")"
+loopImgNVME="$(mktemp --suffix -nvme)"
+truncate -s 100M "${loopImgNVME}"
+loopDevNVME="$(losetup --show --find "${loopImgNVME}")"
+
+# Create loop device to use as virtio-blk disk
+loopImgVirtioBlk="$(mktemp --suffix -virtio-blk)"
+truncate -s 100M "${loopImgVirtioBlk}"
+loopDevVirtioBlk="$(losetup --show --find "${loopImgVirtioBlk}")"
+
+# Create loop device to use as virtio-scsi disk
+loopImgVirtioSCSI="$(mktemp --suffix -virtio-scsi)"
+truncate -s 100M "${loopImgVirtioSCSI}"
+loopDevVirtioSCSI="$(losetup --show --find "${loopImgVirtioSCSI}")"
 
 # Configure LXD
 lxc project switch default
@@ -322,24 +332,43 @@ if lxc exec v1 -- mount | grep -qwF /boot/efi; then
 fi
 
 if hasNeededAPIExtension disk_io_bus; then
-  # Remove disk device restrictions and add a NVMe disk
+  # Remove disk device restrictions and add disks
   lxc stop -f v1
   lxc config device remove v1 d1
   lxc project unset restricted restricted.devices.disk
   lxc project unset restricted restricted.devices.disk.paths
   lxc project unset restricted restricted
 
-  # Add a NVMe disk and check if a NVMe controller is added to the VM
-  lxc config device add v1 nvme-ssd disk source="${loopdev}" io.bus=nvme
+  # Add a NVMe disk
+  lxc config device add v1 nvme-ssd disk source="${loopDevNVME}" io.bus=nvme
+  
+  # Add a virtio-scsi disk
+  lxc config device add v1 virtio-scsi-ssd disk source="${loopDevVirtioSCSI}" io.bus=virtio-scsi
+
+  # Start VM
   lxc start v1
-  waitInstanceReady v1
+  waitInstanceReady v1 
+
+  # Check if lspci is available
   if ! lxc exec v1 -- sh -c 'command -v lspci'; then
     lxc exec v1 -- apt-get update
     lxc exec v1 -- apt-get install --no-install-recommends -y pciutils
   fi
+
+  lxc exec v1 -- lspci
+
+  # Check if NVMe and virtio-scsi controllers are added to the VM
   lxc exec v1 -- lspci | grep -F "QEMU NVM Express Controller"
+  lxc exec v1 -- lspci | grep -E "Red Hat, Inc\. Virtio ([0-9]+\.[0-9]+ )?SCSI"
+  
+  if hasNeededAPIExtension disk_io_bus_virtio_blk; then
+    # Add a virtio-blk disk
+    lxc config device add v1 virtio-blk-ssd disk source="${loopDevVirtioBlk}" io.bus=virtio-blk
+    # Check if virtio-blk controller is added to the VM
+    lxc exec v1 -- lspci | grep -E "Red Hat, Inc\. Virtio ([0-9]+\.[0-9]+ )?block device"
+  fi 
 else
-  echo 'Skipping NVME test due to missing extension: "disk_io_bus"'
+  echo 'Skipping disk_io_bus tests due to missing extension: "disk_io_bus"'
 fi
 
 echo "==> Cleanup"
@@ -359,8 +388,12 @@ rmdir "${testRoot}/allowed1"
 rmdir "${testRoot}/allowed2"
 rmdir "${testRoot}/not-allowed1"
 rmdir "${testRoot}"
-losetup --detach "${loopdev}"
-rm "${loopimg}"
+losetup --detach "${loopDevNVME}"
+rm "${loopImgNVME}"
+losetup --detach "${loopDevVirtioBlk}"
+rm "${loopImgVirtioBlk}"
+losetup --detach "${loopDevVirtioSCSI}"
+rm "${loopImgVirtioSCSI}"
 
 # shellcheck disable=SC2034
 FAIL=0
