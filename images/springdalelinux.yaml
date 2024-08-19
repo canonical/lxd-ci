@@ -193,7 +193,7 @@ files:
 - path: /etc/dracut.conf.d/lxd.conf
   generator: dump
   content: |-
-    add_drivers+=" virtio_scsi virtio_pci virtio_console "
+    add_drivers+=" virtio_scsi virtio_pci virtio_console virtio_blk "
   types:
   - vm
   releases:
@@ -202,7 +202,7 @@ files:
 - path: /etc/dracut.conf.d/lxd.conf
   generator: dump
   content: |-
-    add_drivers+=" virtio_scsi virtio_console sd_mod "
+    add_drivers+=" virtio_scsi virtio_console sd_mod virtio_blk "
   types:
   - vm
   releases:
