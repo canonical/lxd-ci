@@ -23,8 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - unstable
-          - 23.11
+          - current
         variant:
           - default
         architecture:
