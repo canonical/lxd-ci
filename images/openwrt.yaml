@@ -2,7 +2,7 @@ image:
   distribution: OpenWrt
 
 simplestream:
-  distro_name: OpenWRT
+  distro_name: OpenWrt
 
 source:
   downloader: openwrt-http
