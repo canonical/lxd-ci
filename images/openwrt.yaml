@@ -2,7 +2,7 @@ image:
   distribution: OpenWrt
 
 simplestream:
-  distro_name: OpenWRT
+  distro_name: OpenWrt
 
 source:
   downloader: openwrt-http
@@ -357,5 +357,4 @@ actions:
     rm -f /etc/rc.d/*sysntpd
   releases:
   - snapshot
-  - 22.03
   - 23.05
