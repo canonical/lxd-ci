@@ -4,7 +4,14 @@ set -eu
 # Source helper functions.
 . ./bin/helpers
 
-install_deps jq unzip
+# XXX: virt-v2v is recent enough in 24.04 onward. For older releases,
+# virt-v2v is not installed, and the conversion test is skipped.
+. /etc/os-release
+if dpkg --compare-versions "${VERSION_ID}" ge 24.04; then
+      install_deps jq unzip virt-v2v
+else
+      install_deps jq unzip
+fi
 
 # Install LXD
 install_lxd
@@ -85,8 +92,10 @@ checkDNS() {
 # 1: Name of new virtual machine.
 # 2: Type of the storage pool.
 # 3: Path to the image.
+# 4: Enable secureboot (yes/no).
+# 5: Conversion options (defaults to "format").
 conversion_vm() {
-    conversion vm "$1" "$2" "$3" "$4"
+    conversion vm "$1" "$2" "$3" "$4" "${5:-format}"
 }
 
 # conversion_container creates a new LXD container from the filesystem of the existing container.
@@ -94,7 +103,7 @@ conversion_vm() {
 # Input arguments:
 # 1: Name of the existing container.
 conversion_container() {
-    conversion container "$1" "" "/" "no"
+    conversion container "$1" "" "/" "no" ""
 }
 
 # conversion runs lxd-migrate for the given image path. For virtual machine, lxd-migrate is
@@ -106,6 +115,7 @@ conversion() {
     poolType=$3
     imgPath=$4
     uefi_sb=$5
+    conversionOptions=$6
 
     if [ "${instType}" = "vm" ]; then
         echo "==> TEST: Conversion: Import virtual-machine '${instName}' on '${poolType}' storage pool"
@@ -114,7 +124,7 @@ conversion() {
         hostAddr="127.0.0.1"
         instTypeCode="2" # VM in migration questioneer.
 
-        lxdMigrateCmd="lxd-migrate --conversion format"
+        lxdMigrateCmd="lxd-migrate --conversion=${conversionOptions}"
 
         # Create storage pool.
         if [ "$poolType" = "dir" ]; then
@@ -194,7 +204,7 @@ conversion() {
 
     # Wait for the instance to be ready and ensure it has global ip address.
     echo "Waiting instance ${instName} to start..."
-    waitInstanceBooted "${instName}"
+    waitInstanceReady "${instName}"
     sleep 10
 
     # Print the instances.
@@ -271,6 +281,37 @@ if hasNeededAPIExtension instance_import_conversion; then
 
     conversion_vm vm-u24-vmdk-dir-bupvol dir "${IMAGE_PATH}" "yes"
     conversion_vm vm-u24-vmdk-zfs-bupvol zfs "${IMAGE_PATH}" "yes"
+
+    # Test virtio conversion if virt-v2v-in-place is installed.
+    if ! command -v virt-v2v-in-place > /dev/null; then
+        echo "===> SKIP: The virt-v2v-in-place is not installed"
+    else
+        # Create new instance.
+        lxc launch images:centos/9-Stream v1 --vm
+        waitInstanceBooted v1
+        sleep 10
+
+        # Remove LXD dracut configuration to allow removing the virtio_scsi module.
+        # Afterwards, rebuild the initramfs image and stop the instance.
+        lxc exec v1 -- rm /etc/dracut.conf.d/lxd.conf
+        lxc exec v1 -- dracut --force --omit-drivers virtio_scsi
+        lxc stop v1
+
+        # Export instance.
+        lxc export v1 "${tmpdir}/vm.tar.gz"
+
+        # Ensure instance does not boot without virtio_scsi drivers.
+        lxc start v1
+        ! waitInstanceReady v1 || { echo "Instance booted without SCSI drivers!"; false; }
+        lxc delete -f v1
+
+        # Extract raw image.
+        tar -xzf "${tmpdir}/vm.tar.gz" -C "${tmpdir}" "backup/virtual-machine.img"
+        rm "${tmpdir}/vm.tar.gz"
+
+        # Ensure that virtio conversion adds the needed virtio_scsi module back into the initramfs.
+        conversion_vm vm-centos-missing-driver zfs "${tmpdir}/backup/virtual-machine.img" "no" "virtio"
+    fi
 
     # Cleanup.
     rm -rf "${tmpdir}"
