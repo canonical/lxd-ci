@@ -18,7 +18,7 @@ echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 
 echo "==> Create container and boot"
-lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" c1 -s "${poolName}" -c security.nesting=true
+lxc launch "${TEST_IMG:-ubuntu:24.04}" c1 -s "${poolName}" -c security.nesting=true
 lxc info c1
 
 echo "==> Checking devlxd is working"
@@ -107,7 +107,7 @@ lxc monitor --type lifecycle --format json > monitor.json 2>&1 &
 monitorPID="${!}"
 
 # Launch an image we know is on the host.
-lxc exec c1 -- /snap/bin/lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" c1c1
+lxc exec c1 -- /snap/bin/lxc launch "${TEST_IMG:-ubuntu:24.04}" c1c1
 lxc exec c1 -- /snap/bin/lxc info c1c1 | grep -F RUNNING
 
 kill -9 "${monitorPID}"
