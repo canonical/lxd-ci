@@ -18,6 +18,7 @@ echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 
 echo "==> Create container and boot"
+# XXX: not using ubuntu-minimal-daily:24.04 due to unreliability
 lxc launch "${TEST_IMG:-ubuntu:24.04}" c1 -s "${poolName}" -c security.nesting=true
 lxc info c1
 
