@@ -129,12 +129,6 @@ for release in $RELEASES; do
     isSystemdClean n1 || ignore_known_issues "n1" "nesting"
     lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
     lxc exec n1 -- lxd init --auto
-
-    # 4.0/* doesn't have ubuntu-minimal remotes
-    if [ "$(lxc exec n1 -- lxc remote list -f csv | grep -cwF "minimal")" -lt 2 ]; then
-        lxc exec n1 -- lxc remote add ubuntu-minimal https://cloud-images.ubuntu.com/minimal/releases/ --protocol simplestreams || true
-        lxc exec n1 -- lxc remote add ubuntu-minimal-daily https://cloud-images.ubuntu.com/minimal/daily/ --protocol simplestreams || true
-    fi
     lxc exec n1 -- lxc launch "${IMAGE}" n11
     sleep 5
     [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues "n11" "nested"
