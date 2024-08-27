@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 # Tests for snap-specific regressions when rsyncing a container whose storage pool is mounted in the snap confinement.

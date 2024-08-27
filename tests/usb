@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
 
 # Default to loop storage pool if /dev/nvme0n1p3 doesn't exist.
