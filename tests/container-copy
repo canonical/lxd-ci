@@ -28,7 +28,7 @@ lxc exec target -- lxd init --auto --network-address "[::]" --network-port "8443
 
 echo "==> Add the target VM as a remote LXD"
 token="$(lxc exec target -- lxc config trust add --name host --quiet)"
-lxc remote add target "${token}" --accept-certificate
+lxc remote add target "${token}"
 
 # Run the test for various filesystems.
 for fs in "xfs" "btrfs" "ext4" ; do

@@ -136,7 +136,7 @@ for poolDriver in $poolDriverList; do
         echo "==> Add current LXD as remote via localhost"
         lxc config set core.https_address=:8443
         token="$(lxc config trust add --name localhost --quiet)"
-        lxc remote add localhost "${token}" --accept-certificate
+        lxc remote add localhost "${token}"
 
         echo "==> Checking VM can be migrated with snapshots (same storage pool)"
         lxc copy v1 localhost:v2 --stateless
