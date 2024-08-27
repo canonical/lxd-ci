@@ -1,4 +1,4 @@
-# shellcheck disable=SC2148
+# shellcheck shell=bash
 
 # waitSnapdSeed: wait for snapd to be seeded.
 # Optional argument: timeout in seconds, defaults to 60.
