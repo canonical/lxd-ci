@@ -2,10 +2,12 @@
 set -eu
 
 # Source helper functions.
+# shellcheck disable=SC1091
 . ./bin/helpers
 
 # XXX: virt-v2v is recent enough in 24.04 onward. For older releases,
 # virt-v2v is not installed, and the conversion test is skipped.
+# shellcheck disable=SC1091
 . /etc/os-release
 if dpkg --compare-versions "${VERSION_ID}" ge 24.04; then
       install_deps jq unzip virt-v2v
