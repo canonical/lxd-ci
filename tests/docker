@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eux
 
 # Install LXD
@@ -21,7 +21,7 @@ fi
 
 (
 cat << EOF
-#!/bin/sh
+#!/bin/bash
 # Wait for network
 sleep 10
 set -eux

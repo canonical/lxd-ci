@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -eux
 
 # Install LXD
@@ -31,6 +31,7 @@ poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
 
 if echo "${poolDriverList}" | grep -qwF "ceph"; then
   echo "::warning::Skipping test on ceph until we can integrate with microceph"
+  # shellcheck disable=SC2001
   poolDriverList="$(echo "${poolDriverList}" | sed 's/ \?\bceph\b//')"
 fi
 
