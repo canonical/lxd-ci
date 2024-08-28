@@ -12,16 +12,51 @@ lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 
 poolName="ctpool$$"
-poolDriver=dir
+poolDriver=zfs
 
 echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 lxc profile device add default root disk path="/" pool="${poolName}"
 
+LOCAL_LOOP_DEVICE=""
+cleanup() {
+  if [ -n "${LOCAL_LOOP_DEVICE:-}" ]; then
+    losetup --detach "${LOCAL_LOOP_DEVICE}"  
+  fi
+}
+
+trap cleanup EXIT HUP INT TERM
+
 # Create ceph node
-lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" ceph --vm -c limits.cpu=2 -c limits.memory=4GiB
-lxc storage volume create "${poolName}" ceph-disk size=20GiB --type=block
-lxc config device add ceph ceph-disk disk pool="${poolName}" source=ceph-disk
+lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" ceph --vm -c limits.cpu=4 -c limits.memory=4GiB
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+  # If the rootfs and the ephemeral part are on the same physical disk, giving the whole
+  # disk to microceph would wipe our rootfs. Since it is pretty rare for GitHub Action
+  # runners to have a single disk, we immediately bail rather than trying to gracefully
+  # handle it. Once snapd releases with https://github.com/snapcore/snapd/pull/13150,
+  # we will be able to stop worrying about that special case.
+  if [ "$(stat -c '%d' /)" = "$(stat -c '%d' /mnt)" ]; then
+    echo "FAIL: rootfs and ephemeral part on the same disk, aborting"
+    exit 1
+  fi
+
+  # Free-up the ephemeral disk to use it as ceph OSD.
+  # https://github.com/canonical/microceph/issues/288 and https://github.com/canonical/microceph/issues/289
+  swapoff /mnt/swapfile
+  ephemeral_disk="$(findmnt --noheadings --output SOURCE --target /mnt | sed 's/[0-9]\+$//')"
+  umount /mnt
+
+#  lxc config device add ceph ceph-disk unix-block source="${ephemeral_disk}" path=/dev/sdb
+  lxc config device add ceph ceph-disk disk source="${ephemeral_disk}" path=/dev/sdb
+else
+  lxc storage volume create "${poolName}" ceph-disk size=20GiB --type=block
+  lxc config device add ceph ceph-disk disk pool="${poolName}" source=ceph-disk
+#  dd if=/dev/zero of=blockfile count=20480 bs=1M # 20GiB
+#  LOCAL_LOOP_DEVICE="$(losetup --find)"
+#  losetup "${LOCAL_LOOP_DEVICE}" blockfile
+#  lxc config device add ceph ceph-disk unix-block source="${LOCAL_LOOP_DEVICE}" path=/dev/sdb
+fi
+
 lxc start ceph
 
 # Wait for snap in ceph instance.
@@ -40,7 +75,7 @@ lxc exec ceph -- microceph.ceph osd crush rule create-replicated replicated defa
 for flag in nosnaptrim noscrub nobackfill norebalance norecover noscrub nodeep-scrub; do
     lxc exec ceph -- microceph.ceph osd set "${flag}"
 done
-lxc exec ceph -- microceph disk add /dev/sdb
+lxc exec ceph -- microceph disk add /dev/sdb --wipe
 lxc exec ceph -- microceph.ceph osd pool create cephfs_meta 32
 lxc exec ceph -- microceph.ceph osd pool create cephfs_data 32
 lxc exec ceph -- microceph.ceph fs new cephfs cephfs_meta cephfs_data
@@ -53,15 +88,39 @@ for _ in $(seq 60); do
   fi
 done
 
-# Launch two instances for our LXD cluster and wait for them to be ready.
-lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member1 --vm -c limits.memory=2GiB
-lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member2 --vm -c limits.memory=2GiB
+cat << EOF | lxc profile create kvm
+config:
+  limits.cpu: 4
+  limits.memory: 4GiB
+  linux.kernel_modules: kvm,vhost_net,vhost_vsock,rbd
+  security.devlxd.images: "true"
+  security.idmap.isolated: "false"
+  security.nesting: "true"
+devices:
+  kvm:
+    source: /dev/kvm
+    type: unix-char
+  vhost-net:
+    source: /dev/vhost-net
+    type: unix-char
+  vhost-vsock:
+    source: /dev/vhost-vsock
+    type: unix-char
+  vsock:
+    mode: "0666"
+    source: /dev/vsock
+    type: unix-char
+EOF
+
+lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member1 --profile default --profile kvm
+lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member2 --profile default --profile kvm
+
+# Start the instances and wait for member1 to be ready.
+lxc start member1
+lxc start member2
 waitInstanceReady member1
-waitInstanceReady member2
 # shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
 lxc exec member1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
-# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
-lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
 # Install LXD in the first member.
 lxc exec member1 -- snap remove --purge lxd || true
@@ -71,13 +130,23 @@ if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member1/var/snap/lxd/common/lxd.debug
     lxc exec member1 -- systemctl restart snap.lxd.daemon
 fi
+if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
+  lxc file push "${LXD_AGENT_SIDELOAD_PATH}" "member1/root/$(basename "${LXD_AGENT_SIDELOAD_PATH}")"
+  lxc exec member1 -- mount --bind "$(basename "${LXD_AGENT_SIDELOAD_PATH}")" /snap/lxd/current/bin/lxd-agent
+  lxc exec member1 -- systemctl restart snap.lxd.daemon
+fi
 
 # Initialise and configure LXD in the first member.
 lxc exec member1 -- lxd init --auto
-member1Address="$(lxc query /1.0/instances/member1?recursion=2 | jq -r ".state.network.enp5s0.addresses[0].address")"
+member1Address="$(lxc query /1.0/instances/member1?recursion=2 | jq -r ".state.network.eth0.addresses[0].address")"
 lxc exec member1 -- lxc config set core.https_address="${member1Address}:8443"
 lxc exec member1 -- lxc cluster enable member1
 joinToken="$(lxc exec member1 -- lxc cluster add member2 --quiet)"
+
+# Ensure member2 is ready.
+waitInstanceReady member2
+# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
+lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
 # Install LXD on the second member.
 lxc exec member2 -- snap remove --purge lxd || true
@@ -87,9 +156,14 @@ if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member2/var/snap/lxd/common/lxd.debug
     lxc exec member2 -- systemctl restart snap.lxd.daemon
 fi
+if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
+  lxc file push "${LXD_AGENT_SIDELOAD_PATH}" "member2/root/$(basename "${LXD_AGENT_SIDELOAD_PATH}")"
+  lxc exec member2 -- mount --bind "$(basename "${LXD_AGENT_SIDELOAD_PATH}")" /snap/lxd/current/bin/lxd-agent
+  lxc exec member2 -- systemctl restart snap.lxd.daemon
+fi
 
 # Create a preseed file for member2 to join member1.
-member2Address="$(lxc query /1.0/instances/member2?recursion=2 | jq -r ".state.network.enp5s0.addresses[0].address")"
+member2Address="$(lxc query /1.0/instances/member2?recursion=2 | jq -r ".state.network.eth0.addresses[0].address")"
 preseed="$(
   cat <<EOF
 cluster:
@@ -119,15 +193,31 @@ lxc exec member1 -- lxc storage create ceph ceph
 lxc exec member1 -- lxc storage volume create ceph vol1 --type=block size=500MiB
 
 # Create a VM in the cluster, on member1.
-lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=512MiB
+lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=2GiB
 
 # Add vol1 as a disk device to the VM.
 lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol1
 
-# Start the VM.
+ Start the VM.
 lxc exec member1 -- lxc start v1
-sleep 60
+
+# Wait for a long time for it to boot (doubly nested VM takes a while).
+lxc exec member1 -- sh -c 'while [ "$(lxc info v1 | awk '"'"'{if ($1 == "Processes:" print $2)}'"'"')" -le 1 ]; do echo "Waiting for instance to boot (retry 30s)" && sleep 30; done'
+
+# vol1 should be available as /dev/sdb. Format it as ext4. Then mount it and create a file.
+lxc exec member1 -- lxc exec v1 -- mkfs -t ext4 /dev/sdb
+lxc exec member1 -- lxc exec v1 -- mkdir /mnt/vol1
+lxc exec member1 -- lxc exec v1 -- mount -t ext4 /dev/sdb /mnt/vol1
+lxc exec member1 -- lxc exec v1 -- cp /etc/hostname /mnt/vol1/bar
+
+# Move the instance
 lxc exec member1 -- lxc move v1 --target member2
+
+# The VM is slow. So the agent isn't immediately available after the live migration.
+lxc exec member2 -- sh -c 'while [ "$(lxc info v1 | awk '"'"'{if ($1 == "Processes:" print $2)}'"'"')" -le 1 ]; do echo "Waiting for instance to boot (retry 5s)" && sleep 5; done'
+
+# The volume should be functional, still mounted, and the file we created should still be there with the same contents.
+[ "$(lxc exec member2 -- lxc exec v1 -- cat /mnt/vol1/bar)" = "v1" ]
 
 # shellcheck disable=SC2034
 FAIL=0

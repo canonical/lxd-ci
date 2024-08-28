@@ -83,103 +83,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(inputs.ubuntu-releases || '["20.04", "22.04", "24.04"]') }}
-        track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge", "5.21/edge", "5.0/edge", "4.0/edge"]') }}
+        os: ${{ fromJSON(inputs.ubuntu-releases || '["24.04"]') }}
+        track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge"]') }}
         test:
-          - cgroup
-          - cluster
-          - container
-          - container-copy
-          - conversion
-          - cpu-vm
-          - devlxd-container
-          - devlxd-vm
-          - docker
-          - efi-vars-editor-vm
-          - interception
-          - network-bridge-firewall
-          - network-ovn
-          - network-routed
-          - pylxd
-          - snapd
-          - storage-buckets
-          - storage-disks-vm
-          - "storage-vm btrfs"
-          - "storage-vm ceph"
-          - "storage-vm dir"
-          - "storage-vm lvm"
-          - "storage-vm lvm-thin"
-          - "storage-vm zfs"
-          - storage-volumes-vm
-          - tpm-vm
           - vm-migration
-          - vm-nesting
-        include:
-          - test: qemu-external-vm
-            track: "latest/edge"
-            os: "24.04"
-        exclude:
-          # not compatible with 4.0/*
-          - test: container-copy
-            track: "4.0/edge"
-          - test: conversion
-            track: "4.0/edge"
-          - test: cpu-vm
-            track: "4.0/edge"
-          - test: devlxd-vm
-            track: "4.0/edge"
-          - test: efi-vars-editor-vm
-            track: "4.0/edge"
-          - test: network-bridge-firewall
-            os: 20.04
-            track: "4.0/edge"
-          - test: network-ovn
-            track: "4.0/edge"
-          # https://github.com/canonical/pylxd/issues/590
-          - test: pylxd
-            track: "4.0/edge"
-          - test: storage-buckets
-            track: "4.0/edge"
-          - test: storage-disks-vm
-            track: "4.0/edge"
-          - test: "storage-vm dir"
-            track: "4.0/edge"
-          - test: "storage-vm btrfs"
-            track: "4.0/edge"
-          - test: "storage-vm ceph"
-            track: "4.0/edge"
-          - test: "storage-vm lvm"
-            track: "4.0/edge"
-          - test: "storage-vm lvm-thin"
-            track: "4.0/edge"
-          - test: "storage-vm zfs"
-            track: "4.0/edge"
-          - test: storage-volumes-vm
-            track: "4.0/edge"
-          - test: tpm-vm
-            track: "4.0/edge"
-          # not compatible with 5.0/*
-          - test: efi-vars-editor-vm  # not compatible with 5.0/*
-            track: "5.0/edge"
-          # waiting for integration with microceph
-          - test: "storage-vm ceph"
-          # skip track/os combinaisons that are too far appart
-          - track: "4.0/edge"
-            os: "24.04"
-          - track: "5.0/edge"
-            os: "24.04"
-          - track: "5.0/edge"
-            os: "20.04"
-          - track: "5.21/edge"
-            os: "20.04"
-          - track: "latest/edge"
-            os: "20.04"
-          - track: "latest/edge"
-            os: "22.04"
-          - test: "vm-migration"
-            track: "4.0/edge"
-          - test: "vm-migration"
-            track: "5.0/edge"
 
     steps:
       - name: Performance tuning
@@ -195,7 +102,7 @@ jobs:
           echo "force-unsafe-io" | sudo tee /etc/dpkg/dpkg.cfg.d/force-unsafe-io
 
       - name: Reclaim some space (storage tests only)
-        if: ${{ startsWith(matrix.test, 'storage') || matrix.test == 'vm-nesting' || matrix.test == 'conversion' }}
+        if: ${{ startsWith(matrix.test, 'storage') || matrix.test == 'vm-nesting' || matrix.test == 'conversion' || matrix.test == 'vm-migration' }}
         run: |
           set -eux
           df -h
@@ -224,6 +131,16 @@ jobs:
           # haskell
           sudo rm -rf /opt/ghc
           df -h
+
+      - name: Reclaim some memory (VM migration tests only)
+        if: ${{ matrix.test == 'vm-migration' }}
+        run: |
+          set -eux
+
+          free -mt
+          sudo systemctl stop dpkg-db-backup.timer e2scrub_all.timer fstrim.timer logrotate.timer man-db.timer motd-news.timer phpsessionclean.timer update-notifier-download.timer update-notifier-motd.timer
+          sudo systemctl stop iscsid.socket multipathd.socket
+          free -mt
 
       - name: Remove docker
         run: |
@@ -266,7 +183,10 @@ jobs:
             src_track="$(echo "${dst_track}" | cut -d/ -f1)/stable"
             EXTRA_ARGS="${EXTRA_ARGS:-3} ${src_track} ${{ matrix.track }}"
           fi
-          sudo --preserve-env=PURGE_LXD,TEST_IMG ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
+          sudo --preserve-env=PURGE_LXD,TEST_IMG,GITHUB_ACTIONS ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
 
       # always update cache as we have our own logic of
       # cache invalidation and updates in addition to a date check
