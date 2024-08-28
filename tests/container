@@ -135,5 +135,15 @@ for release in $RELEASES; do
     lxc delete -f n1
 done
 
+IMAGE="ubuntu-minimal-daily:24.04"
+
+echo "==> check that we can mount devpts and procfs in unprivileged container"
+lxc launch "${IMAGE}" u1
+lxc exec u1 -- mkdir /root/proc
+lxc exec u1 -- mount -t proc proc /root/proc
+lxc exec u1 -- mkdir /root/devpts
+lxc exec u1 -- mount -t devpts devpts /root/devpts
+lxc delete -f u1
+
 # shellcheck disable=SC2034
 FAIL=0
