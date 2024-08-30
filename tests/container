@@ -143,6 +143,8 @@ lxc exec u1 -- mkdir /root/proc
 lxc exec u1 -- mount -t proc proc /root/proc
 lxc exec u1 -- mkdir /root/devpts
 lxc exec u1 -- mount -t devpts devpts /root/devpts
+lxc exec u1 -- mkdir /root/sys
+lxc exec u1 -- mount -t sysfs sysfs /root/sys
 lxc delete -f u1
 
 # shellcheck disable=SC2034
