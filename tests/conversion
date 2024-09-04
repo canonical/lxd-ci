@@ -87,6 +87,31 @@ checkDNS() {
     return 1
 }
 
+testImportedInstance() {
+    instName=$1
+
+    # Start the instance.
+    echo "Starting instance ${instName}..."
+    lxc start "${instName}"
+
+    # Wait for the instance to be ready and ensure it has global ip address.
+    echo "Waiting instance ${instName} to start..."
+    waitInstanceReady "${instName}"
+    sleep 10
+
+    # Print the instances.
+    lxc list
+
+    echo "Check network connectivity of instance ${instName}..."
+    checkIPAddresses "${instName}"
+
+    echo "Check DNS resolution of instance ${instName}..."
+    checkDNS "${instName}"
+
+    # Cleanup.
+    lxc delete -f "${instName}"
+}
+
 # conversion_vm creates a new LXD virtual machine from the image on the given path.
 # A dedicated storage pool of the given type will be created for a new virtual machine.
 #
@@ -201,26 +226,7 @@ conversion() {
         echo "1"
     } | $lxdMigrateCmd
 
-    # Start the instance.
-    echo "Starting instance ${instName}..."
-    lxc start "${instName}"
-
-    # Wait for the instance to be ready and ensure it has global ip address.
-    echo "Waiting instance ${instName} to start..."
-    waitInstanceReady "${instName}"
-    sleep 10
-
-    # Print the instances.
-    lxc list
-
-    echo "Check network connectivity of instance ${instName}..."
-    checkIPAddresses "${instName}"
-
-    echo "Check DNS resolution of instance ${instName}..."
-    checkDNS "${instName}"
-
-    # Cleanup.
-    lxc delete -f "${instName}"
+    testImportedInstance "${instName}"
 
     if [ "${poolName}" != "" ]; then
         lxc storage delete "${poolName}"
@@ -248,13 +254,99 @@ lxc delete tmp
 tar -xzf "${tmpdir}/tmp.tar.gz" -C "${tmpdir}" "backup/virtual-machine.img"
 rm "${tmpdir}/tmp.tar.gz"
 
+IMAGE_PATH="${tmpdir}/backup/virtual-machine.img"
+
 # Test VM migration using conversion mode. If server does not support
 # conversion API extension, lxd-migrate must fallback to migration
 # mode and successfully transfer the VM disk.
-conversion_vm alpine-raw btrfs "${tmpdir}/backup/virtual-machine.img" "no"
-conversion_vm alpine-raw lvm "${tmpdir}/backup/virtual-machine.img" "no"
-conversion_vm alpine-raw zfs "${tmpdir}/backup/virtual-machine.img" "no"
-conversion_vm alpine-raw dir "${tmpdir}/backup/virtual-machine.img" "no"
+for driver in btrfs lvm zfs dir; do
+    conversion_vm alpine-raw "${driver}" "${IMAGE_PATH}" "no"
+done
+
+# Test non-interactive VM imports.
+# Generate token for HTTPS remote server.
+token="$(lxc config trust add --quiet --name migrate)"
+if [ -z "${token}" ]; then
+    echo "Failed to generate LXD trust token!"
+    return 1
+fi
+
+# Test VM import with no target server - local unix server is used by default.
+lxd-migrate --non-interactive --type vm --source "${IMAGE_PATH}" \
+    --name vm-ni-unix-default \
+    --config security.secureboot=false
+query="$(lxc query /1.0/instances/vm-ni-unix-default)"
+[ "$(jq -r '.profiles[]' <<< "${query}")" = "default" ]       # Ensure default profile is applied.
+[ "$(jq -r .devices <<< "${query}")" = "{}" ]                 # Ensure no dierct devices.
+[ "$(jq -r '.expanded_devices | length' <<< "${query}")" = "2" ] # Ensure there are 2 devices from profile.
+testImportedInstance vm-ni-unix-default
+
+# Test VM import to local unix server.
+lxd-migrate --non-interactive --type vm --source "${IMAGE_PATH}" \
+    --name vm-ni-unix \
+    --config security.secureboot=false \
+    --server unix://
+testImportedInstance vm-ni-unix
+
+# Test VM import to remote HTTPS server.
+lxd-migrate --non-interactive --type vm --source "${IMAGE_PATH}" \
+    --name vm-ni-https \
+    --server https://127.0.0.1:8443 \
+    --token "${token}" \
+    --config security.secureboot=false
+testImportedInstance vm-ni-https
+
+# Custom configuration with no profiles.
+# Ensure that custom configuration is applied and no profiles are attached.
+lxd-migrate --non-interactive --type vm --source "${IMAGE_PATH}" \
+    --name vm-ni-custom-config \
+    --no-profiles \
+    --network lxdbr0 \
+    --storage default \
+    --storage-size 5GiB \
+    --config limits.cpu=2 \
+    --config limits.memory=2GiB \
+    --config security.secureboot=false
+query="$(lxc query /1.0/instances/vm-ni-custom-config)"
+[ "$(jq -r .profiles <<< "${query}")" = "[]" ]                  # Ensure no profiles are applied.
+[ "$(jq -r .devices.root.pool <<< "${query}")" = "default" ]    # Ensure storage pool default is used.
+[ "$(jq -r .devices.eth0.network <<< "${query}")" = "lxdbr0" ]  # Ensure network lxdbr0 is used.
+[ "$(jq -r '.config["limits.cpu"]' <<< "${query}")" = "2" ]
+[ "$(jq -r '.config["limits.memory"]' <<< "${query}")" = "2GiB" ]
+[ "$(jq -r '.config["security.secureboot"]' <<< "${query}")" = "false" ]
+testImportedInstance vm-ni-custom-config
+
+# Ensure invalid instance name is rejected.
+! lxd-migrate --non-interactive --type vm --name vm-ni-invalid/name --source "${IMAGE_PATH}" || false
+
+# Ensure no-profiles and profiles flags are mutually exclusive.
+! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --no-profiles --profiles default || false
+
+# Invalid instance config entry.
+! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --config invalid || false
+
+# Invalid instance type.
+! lxd-migrate --non-interactive --name vm-ni-invalid-flags --source "${IMAGE_PATH}" || false
+! lxd-migrate --non-interactive --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --type invalid || false
+
+# Invalid source path (VM).
+! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source /invalid/file/path || false
+
+# Invalid config key.
+! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --config invalid || false
+
+# Non-existing profile.
+! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --profiles invalid || false
+
+# Non-existing storage pool.
+! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --storage invalid || false
+
+# Invalid storage pool size.
+! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --storage invalid --storage-size 15Gibibytes || false
+
+# Non-existing network.
+! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --network invalid || false
+
 rm -rf "${tmpdir}/backup"
 
 # Test VM conversion using non-raw disk formats only if server supports
