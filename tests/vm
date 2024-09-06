@@ -16,6 +16,25 @@ waitInstanceBooted vm1
 echo "==> Test cleanly stopping a VM"
 lxc stop vm1
 
+if ! echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
+    echo "==> Test lxc exec exit code upon VM disconnection due to a stop/reboot"
+    lxc start vm1
+    waitInstanceBooted vm1
+
+    # Try disconnecting a VM stopping forcefully and gracefully to make sure they match.
+    (sleep 1 && lxc stop -f vm1) &
+    lxc exec vm1 -- sleep 10 || exitCode=$?
+    [ "${exitCode:-0}" -eq 129 ]
+
+    wait $!
+    lxc start vm1
+    waitInstanceBooted vm1
+    (sleep 1 && lxc stop vm1) &
+    lxc exec vm1 -- sleep 10 || exitCode=$?
+    [ "${exitCode:-0}" -eq 129 ]
+    wait $!
+fi
+
 # Cleanup
 lxc delete -f vm1
 
