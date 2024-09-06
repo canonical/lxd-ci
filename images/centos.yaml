@@ -378,6 +378,16 @@ actions:
   releases:
   - 9-Stream
 
+- trigger: post-unpack
+  action: |-
+    #!/bin/sh
+    # Remove security.selinux xattr.
+    find / -xdev -exec setfattr -x security.selinux {} 2>/dev/null \;
+  types:
+  - container
+  releases:
+  - 9-Stream
+
 - trigger: post-packages
   action: |-
     #!/bin/sh
