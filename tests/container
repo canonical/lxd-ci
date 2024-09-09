@@ -147,5 +147,13 @@ lxc exec u1 -- mkdir /root/sys
 lxc exec u1 -- mount -t sysfs sysfs /root/sys
 lxc delete -f u1
 
+
+echo "==> Try cleanly stopping a container"
+lxc launch "${IMAGE}" c1
+waitInstanceBooted c1
+lxc stop c1
+lxc start c1
+waitInstanceBooted c1
+
 # shellcheck disable=SC2034
 FAIL=0
