@@ -139,6 +139,7 @@ IMAGE="ubuntu-minimal-daily:24.04"
 
 echo "==> check that we can mount devpts and procfs in unprivileged container"
 lxc launch "${IMAGE}" u1
+waitInstanceBooted u1
 lxc exec u1 -- mkdir /root/proc
 lxc exec u1 -- mount -t proc proc /root/proc
 lxc exec u1 -- mkdir /root/devpts
