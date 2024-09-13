@@ -112,6 +112,7 @@ jobs:
           - "storage-vm zfs"
           - storage-volumes-vm
           - tpm-vm
+          - vm
           - vm-migration
           - vm-nesting
         include:
