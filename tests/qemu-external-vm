@@ -9,8 +9,8 @@ if [ "${architecture}" != "x86_64" ]; then
   exit 0
 fi
 
-if ! echo "${LXD_SNAP_CHANNEL}" | grep -q '^latest/edge'; then
-  echo "Skipping test as should only run on latest/edge"
+if echo "${LXD_SNAP_CHANNEL}" | grep -q '^[45]\.'; then
+  echo "Skipping test on 4.0, 5.0 and 5.21 branches"
   # shellcheck disable=SC2034
   FAIL=0
   exit 0
