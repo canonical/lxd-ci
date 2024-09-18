@@ -139,6 +139,7 @@ IMAGE="ubuntu-minimal-daily:24.04"
 
 echo "==> check that we can mount devpts and procfs in unprivileged container"
 lxc launch "${IMAGE}" u1
+waitInstanceBooted u1
 lxc exec u1 -- mkdir /root/proc
 lxc exec u1 -- mount -t proc proc /root/proc
 lxc exec u1 -- mkdir /root/devpts
@@ -146,6 +147,31 @@ lxc exec u1 -- mount -t devpts devpts /root/devpts
 lxc exec u1 -- mkdir /root/sys
 lxc exec u1 -- mount -t sysfs sysfs /root/sys
 lxc delete -f u1
+
+echo "==> Try cleanly stopping a container"
+lxc launch "${IMAGE}" c1
+waitInstanceBooted c1
+lxc stop c1
+lxc start c1
+waitInstanceBooted c1
+
+echo "==> Test exit codes when container disconnects during lxc exec"
+
+# Try disconnecting a container stopping forcefully and gracefully to make sure they differ appropriately.
+(sleep 1 && lxc stop -f c1) &
+lxc exec c1 -- sleep 10 || exitCode=$?
+[ "${exitCode:-0}" -eq 137 ]
+
+wait $!
+lxc start c1
+waitInstanceBooted c1
+(sleep 1 && lxc stop c1) &
+lxc exec c1 -- sleep 10 || exitCode=$?
+# Both 129 and 143 have been seen and both make sense here.
+[ "${exitCode:-0}" -eq 129 ] || [ "${exitCode:-0}" -eq 143 ]
+
+wait $!
+lxc delete -f c1
 
 # shellcheck disable=SC2034
 FAIL=0
