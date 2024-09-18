@@ -698,8 +698,9 @@ actions:
 
     set -e
 
-    # Disable automatic screensaver lock
+    # Disable lock screen and automatic screensaver lock.
     gsettings set org.gnome.desktop.screensaver lock-enabled false
+    gsettings set org.gnome.desktop.lockdown disable-lock-screen true
 
     # Disable welcome tour.
     gsettings set org.gnome.shell welcome-dialog-last-shown-version '4294967295'
