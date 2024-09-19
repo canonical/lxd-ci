@@ -297,9 +297,13 @@ if hasNeededAPIExtension instance_import_conversion; then
         # Afterwards, rebuild the initramfs image and stop the instance.
         lxc exec v1 -- rm /etc/dracut.conf.d/lxd.conf
         lxc exec v1 -- dracut --force --omit-drivers virtio_scsi
-        lxc stop v1
+
+        # XXX: Disable SELinux before exporting the instance, as it will block lxd-agent
+        # when re-imported.
+        lxc exec v1 -- sed -i "s/SELINUX=enforcing/SELINUX=disabled/" /etc/selinux/config
 
         # Export instance.
+        lxc stop v1
         lxc export v1 "${tmpdir}/vm.tar.gz"
 
         # Ensure instance does not boot without virtio_scsi drivers.
