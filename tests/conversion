@@ -240,7 +240,7 @@ sed -i '/images\.lxd\.canonical\.com/d' /etc/hosts
 tmpdir="$(mktemp -d)"
 
 # Create an instance and export it to get raw image.
-lxc init images:alpine/edge tmp --vm
+lxc init images:alpine/edge tmp --vm --device root,size=4GiB
 lxc export tmp "${tmpdir}/tmp.tar.gz"
 lxc delete tmp
 
