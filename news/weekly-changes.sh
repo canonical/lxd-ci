@@ -48,6 +48,12 @@ sleep 1
 echo -e "\n## LXD Charm"
 ./github-issues.py canonical/charm-lxd "${1}" "${2}"
 
+echo -e "\n## LXD Terraform provider"
+./github-issues.py terraform-lxd/terraform-provider-lxd "${1}" "${2}"
+
+echo -e "\n## PyLXD"
+./github-issues.py canonical/pylxd "${1}" "${2}"
+
 echo -e "\n# Distribution work"
 echo -e "\nThis section is used to track the work done in downstream Linux distributions to ship the latest LXD as well as work to get various software to work properly inside containers."
 
