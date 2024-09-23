@@ -391,18 +391,14 @@ if hasNeededAPIExtension instance_import_conversion; then
         # when re-imported.
         lxc exec v1 -- sed -i "s/SELINUX=enforcing/SELINUX=disabled/" /etc/selinux/config
 
-        # Export instance.
+        # Export instance and extract raw image.
         lxc stop v1
-        lxc export v1 "${tmpdir}/vm.tar.gz"
+        lxc export v1 --compression=none --quiet - | tar -xf - -C "${tmpdir}" "backup/virtual-machine.img"
 
         # Ensure instance does not boot without virtio_scsi drivers.
         lxc start v1
         ! waitInstanceReady v1 || { echo "Instance booted without SCSI drivers!"; false; }
         lxc delete -f v1
-
-        # Extract raw image.
-        tar -xzf "${tmpdir}/vm.tar.gz" -C "${tmpdir}" "backup/virtual-machine.img"
-        rm "${tmpdir}/vm.tar.gz"
 
         # Ensure that virtio conversion adds the needed virtio_scsi module back into the initramfs.
         conversion_vm centos-missing-driver zfs "${tmpdir}/backup/virtual-machine.img" "no" "virtio"
