@@ -247,12 +247,8 @@ tmpdir="$(mktemp -d)"
 
 # Create an instance and export it to get raw image.
 lxc init images:alpine/edge tmp --vm --device root,size=4GiB
-lxc export tmp "${tmpdir}/tmp.tar.gz"
+lxc export tmp --compression=none --quiet - | tar -xf - -C "${tmpdir}" "backup/virtual-machine.img"
 lxc delete tmp
-
-# Extract raw image from exported backup.
-tar -xzf "${tmpdir}/tmp.tar.gz" -C "${tmpdir}" "backup/virtual-machine.img"
-rm "${tmpdir}/tmp.tar.gz"
 
 IMAGE_PATH="${tmpdir}/backup/virtual-machine.img"
 
