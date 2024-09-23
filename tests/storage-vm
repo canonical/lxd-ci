@@ -580,9 +580,10 @@ for poolDriver in $poolDriverList; do
         lxc storage volume create "${poolName}" images
         lxc config set storage.images_volume "${poolName}"/images
         lxc publish v1 --alias v1image
+        lxc delete v1
         lxc launch v1image v2 -s "${poolName}"
         waitInstanceReady v2
-        lxc delete v1 v2 -f
+        lxc delete -f v2
         lxc image delete v1image
         lxc config unset storage.images_volume
         lxc storage volume delete "${poolName}" images
