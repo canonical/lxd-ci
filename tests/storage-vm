@@ -411,7 +411,6 @@ for poolDriver in $poolDriverList; do
         fi
         V1_ROOT_GPT_DISK_ID="$(lxc exec v1 -- fdisk --list /dev/sda | awk '/^Disk identifier:/ {print $3}')"
         V1_EFI_PART="$(lxc exec v1 -- fdisk --list /dev/sda | awk '/EFI System$/ {print $1}')"
-        lxc exec v1 -- umount "${V1_EFI_PART}"
         V1_EFI_SHA256SUM="$(lxc exec v1 -- sha256sum "${V1_EFI_PART}")"
 
         echo "==> Deactivate cloud-init after initial boot to avoid rootfs resize/growpart"
@@ -472,7 +471,6 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Check the EFI partition number and content did not change after the volume size override"
         V2_EFI_PART="$(lxc exec v2 -- fdisk --list /dev/sda | awk '/EFI System$/ {print $1}')"
-        lxc exec v2 -- umount "${V2_EFI_PART}"
         V2_EFI_SHA256SUM="$(lxc exec v2 -- sha256sum "${V2_EFI_PART}")"
         [ "${V1_EFI_SHA256SUM}" = "${V2_EFI_SHA256SUM}" ]
 
@@ -539,7 +537,6 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Check the EFI partition number and content did not change after the volume size override"
         V2_EFI_PART="$(lxc exec v2 -- fdisk --list /dev/sda | awk '/EFI System$/ {print $1}')"
-        lxc exec v2 -- umount "${V2_EFI_PART}"
         V2_EFI_SHA256SUM="$(lxc exec v2 -- sha256sum "${V2_EFI_PART}")"
         [ "${V1_EFI_SHA256SUM}" = "${V2_EFI_SHA256SUM}" ]
 
