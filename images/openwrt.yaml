@@ -8,7 +8,7 @@ source:
   downloader: openwrt-http
   url: https://downloads.openwrt.org
   keys:
-  # 0x54CC74307A2C6DC9CE618269CD84BCED626471F1
+  # 0x54CC74307A2C6DC9CE618269CD84BCED626471F1 (PGP key for unattended snapshot builds and 23.05, pub key)
   - |-
     -----BEGIN PGP PUBLIC KEY BLOCK-----
 
@@ -86,7 +86,7 @@ source:
     =kEox
     -----END PGP PUBLIC KEY BLOCK-----
 
-  # 0x6D9278A33A9AB3146262DCECF93525A88B699029
+  # 0x6D9278A33A9AB3146262DCECF93525A88B699029 (PGP key for unattended snapshot builds and 23.05, sub key)
   - |-
     -----BEGIN PGP PUBLIC KEY BLOCK-----
 
