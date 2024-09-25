@@ -83,7 +83,7 @@ for poolDriver in $poolDriverList; do
 
         # Ensure non-power-of-two sizes are rounded appropriately for zfs
         if [ "${poolDriver}" = "zfs" ]; then
-                lxc init "${IMAGE}" rounded --vm -s "${poolName}" -d root,size=13GB
+                lxc init --empty rounded --vm -s "${poolName}" -d root,size=13GB
                 lxc delete rounded
         fi
 
@@ -266,7 +266,7 @@ for poolDriver in $poolDriverList; do
         nsenter --mount=/run/snapd/ns/lxd.mnt -- rm /var/snap/lxd/common/lxd/logs/v1/qemu.monitor
         systemctl reload snap.lxd.daemon
         sleep 5
-        lxc ls v1 | grep ERROR
+        [ "$(lxc list -f csv -c s v1)" = "ERROR" ]
         ! lxc stop v1 || false
         ! lxc start v1 || false
         pgrep -af "${uuid}"
@@ -293,15 +293,40 @@ for poolDriver in $poolDriverList; do
         lxc start v1
         waitInstanceReady v1
 
+        echo "==> Increasing VM root disk size for next boot (24GiB)"
+        lxc config device set v1 root size=24GiB
+        [ "$(lxc config get v1 volatile.root.apply_quota)" = "true" ]
+
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Increasing VM root disk size for next boot (4GiB)"
-                lxc config device set v1 root size=4GiB
+                echo "==> Check VM online shrink is allowed if it greater or equal to initial size"
+                lxc config device set v1 root size=3584MiB # initial
+                lxc config device set v1 root size=32GiB
+
+                echo "==> Setting VM root disk size for next boot (4GiB)"
+                lxc config device set v1 root size=4GiB # final
         else
-                echo "==> Increasing VM root disk size for next boot (16GiB)"
-                lxc config device set v1 root size=16GiB
+                echo "==> Check VM online shrink is allowed if it greater or equal to initial size"
+                lxc config device set v1 root size=8GiB # initial
+                lxc config device set v1 root size=32GiB
+
+                echo "==> Setting VM root disk size for next boot (16GiB)"
+                lxc config device set v1 root size=16GiB # final
         fi
-        lxc config get v1 volatile.root.apply_quota | grep true
+        [ "$(lxc config get v1 volatile.root.apply_quota)" = "true" ]
         lxc stop -f v1
+
+        # Proceed to actually growing the root disk
+        lxc start v1
+        [ "$(lxc config get v1 volatile.root.apply_quota)" = "" ]
+        lxc stop -f v1
+
+        echo "==> Check VM offline shrink is blocked"
+        if [ "${poolDriver}" != "powerflex" ]; then
+                ! lxc config device set v1 root size=3584MiB || false
+        else
+                ! lxc config device set v1 root size=8GiB || false
+        fi
+
         lxc start v1
         waitInstanceReady v1
 
@@ -309,13 +334,13 @@ for poolDriver in $poolDriverList; do
                 echo "==> Checking VM root disk size is 4GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "4" ]
 
-                echo "==> Check VM shrink is blocked"
+                echo "==> Check VM online shrink is blocked"
                 ! lxc config device set v1 root size=3584MiB || false
         else
                 echo "==> Checking VM root disk size is 16GiB"
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
 
-                echo "==> Check VM shrink is blocked"
+                echo "==> Check VM online shrink is blocked"
                 ! lxc config device set v1 root size=8GiB || false
         fi
         lxc delete -f v1
@@ -386,10 +411,43 @@ for poolDriver in $poolDriverList; do
         fi
         V1_ROOT_GPT_DISK_ID="$(lxc exec v1 -- fdisk --list /dev/sda | awk '/^Disk identifier:/ {print $3}')"
         V1_EFI_PART="$(lxc exec v1 -- fdisk --list /dev/sda | awk '/EFI System$/ {print $1}')"
-        lxc exec v1 -- umount "${V1_EFI_PART}"
         V1_EFI_SHA256SUM="$(lxc exec v1 -- sha256sum "${V1_EFI_PART}")"
-        lxc stop -f v1
 
+        echo "==> Deactivate cloud-init after initial boot to avoid rootfs resize/growpart"
+        lxc exec v1 -- systemctl mask --now cloud-init.service
+
+        # Note the original size of the rootfs partition.
+        ROOTFS_SIZE_ORIG="$(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part1)"
+
+        lxc exec v1 -- sync
+        lxc stop -f v1
+        if [ "${poolDriver}" != "powerflex" ]; then
+                echo "==> Increasing VM root disk size for next boot (4GiB)"
+                lxc config device override v1 root size=4GiB
+        else
+                echo "==> Increasing VM root disk size for next boot (16GiB)"
+                lxc config device override v1 root size=16GiB
+        fi
+        lxc start v1
+        waitInstanceReady v1
+
+        echo "==> Verify that the rootfs partition size has not changed after the disk resize"
+        ROOTFS_SIZE_NEW="$(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root-part1)"
+        [ "${ROOTFS_SIZE_ORIG}" = "${ROOTFS_SIZE_NEW}" ]
+
+        echo "==> Reactivate cloud-init"
+        lxc exec v1 -- systemctl unmask cloud-init.service
+
+        echo "==> Create extra partition"
+        echo ";" | lxc exec v1 -- sfdisk /dev/sda --force --no-reread --no-tell-kernel --append
+        lxc exec v1 -- partx -u /dev/sda
+
+        echo "==> Write random data to extra partition"
+        lxc exec v1 -- dd if=/dev/urandom of=/dev/sda2 bs=16M count=1
+        V1_SDA2_SHA256_ORIG="$(lxc exec v1 -- dd if=/dev/sda2 bs=16M count=1 | sha256sum)"
+
+        lxc exec v1 -- sync
+        lxc stop -f v1
         echo "==> Copy to different storage pool with same driver and check size"
         if [ "${poolDriver}" = "dir" ] || [ "${poolDriver}" = "ceph" ]; then
                 lxc storage create "${poolName}-2" "${poolDriver}"
@@ -408,9 +466,11 @@ for poolDriver in $poolDriverList; do
         waitInstanceReady v2
         lxc info v2
 
+        echo "==> Read random data from extra partition"
+        [ "${V1_SDA2_SHA256_ORIG}" = "$(lxc exec v2 -- dd if=/dev/sda2 bs=16M count=1 | sha256sum)" ]
+
         echo "==> Check the EFI partition number and content did not change after the volume size override"
         V2_EFI_PART="$(lxc exec v2 -- fdisk --list /dev/sda | awk '/EFI System$/ {print $1}')"
-        lxc exec v2 -- umount "${V2_EFI_PART}"
         V2_EFI_SHA256SUM="$(lxc exec v2 -- sha256sum "${V2_EFI_PART}")"
         [ "${V1_EFI_SHA256SUM}" = "${V2_EFI_SHA256SUM}" ]
 
@@ -419,16 +479,19 @@ for poolDriver in $poolDriverList; do
         [ "${V1_ROOT_GPT_DISK_ID}" = "${V2_ROOT_GPT_DISK_ID}" ]
 
         echo "==> Check the GPT backup table was copied at the new end of the disk"
-        # `fdisk --list` would print `The backup GPT table is corrupt, but the primary appears OK, so that will be used.` to stderr
+        # If the GPT backup table was not copied to the end of the disk, `fdisk --list` would print
+        # `The backup GPT table is corrupt, but the primary appears OK, so that will be used.`
+        # to stderr. This is not fatal as GPT can cope with this but it would indicate an issue with LXD
+        # not updating the backup table. As such, verify that nothing is output to stderr.
         lxc exec v2 -- fdisk --list /dev/sda | grep -xF 'Disklabel type: gpt'
         [ "$(lxc exec v2 -- fdisk --list /dev/sda 2>&1 >/dev/null)" = "" ]
 
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking copied VM root disk size is 3584MiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / MiB))" -eq "3584" ]
+                echo "==> Checking copied VM root disk size is 4GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "4" ]
         else
-                echo "==> Checking copied VM root disk size is 8GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "8" ]
+                echo "==> Checking copied VM root disk size is 16GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
         fi
         lxc delete -f v2
         lxc storage delete "${poolName}-2"
@@ -445,30 +508,35 @@ for poolDriver in $poolDriverList; do
         waitInstanceReady v2
         lxc info v2
 
+        echo "==> Read random data from extra partition"
+        [ "${V1_SDA2_SHA256_ORIG}" = "$(lxc exec v2 -- dd if=/dev/sda2 bs=16M count=1 | sha256sum)" ]
+
         if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Checking copied VM root disk size is 3584MiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / MiB))" -eq "3584" ]
+                echo "==> Checking copied VM root disk size is 4GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "4" ]
         else
-                echo "==> Checking copied VM root disk size is 8GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "8" ]
+                echo "==> Checking copied VM root disk size is 16GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
         fi
         lxc delete -f v2
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Override volume size from profile (4GiB) to 5GiB and copy to different storage pool"
-                lxc config device override v1 root size=5GiB
+                lxc config device set v1 root size=5GiB
         else
-                echo "==> Override volume size from profile (8GiB) to 16GiB and copy to different storage pool"
-                lxc config device override v1 root size=16GiB
+                echo "==> Override volume size from profile (16GiB) to 24GiB and copy to different storage pool"
+                lxc config device set v1 root size=24GiB
         fi
         lxc copy v1 v2 -s "${poolName}-${dstPoolDriver}"
         lxc start v2
         waitInstanceReady v2
         lxc info v2
 
+        echo "==> Read random data from extra partition"
+        [ "${V1_SDA2_SHA256_ORIG}" = "$(lxc exec v2 -- dd if=/dev/sda2 bs=16M count=1 | sha256sum)" ]
+
         echo "==> Check the EFI partition number and content did not change after the volume size override"
         V2_EFI_PART="$(lxc exec v2 -- fdisk --list /dev/sda | awk '/EFI System$/ {print $1}')"
-        lxc exec v2 -- umount "${V2_EFI_PART}"
         V2_EFI_SHA256SUM="$(lxc exec v2 -- sha256sum "${V2_EFI_PART}")"
         [ "${V1_EFI_SHA256SUM}" = "${V2_EFI_SHA256SUM}" ]
 
@@ -477,7 +545,10 @@ for poolDriver in $poolDriverList; do
         [ "${V1_ROOT_GPT_DISK_ID}" = "${V2_ROOT_GPT_DISK_ID}" ]
 
         echo "==> Check the GPT backup table was copied at the new end of the disk"
-        # `fdisk --list` would print `The backup GPT table is corrupt, but the primary appears OK, so that will be used.` to stderr
+        # If the GPT backup table was not copied to the end of the disk, `fdisk --list` would print
+        # `The backup GPT table is corrupt, but the primary appears OK, so that will be used.`
+        # to stderr. This is not fatal as GPT can cope with this but it would indicate an issue with LXD
+        # not updating the backup table. As such, verify that nothing is output to stderr.
         lxc exec v2 -- fdisk --list /dev/sda | grep -xF 'Disklabel type: gpt'
         [ "$(lxc exec v2 -- fdisk --list /dev/sda 2>&1 >/dev/null)" = "" ]
 
@@ -485,8 +556,8 @@ for poolDriver in $poolDriverList; do
                 echo "==> Checking copied VM root disk size is 5GiB"
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "5" ]
         else
-                echo "==> Checking copied VM root disk size is 16GiB"
-                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
+                echo "==> Checking copied VM root disk size is 24GiB"
+                [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "24" ]
         fi
         lxc delete -f v2
         lxc storage delete "${poolName}-${dstPoolDriver}"
@@ -494,7 +565,7 @@ for poolDriver in $poolDriverList; do
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Publishing larger VM (5GiB)"
         else
-                echo "==> Publishing larger VM (16GiB)"
+                echo "==> Publishing larger VM (24GiB)"
         fi
         lxc publish v1 --alias vmbig
         lxc delete -f v1
@@ -513,6 +584,9 @@ for poolDriver in $poolDriverList; do
         lxc start v1
         waitInstanceReady v1
         lxc info v1
+
+        echo "==> Read random data from extra partition"
+        [ "${V1_SDA2_SHA256_ORIG}" = "$(lxc exec v1 -- dd if=/dev/sda2 bs=16M count=1 | sha256sum)" ]
 
         if [ "${poolDriver}" != "powerflex" ]; then
                 echo "==> Checking new VM root disk size has default volume size of 10GiB"
@@ -549,9 +623,10 @@ for poolDriver in $poolDriverList; do
         lxc storage volume create "${poolName}" images
         lxc config set storage.images_volume "${poolName}"/images
         lxc publish v1 --alias v1image
+        lxc delete v1
         lxc launch v1image v2 -s "${poolName}"
         waitInstanceReady v2
-        lxc delete v1 v2 -f
+        lxc delete -f v2
         lxc image delete v1image
         lxc config unset storage.images_volume
         lxc storage volume delete "${poolName}" images
@@ -562,24 +637,24 @@ for poolDriver in $poolDriverList; do
                 # if no local instance config nor profile value of `migration.stateful` is set.
 
                 lxc config set instances.migration.stateful=true
-                lxc init "${IMAGE}" v1 --vm -s "${poolName}"
-
+                lxc init --empty v1 --vm -s "${poolName}"
                 [ "$(lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]')" = true ]
                 lxc delete v1 -f
+
                 lxc config set instances.migration.stateful=false
-                lxc init "${IMAGE}" v1 --vm -s "${poolName}"
+                lxc init --empty v1 --vm -s "${poolName}"
                 [ -z "$(lxc config get --expanded v1 migration.stateful)" ] # instances.migration.stateful leave it unset because since it is `false`, it is the same as the default value of `migration.stateful`.
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=true
-                lxc init "${IMAGE}" v1 --vm --config migration.stateful=false -s "${poolName}"
+                lxc init --empty v1 --vm --config migration.stateful=false -s "${poolName}"
                 [ "$(lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]')" = "false" ] # the instance local config should take precedence
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=false
                 lxc profile copy default stateful_profile
                 lxc profile set stateful_profile migration.stateful=true
-                lxc init "${IMAGE}" v1 --vm -p stateful_profile -s "${poolName}"
+                lxc init --empty v1 --vm -p stateful_profile -s "${poolName}"
                 [ "$(lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]')" = "true" ] # the profile config should take precedence
                 lxc delete v1 -f
                 lxc profile delete stateful_profile
