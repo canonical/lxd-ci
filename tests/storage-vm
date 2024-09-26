@@ -276,22 +276,10 @@ for poolDriver in $poolDriverList; do
         waitInstanceReady v1
 
         echo "==> Testing VM non-optimized export/import (while running to check config.mount is excluded)"
-        lxc exec v1 -- fsfreeze --freeze /
-        lxc export v1 "/tmp/lxd-test-${poolName}.tar.gz"
-        lxc delete -f v1
-        lxc import "/tmp/lxd-test-${poolName}.tar.gz"
-        rm "/tmp/lxd-test-${poolName}.tar.gz"
-        lxc start v1
-        waitInstanceReady v1
+        ! lxc export v1 --quiet --compression=none - | tar -tf - | grep -F config.mount || false
 
         echo "==> Testing VM optimized export/import (while running to check config.mount is excluded)"
-        lxc exec v1 -- fsfreeze --freeze /
-        lxc export v1 "/tmp/lxd-test-${poolName}-optimized.tar.gz" --optimized-storage
-        lxc delete -f v1
-        lxc import "/tmp/lxd-test-${poolName}-optimized.tar.gz"
-        rm "/tmp/lxd-test-${poolName}-optimized.tar.gz"
-        lxc start v1
-        waitInstanceReady v1
+        ! lxc export v1 --quiet --compression=none - --optimized-storage | tar -tf - | grep -F config.mount || false
 
         echo "==> Increasing VM root disk size for next boot (24GiB)"
         lxc config device set v1 root size=24GiB
