@@ -612,7 +612,7 @@ for poolDriver in $poolDriverList; do
         lxc config set storage.images_volume "${poolName}"/images
         lxc publish v1 --alias v1image
         lxc delete v1
-        lxc launch v1image v2 -s "${poolName}"
+        lxc launch v1image v2 -s "${poolName}" # --vm flag omitted as we are implicitly launching a vm
         waitInstanceReady v2
         lxc delete -f v2
         lxc image delete v1image

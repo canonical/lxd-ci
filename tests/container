@@ -155,6 +155,10 @@ lxc stop c1
 lxc start c1
 waitInstanceBooted c1
 
+echo "==> Ensure aliased image won't launch with VM flag set"
+lxc image alias create containeralias "$(lxc config get c1 volatile.base_image)"
+! lxc launch containeralias --vm || false
+
 echo "==> Test exit codes when container disconnects during lxc exec"
 
 # Try disconnecting a container stopping forcefully and gracefully to make sure they differ appropriately.
