@@ -340,6 +340,16 @@ for poolDriver in $poolDriverList; do
                 echo "==> Change volume.size on pool from default of 8GiB to 16GiB and create VM"
                 lxc storage set "${poolName}" volume.size 16GiB
         fi
+
+        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ] || [ "${poolDriver}" = "zfs" ]; then
+                echo "==> Change volume.block.filesystem on pool and create VM"
+                lxc storage set "${poolName}" volume.block.filesystem xfs
+
+                if [ "${poolDriver}" = "zfs" ]; then
+                    lxc storage set "${poolName}" volume.zfs.block_mode=true
+                fi
+        fi
+
         lxc init "${IMAGE}" v1 --vm -s "${poolName}"
         lxc start v1
         waitInstanceReady v1
@@ -353,29 +363,35 @@ for poolDriver in $poolDriverList; do
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
         fi
 
-        echo "==> Deleting VM and reset pool volume.size"
-        lxc delete -f v1
-        lxc storage unset "${poolName}" volume.size
-
-        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ]; then
-                echo "==> Change volume.block.filesystem on pool and create VM"
-                lxc storage set "${poolName}" volume.block.filesystem xfs
-                lxc init "${IMAGE}" v1 --vm -s "${poolName}"
-                lxc start v1
-                waitInstanceReady v1
-                lxc info v1
-
+        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ] || [ "${poolDriver}" = "zfs" ]; then
                 echo "==> Ensure the VM volume ignores volume.block.filesystem"
-                [ "$(lxc storage volume get "${poolName}" virtual-machine/v1 block.filesystem)" = "ext4" ]
+                if [ "${poolDriver}" = "zfs" ]; then
+                    # The VM config disk is not a zvol with ext4 on top but just a plain ZFS dataset so no block.filesystem is used
+                    [ "$(lxc storage volume get "${poolName}" virtual-machine/v1 block.filesystem)" = "" ]
+                else
+                    [ "$(lxc storage volume get "${poolName}" virtual-machine/v1 block.filesystem)" = "ext4" ]
+                fi
 
                 echo "==> Checking VM config disk filesystem is not XFS"
                 serverPID="$(lxc query /1.0 | jq .environment.server_pid)"
-                [ "$(nsenter -m -t "${serverPID}" findmnt --noheadings --output=FSTYPE --mountpoint /var/snap/lxd/common/lxd/devices/v1/config.mount)" = "ext4" ]
+                if [ "${poolDriver}" = "zfs" ]; then
+                    # The VM config disk is not a zvol with ext4 on top but just a plain ZFS dataset
+                    CONFIG_MOUNT_FS="zfs"
+                else
+                    CONFIG_MOUNT_FS="ext4"
+                fi
+                [ "$(nsenter -m -t "${serverPID}" findmnt --noheadings --output=FSTYPE --mountpoint /var/snap/lxd/common/lxd/devices/v1/config.mount)" = "${CONFIG_MOUNT_FS}" ]
 
-                echo "==> Deleting VM"
-                lxc delete -f v1
                 lxc storage unset "${poolName}" volume.block.filesystem
+
+                if [ "${poolDriver}" = "zfs" ]; then
+                    lxc storage unset "${poolName}" volume.zfs.block_mode
+                fi
         fi
+
+        echo "==> Deleting VM and reset pool volume.size"
+        lxc delete -f v1
+        lxc storage unset "${poolName}" volume.size
 
         lxc profile copy default vmsmall
         if [ "${poolDriver}" != "powerflex" ]; then
