@@ -248,6 +248,18 @@ cleanup() {
         uname -a
         lxc list --all-projects || lxc list
 
+        echo "::group::lsmod"
+        lsmod
+        echo "::endgroup::"
+
+        echo "::group::meminfo"
+        cat /proc/meminfo
+        echo "::endgroup::"
+
+        echo "::group::mountinfo"
+        cat /proc/1/mountinfo
+        echo "::endgroup::"
+
         # LXD daemon logs
         echo "::group::lxd logs"
         journalctl --quiet --no-hostname --no-pager --boot=0 --lines=100 --unit=snap.lxd.daemon.service
