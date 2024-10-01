@@ -389,7 +389,9 @@ if hasNeededAPIExtension instance_import_conversion; then
 
         # XXX: Disable SELinux before exporting the instance, as it will block lxd-agent
         # when re-imported.
-        lxc exec v1 -- sed -i "s/SELINUX=enforcing/SELINUX=disabled/" /etc/selinux/config
+        if lxc exec v1 -- test -e /etc/selinux/config; then
+            lxc exec v1 -- sed -i "s/SELINUX=enforcing/SELINUX=disabled/" /etc/selinux/config
+        fi
 
         # Export instance and extract raw image.
         lxc stop v1
