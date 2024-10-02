@@ -24,6 +24,12 @@ case "$i" in
       swapaccount)
         echo "===> CGroup swap accounting"
 
+        if ! uname -r | grep -q ^5\. ; then
+            # https://github.com/torvalds/linux/commit/b25806dcd3d5248833f7d2544ee29a701735159f#diff-e0db206dcb17671bc1db8f4784a96e0014c488a004472b434f919b74e494b2aeR7506
+            echo "swapaccounting is always enabled with Linux 6.1+"
+            exit 1
+        fi
+
         # shellcheck disable=SC2016
         echo 'GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX} swapaccount=1"' > /etc/default/grub.d/99-cgroup-swap.cfg
       ;;
