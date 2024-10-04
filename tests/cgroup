@@ -12,10 +12,8 @@ lxd init --auto
 
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
-rc=0
-journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.service | grep "Kernel supports swap accounting" || rc="$?"
 LXCFS_SUPPORTS_SWAP_ACCOUNTING=0
-if [ "${rc}" -eq 0 ]; then
+if journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.service --grep "Kernel supports swap accounting"; then
     LXCFS_SUPPORTS_SWAP_ACCOUNTING=1
 fi
 
