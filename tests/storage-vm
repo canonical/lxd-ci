@@ -63,10 +63,10 @@ for poolDriver in $poolDriverList; do
         if [ "${poolDriver}" = "dir" ] || [ "${poolDriver}" = "ceph" ]; then
                 lxc storage create "${poolName}" "${poolDriver}"
         elif [ "${poolDriver}" = "lvm" ]; then
-                lxc storage create "${poolName}" "${poolDriver}" size=59GiB lvm.use_thinpool=false
-                lxc storage set "${poolName}" size=60GiB
-                ! lxc storage set "${poolName}" size=58GiB || false
-                [ "$(lxc storage get "${poolName}" size)" = "60GiB" ]
+                lxc storage create "${poolName}" "${poolDriver}" size=39GiB lvm.use_thinpool=false
+                lxc storage set "${poolName}" size=40GiB
+                ! lxc storage set "${poolName}" size=38GiB || false
+                [ "$(lxc storage get "${poolName}" size)" = "40GiB" ]
         elif [ "${poolDriver}" = "lvm-thin" ]; then
                 lxc storage create "${poolName}" lvm size=19GiB
                 lxc storage set "${poolName}" size=20GiB
