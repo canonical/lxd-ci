@@ -12,6 +12,13 @@ lxd init --auto
 
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
+rc=0
+journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.service | grep "Kernel supports swap accounting" || rc="$?"
+LXCFS_SUPPORTS_SWAP_ACCOUNTING=0
+if [ "${rc}" -eq 0 ]; then
+    LXCFS_SUPPORTS_SWAP_ACCOUNTING=1
+fi
+
 # Test
 set -x
 
@@ -22,7 +29,8 @@ lxc launch "${IMAGE}" c1
 echo "==> Validate default values"
 [ "$(lxc exec c1 -- nproc)" = "$(nproc)" ]
 [ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "$(grep ^MemTotal /proc/meminfo)" ]
-if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] || [ -e "/sys/fs/cgroup/memory.swap.max" ]; then
+if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] ||
+   { [ -e "/sys/fs/cgroup/system.slice/memory.swap.max" ] && [ "${LXCFS_SUPPORTS_SWAP_ACCOUNTING}" -eq 1 ]; }; then
     [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "$(grep ^SwapTotal /proc/meminfo)" ]
 else
     [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:             0 kB" ]
@@ -110,7 +118,8 @@ echo "==> Testing memory limits"
 MEM_LIMIT_MIB=512
 lxc config set c1 limits.memory="${MEM_LIMIT_MIB}MiB"
 [ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "MemTotal:         $((MEM_LIMIT_MIB * 1024)) kB" ]
-if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] || [ -e "/sys/fs/cgroup/memory.swap.max" ]; then
+if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] ||
+   { [ -e "/sys/fs/cgroup/system.slice/memory.swap.max" ] && [ "${LXCFS_SUPPORTS_SWAP_ACCOUNTING}" -eq 1 ]; }; then
     [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:        $((MEM_LIMIT_MIB * 1024)) kB" ]
 else
     [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:             0 kB" ]
@@ -133,7 +142,8 @@ if [ -e "/sys/fs/cgroup/memory" ]; then
     [ "$(lxc exec c1 -- cat /sys/fs/cgroup/memory/memory.swappiness)" = "65" ]
 fi
 
-if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] || [ -e "/sys/fs/cgroup/memory.swap.max" ]; then
+if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] ||
+   { [ -e "/sys/fs/cgroup/system.slice/memory.swap.max" ] && [ "${LXCFS_SUPPORTS_SWAP_ACCOUNTING}" -eq 1 ]; }; then
     lxc config set c1 limits.memory 128MiB
     [ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "MemTotal:         131072 kB" ]
 
