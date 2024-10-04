@@ -7,6 +7,9 @@ set -eu
 install_lxd
 lxd init --auto
 
+# Install dependencies
+install_deps btrfs-progs xfsprogs
+
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 echo "==> Create a loop device that we can mount as a source for a dir storage pool"
