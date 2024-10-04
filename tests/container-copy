@@ -19,7 +19,7 @@ loopdev="$(losetup --show --find "${loopimg}")"
 set -x
 
 echo "==> Launch a VM which will be the target of the copy"
-lxc launch "${IMAGE}" target --vm
+lxc launch "${IMAGE}" target --vm -d root,size=8GiB
 waitInstanceBooted target
 
 echo "==> Setup LXD on the target VM"
