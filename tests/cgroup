@@ -110,11 +110,20 @@ echo "==> Testing memory limits"
 MEM_LIMIT_MIB=512
 lxc config set c1 limits.memory="${MEM_LIMIT_MIB}MiB"
 [ "$(lxc exec c1 -- grep ^MemTotal /proc/meminfo)" = "MemTotal:         $((MEM_LIMIT_MIB * 1024)) kB" ]
+SWAP_LIMIT_KIB="0"
 if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] || [ -e "/sys/fs/cgroup/memory.swap.max" ]; then
-    [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:        $((MEM_LIMIT_MIB * 1024)) kB" ]
-else
-    [ "$(lxc exec c1 -- grep ^SwapTotal /proc/meminfo)" = "SwapTotal:             0 kB" ]
+    # XXX: workaround for https://github.com/canonical/lxd/issues/13954
+    # On cgroup1 systems, LXD 5.0 and later set the swap limit to twice the limits.memory.
+    SWAP_LIMIT_KIB="$((MEM_LIMIT_MIB * 1024 * 2))"
+
+    # LXD 4.0 sets it to limits.memory
+    if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
+        SWAP_LIMIT_KIB="$((MEM_LIMIT_MIB * 1024))"
+    fi
 fi
+# XXX: using awk to get only the value to avoid problems with formatting including varying amount of spaces before the kB value
+# shellcheck disable=SC2016
+[ "$(lxc exec c1 -- awk '/^SwapTotal/ { print $2 }' /proc/meminfo)" = "${SWAP_LIMIT_KIB}" ]
 
 # ensure that we don't set memory.high when limits.memory.enforce=hard (default value)
 if [ -e "/sys/fs/cgroup/system.slice/memory.high" ]; then
