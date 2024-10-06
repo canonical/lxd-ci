@@ -1191,6 +1191,12 @@ packages:
     - arm64
 
   - packages:
+    - cloud-guest-utils
+    action: install
+    types:
+    - vm
+
+  - packages:
     - shim-signed
     action: install
     types:
@@ -1387,6 +1393,29 @@ actions:
 
     update-grub
     sed -i "s#root=[^ ]*#root=${LXD_IMAGEBUILDER_ROOT_UUID}#g" /boot/grub/grub.cfg
+  types:
+  - vm
+
+- trigger: post-files
+  action: |-
+    #!/bin/sh
+    set -eux
+
+    # Automatic disk resize
+    cat << EOF > /etc/systemd/system/lxd-growpart.service
+    [Unit]
+    Description=LXD - grow root partition
+
+    [Service]
+    Type=oneshot
+    ExecStartPre=-/usr/bin/growpart /dev/sda 2
+    ExecStart=/sbin/resize2fs /dev/sda2
+
+    [Install]
+    WantedBy=default.target
+    EOF
+
+    systemctl enable lxd-growpart
   types:
   - vm
 
