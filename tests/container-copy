@@ -7,6 +7,9 @@ set -eu
 install_lxd
 lxd init --auto
 
+# Install dependencies
+install_deps btrfs-progs xfsprogs
+
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 echo "==> Create a loop device that we can mount as a source for a dir storage pool"
@@ -19,12 +22,12 @@ loopdev="$(losetup --show --find "${loopimg}")"
 set -x
 
 echo "==> Launch a VM which will be the target of the copy"
-lxc launch "${IMAGE}" target --vm
+lxc launch "${IMAGE}" target --vm -d root,size=8GiB
 waitInstanceBooted target
 
 echo "==> Setup LXD on the target VM"
 lxc exec target -- snap install lxd --channel "${LXD_SNAP_CHANNEL}"
-lxc exec target -- lxd init --auto --network-address "[::]" --network-port "8443"
+lxc exec target -- lxd init --auto --network-address "[::]" --network-port "8443" --storage-backend "zfs"
 
 echo "==> Add the target VM as a remote LXD"
 token="$(lxc exec target -- lxc config trust add --name host --quiet)"

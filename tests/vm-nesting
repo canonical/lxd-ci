@@ -102,6 +102,9 @@ delete "${VMs}"
 
 echo "==> Test ${nestedVMs} VMs each with one nested VM"
 init "${nestedVMs}" --vm
+if hasNeededAPIExtension devlxd_images_vm; then
+    conf "${nestedVMs}" security.devlxd.images=true
+fi
 start "${nestedVMs}"
 wait "${nestedVMs}"
 cmd "${nestedVMs}" "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"

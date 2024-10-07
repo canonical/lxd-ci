@@ -239,6 +239,7 @@ jobs:
       # needed for cache key
       - name: Get Date
         id: get-date
+        if: ${{ matrix.test == 'qemu-external-vm' }}
         run: |
           echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
         shell: bash
