@@ -71,6 +71,9 @@ sleep 1
 echo -e "\n## LXD Charm"
 ./github-issues.py canonical/charm-lxd "${DATESTART}" "${DATEEND}"
 
+echo -e "\n## LXD Terraform provider"
+./github-issues.py terraform-lxd/terraform-provider-lxd "${DATESTART}" "${DATEEND}"
+
 echo -e "\n## PyLXD"
 ./github-issues.py canonical/pylxd "${DATESTART}" "${DATEEND}"
 
