@@ -281,31 +281,49 @@ for poolDriver in $poolDriverList; do
         echo "==> Testing VM optimized export/import (while running to check config.mount is excluded)"
         ! lxc export v1 --quiet --compression=none - --optimized-storage | tar -tf - | grep -F config.mount || false
 
-        echo "==> Increasing VM root disk size for next boot (24GiB)"
-        lxc config device set v1 root size=24GiB
-        [ "$(lxc config get v1 volatile.root.apply_quota)" = "true" ]
-
-        if [ "${poolDriver}" != "powerflex" ]; then
-                echo "==> Check VM online shrink is allowed if it greater or equal to initial size"
-                lxc config device set v1 root size=3584MiB # initial
-                lxc config device set v1 root size=32GiB
-
-                echo "==> Setting VM root disk size for next boot (4GiB)"
-                lxc config device set v1 root size=4GiB # final
-        else
-                echo "==> Check VM online shrink is allowed if it greater or equal to initial size"
-                lxc config device set v1 root size=8GiB # initial
-                lxc config device set v1 root size=32GiB
-
-                echo "==> Setting VM root disk size for next boot (16GiB)"
-                lxc config device set v1 root size=16GiB # final
+        LIVE_GROWING_SUPPORTED=0
+        if hasNeededAPIExtension vm_zfs_storage_disk_live_resize && [ "${poolDriver}" = "zfs" ]; then
+                LIVE_GROWING_SUPPORTED=1
+        elif hasNeededAPIExtension vm_lvm_storage_disk_live_resize; then
+                if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ]; then
+                        LIVE_GROWING_SUPPORTED=1
+                fi
         fi
-        [ "$(lxc config get v1 volatile.root.apply_quota)" = "true" ]
-        lxc stop -f v1
 
-        # Proceed to actually growing the root disk
-        lxc start v1
-        [ "$(lxc config get v1 volatile.root.apply_quota)" = "" ]
+        if [ "${LIVE_GROWING_SUPPORTED}" = 1 ]; then
+                echo "==> Checking live root disk device resize support with ${poolDriver} backend"
+                lxc config device set v1 root size=4GiB
+                [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "4" ]
+                [ "$(lxc config get v1 volatile.root.apply_quota)" = "" ]
+        elif [ "${LIVE_GROWING_SUPPORTED}" = 0 ]; then
+                echo "==> Increasing VM root disk size for next boot (24GiB)"
+                lxc config device set v1 root size=24GiB
+                [ "$(lxc config get v1 volatile.root.apply_quota)" = "true" ]
+
+                if [ "${poolDriver}" != "powerflex" ]; then
+                        echo "==> Check VM online shrink is allowed if it greater or equal to initial size"
+                        lxc config device set v1 root size=3584MiB # initial
+                        lxc config device set v1 root size=32GiB
+
+                        echo "==> Setting VM root disk size for next boot (4GiB)"
+                        lxc config device set v1 root size=4GiB # final
+                else
+                        echo "==> Check VM online shrink is allowed if it greater or equal to initial size"
+                        lxc config device set v1 root size=8GiB # initial
+                        lxc config device set v1 root size=32GiB
+
+                        echo "==> Setting VM root disk size for next boot (16GiB)"
+                        lxc config device set v1 root size=16GiB # final
+                fi
+
+                [ "$(lxc config get v1 volatile.root.apply_quota)" = "true" ]
+                lxc stop -f v1
+
+                # Proceed to actually growing the root disk
+                lxc start v1
+                [ "$(lxc config get v1 volatile.root.apply_quota)" = "" ]
+        fi
+
         lxc stop -f v1
 
         echo "==> Check VM offline shrink is blocked"
