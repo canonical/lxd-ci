@@ -60,6 +60,7 @@ jobs:
         uses: ibiqlik/action-yamllint@v3
         with:
           file_or_dir: .github/workflows/
+          strict: true
 
       - id: ShellCheck
         name: Differential ShellCheck
