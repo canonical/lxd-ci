@@ -266,6 +266,10 @@ jobs:
           path: /home/runner/work/cache
           key: cache-${{ steps.get-date.outputs.date }}
 
+      - name: Setup MicroCeph
+        if: ${{ matrix.test == 'storage-buckets' || matrix.test == 'storage-vm ceph' || matrix.test == 'storage-volumes-vm' }}
+        uses: canonical/lxd/.github/actions/setup-microceph@main
+
       - name: ${{ matrix.test }} (${{ matrix.track }})
         run: |
           set -eux
