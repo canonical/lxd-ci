@@ -246,7 +246,11 @@ cleanup() {
         # Report some more information for diagnostic purposes
         snap list lxd
         uname -a
-        lxc list --all-projects || lxc list
+        if echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
+            lxc list
+        else
+            lxc list --all-projects
+        fi
 
         echo "::group::lsmod"
         lsmod
