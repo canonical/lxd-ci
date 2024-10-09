@@ -2,6 +2,10 @@ name: Tests
 on:
   push:
   pull_request:
+    paths:
+      - '.github/**'
+      - 'bin/**'
+      - 'tests/**'
   schedule:
     - cron: '38 6 * * *'
   workflow_dispatch:
