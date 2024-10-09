@@ -2137,6 +2137,45 @@ ovn_leases_tests() {
         lxc network delete lxdbr0
 }
 
+ovn_vlan_uplink_tests() {
+    echo "==> VLAN uplink"
+
+    lxc network create lxdbr0 \
+        ipv4.address=10.10.10.1/24 ipv4.nat=true \
+        ipv4.dhcp.ranges=10.10.10.2-10.10.10.199 \
+
+    echo "==> Create physical UPLINK network with VLAN config set to 10"
+    lxc network create UPLINK --type=physical parent=lxdbr0 \
+        ipv4.ovn.ranges=10.10.10.200-10.10.10.254 \
+        ipv4.gateway=10.10.10.1/24 \
+        vlan=10
+
+    echo "==> Create OVN network"
+    lxc network create ovn-virtual-network --type=ovn network=UPLINK
+    sleep 2
+
+    echo "==> Set up containers"
+    lxc launch "${IMAGE}" c1-ovn -n ovn-virtual-network -s default
+    lxc launch "${IMAGE}" c1-lxdbr0 -n lxdbr0 -s default --device eth0,vlan=10
+    sleep 2
+
+    lxc exec c1-lxdbr0 -- ip addr add 10.10.10.100/24 dev eth0
+    lxc exec c1-lxdbr0 -- ip link set dev eth0 up
+
+    echo "==> Ensure OVN network can reach containers on the configured VLAN"
+    lxc exec c1-ovn -- ping -nc1 -4 -w5 10.10.10.100
+
+    echo "==> Ensure containers on VLAN can reach OVN network"
+    ovn_address=$(lxc network get ovn-virtual-network volatile.network.ipv4.address)
+    lxc exec c1-lxdbr0 -- ping -nc1 -4 -w5 "${ovn_address}"
+
+    echo "==> Cleanup"
+    lxc delete -f c1-lxdbr0 c1-ovn
+    lxc network delete ovn-virtual-network
+    lxc network delete UPLINK
+    lxc network delete lxdbr0
+}
+
 # Allow for running a specific set of tests.
 if [ "$#" -gt 0 ]; then
     TEST_CURRENT="ovn_${1}_tests"
@@ -2162,6 +2201,11 @@ else
       ovn_l3only_tests
     else
       echo "Skipping ovn_l3only_tests, not supported"
+    fi
+    if hasNeededAPIExtension network_ovn_uplink_vlan; then
+      ovn_vlan_uplink_tests
+    else
+      echo "Skipping ovn_vlan_uplink_tests, not supported"
     fi
     ovn_leases_tests
 fi
