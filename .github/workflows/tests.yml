@@ -140,9 +140,6 @@ jobs:
             track: "4.0/edge"
           - test: network-ovn
             track: "4.0/edge"
-          # https://github.com/canonical/pylxd/issues/590
-          - test: pylxd
-            track: "4.0/edge"
           - test: storage-buckets
             track: "4.0/edge"
           - test: storage-disks-vm
