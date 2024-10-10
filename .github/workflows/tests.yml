@@ -166,8 +166,6 @@ jobs:
           # not compatible with 5.0/*
           - test: efi-vars-editor-vm  # not compatible with 5.0/*
             track: "5.0/edge"
-          # waiting for integration with microceph
-          - test: "storage-vm ceph"
           # skip track/os combinaisons that are too far appart
           - track: "4.0/edge"
             os: "24.04"
