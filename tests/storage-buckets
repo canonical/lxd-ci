@@ -27,21 +27,7 @@ elif [ "${arch}" = "riscv64" ] ; then
   exit 0
 fi
 
-poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
-
-if echo "${poolDriverList}" | grep -qwF "ceph"; then
-  echo "::warning::Skipping test on ceph until we can integrate with microceph"
-  # shellcheck disable=SC2001
-  poolDriverList="$(echo "${poolDriverList}" | sed 's/ \?\bceph\b//')"
-fi
-
-if echo "${poolDriverList}" | grep -qwF "ceph"; then
-  # XXX: LXD will be reloaded further down
-  snap set lxd ceph.external=true
-
-  # Install dependencies
-  install_deps ceph-common
-fi
+poolDriverList="${1:-ceph dir btrfs lvm lvm-thin zfs}"
 
 # Clean up the build dir in case it hung around from a failed test.
 rm -rf /opt/minio
