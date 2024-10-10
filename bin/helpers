@@ -240,6 +240,7 @@ cleanup() {
     if [ "${FAIL}" = "1" ]; then
         echo "Test failed"
 
+        echo "::group::diagnostic"
         # Report current disk usage to diagnose potential out of space issues
         df -h
 
@@ -251,6 +252,7 @@ cleanup() {
         else
             lxc list --all-projects
         fi
+        echo "::endgroup::"
 
         echo "::group::lsmod"
         lsmod
