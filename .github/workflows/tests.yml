@@ -237,6 +237,15 @@ jobs:
           sudo ip link delete docker0
           sudo nft flush ruleset || sudo iptables -I DOCKER-USER -j ACCEPT
 
+      - name: "Disable br_netfilter"
+        run: |
+          set -eux
+          # XXX: br_netfilter causes subtle issues by subjecting internal
+          #      bridge traffic to NAT/MASQUERADING and IP filtering. This
+          #      modules is not normally loaded on stock Ubuntu installs but it
+          #      is on GHA runners.
+          lsmod | grep -qw ^br_netfilter && sudo modprobe -r br_netfilter
+
       - name: Checkout
         uses: actions/checkout@v4
 
