@@ -39,6 +39,14 @@ if ! echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
     lxc exec vm1 -- sleep 60 || exitCode=$?
     [ "${exitCode:-0}" -eq 129 ]
     wait $!
+
+    echo "==> Test what happens when the connection with the agent is severed"
+    lxc start vm1
+    waitInstanceBooted vm1
+    # Simulates what happens during lxc stop.
+    # killall is not included in minimal images so we use escaping to combine pgrep and kill.
+    lxc exec vm1 -- bash -c "kill -s SIGTERM \$(pgrep lxd-agent)" || exitCode=$?
+    [ "${exitCode:-0}" -eq 129 ]
 fi
 
 # Cleanup
