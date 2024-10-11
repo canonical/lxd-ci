@@ -194,8 +194,8 @@ jobs:
           # disable dpkg from calling sync()
           echo "force-unsafe-io" | sudo tee /etc/dpkg/dpkg.cfg.d/force-unsafe-io
 
-      - name: Reclaim some space (storage tests only)
-        if: ${{ startsWith(matrix.test, 'storage-vm') || matrix.test == 'storage-volumes-vm' || matrix.test == 'vm-nesting' || matrix.test == 'conversion' }}
+      - name: Reclaim some space
+        if: ${{ matrix.test == 'conversion' || startsWith(matrix.test, 'storage-') || matrix.test == 'vm-nesting' }}
         run: |
           set -eux
           df -h
