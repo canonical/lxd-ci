@@ -37,18 +37,12 @@ lxc storage create "${poolName}" "${poolDriver}"
 # still work
 lxc profile set default limits.kernel.nofile 50
 
-# 4.0 does not reject `limits.kernel.*` keys on VM instances
-if ! echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
-  ! lxc init v0 --vm --empty -c limits.kernel.cpu=46 -s "${poolName}" || false
-fi
+! lxc init v0 --vm --empty -c limits.kernel.cpu=46 -s "${poolName}" || false
 
 lxc init v0 --vm --empty -s "${poolName}"
 
-# 4.0 does not reject `limits.kernel.*` keys on VM instances
-if ! echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
-  # limits.kernel.* only applies to containers (shouldn't work)
-  ! lxc config set v0 limits.kernel.as=1GiB || false
-fi
+# limits.kernel.* only applies to containers (shouldn't work)
+! lxc config set v0 limits.kernel.as=1GiB || false
 
 lxc delete v0
 
