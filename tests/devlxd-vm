@@ -115,7 +115,7 @@ if hasNeededAPIExtension devlxd_images_vm; then
   monitorPID="${!}"
 fi
 
-lxc exec v1 -- /snap/bin/lxc launch "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1v1 --vm
+lxc exec v1 -- /snap/bin/lxc launch "${IMAGE}" v1v1 --vm
 sleep 30
 lxc exec v1 -- /snap/bin/lxc info v1v1 | grep -F RUNNING
 
