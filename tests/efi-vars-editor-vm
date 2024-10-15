@@ -33,6 +33,8 @@ lxc storage create "${poolName}" "${poolDriver}"
 
 echo "==> Create VM and boot"
 lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
+
+# Wait for instance to be ready ensures LXD is done initializing the NVRAM
 waitInstanceReady v1
 lxc info v1
 
