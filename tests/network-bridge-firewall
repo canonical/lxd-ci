@@ -117,6 +117,83 @@ firewallTests() {
     ! lxc exec c1 -- ping -c1 2001:db8::1 || false
 
     lxc delete -f c1
+
+    # Perform NAT tests for managed bridges only.
+    if [ $managed -eq 1 ]; then
+        echo "=> Performing NAT tests with masquerading"
+        lxc network set lxdbr0 ipv4.nat true
+        lxc network set lxdbr0 ipv6.nat true
+        lxc network create lxdbr1 \
+            ipv4.address=192.0.3.1/24 \
+            ipv6.address=2001:db9::1/64 \
+            ipv4.dhcp.ranges=192.0.3.2-192.0.3.199 \
+            ipv6.dhcp.stateful=true \
+            ipv4.nat=true \
+            ipv6.nat=true
+
+        lxc launch "${IMAGE}" c1
+        lxc launch "${IMAGE}" c2 -n lxdbr1
+        sleep 10
+
+        lxc exec c2 -- ip a add 192.0.3.254/24 dev eth0
+        lxc exec c2 -- ip a add 2001:db9::254/64 dev eth0 nodad
+
+        # Check if regular traffic passes between different networks and is masqueraded with the gateways IP.
+        lxc exec c1 -T -n -- ping -n -4 -w5 192.0.3.254 || true &
+        timeout 5s tcpdump -i lxdbr1 -nn icmp and src 192.0.3.1 -q -c 1 > /dev/null
+        wait
+        lxc exec c1 -T -n -- ping -n -6 -w5 2001:db9::254 || true &
+        timeout 5s tcpdump -i lxdbr1 -nn icmp6 and src 2001:db9::1 -q -c 1 > /dev/null
+        wait
+
+        # LXD 5.21 and onwards don't masquerade multicast traffic if the host has br_netfilter loaded.
+        if echo "${LXD_SNAP_CHANNEL}" | grep -vE '^([45]\.0)/'; then
+            # Check if multicast traffic is returned too and not mangled.
+            # Launch a server in the same network that responds on datagrams under a specific multicast group with its hostname.
+            lxc launch "${IMAGE}" c3 -n lxdbr1
+            sleep 10
+            lxc exec c2 -- apt-get install --no-install-recommends --yes socat
+            lxc exec c3 -- apt-get install --no-install-recommends --yes socat
+            lxc exec c2 -- socat udp4-recvfrom:1234,ip-add-membership=239.0.0.1:192.0.3.254,fork exec:hostname &
+            server_process="$!"
+            sleep 1 # wait for the multicast server to settle.
+
+            # Check if multicast traffic passes within the same network.
+            lxc exec c3 -- socat stdio udp4-datagram:239.0.0.1:1234 <<< "" | grep -q c2
+            kill "${server_process}"
+        fi
+
+        echo "=> Performing NAT tests with explicit SNAT address"
+        lxc network set lxdbr0 ipv4.nat.address 192.0.2.10
+        lxc network set lxdbr0 ipv6.nat.address 2001:db8::10
+
+        # Check if regular traffic passes between different networks and is masqueraded with the SNAT IP.
+        lxc exec c1 -T -n -- ping -n -4 -w5 192.0.3.254 || true &
+        timeout 5s tcpdump -i lxdbr1 -nn icmp and src 192.0.2.10 -q -c 1 > /dev/null
+        wait
+        lxc exec c1 -T -n -- ping -n -6 -w5 2001:db9::254 || true &
+        timeout 5s tcpdump -i lxdbr1 -nn icmp6 and src 2001:db8::10 -q -c 1 > /dev/null
+        wait
+
+        # LXD 5.21 and onwards don't masquerade multicast traffic if the host has br_netfilter loaded.
+        if echo "${LXD_SNAP_CHANNEL}" | grep -vE '^([45]\.0)/'; then
+            # Check if multicast traffic passes within the same network.
+            lxc exec c2 -- socat udp4-recvfrom:1234,ip-add-membership=239.0.0.1:192.0.3.254,fork exec:hostname &
+            server_process="$!"
+            sleep 1
+            lxc exec c3 -- socat stdio udp4-datagram:239.0.0.1:1234 <<< "" | grep -q c2
+            kill "${server_process}"
+
+            lxc delete -f c3
+        fi
+
+        lxc delete -f c1 c2
+        lxc network delete lxdbr1
+        lxc network unset lxdbr0 ipv4.nat.address
+        lxc network unset lxdbr0 ipv6.nat.address
+        lxc network unset lxdbr0 ipv4.nat
+        lxc network unset lxdbr0 ipv6.nat
+    fi
 }
 
 networkLimitsPriorityNftablesTest() {
