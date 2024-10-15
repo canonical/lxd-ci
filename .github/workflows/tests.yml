@@ -108,12 +108,12 @@ jobs:
           - snapd
           - storage-buckets
           - storage-disks-vm
-          - "storage-vm btrfs"
-          - "storage-vm ceph"
-          - "storage-vm dir"
-          - "storage-vm lvm"
-          - "storage-vm lvm-thin"
-          - "storage-vm zfs"
+          - storage-vm btrfs
+          - storage-vm ceph
+          - storage-vm dir
+          - storage-vm lvm
+          - storage-vm lvm-thin
+          - storage-vm zfs
           - storage-volumes-vm
           - tpm-vm
           - vm
@@ -122,7 +122,7 @@ jobs:
         include:
           - test: qemu-external-vm
             track: "latest/edge"
-            os: "24.04"
+            os: 24.04
         exclude:
           # not compatible with 4.0/*
           - test: container-copy
@@ -140,51 +140,46 @@ jobs:
             track: "4.0/edge"
           - test: network-ovn
             track: "4.0/edge"
-          # https://github.com/canonical/pylxd/issues/590
-          - test: pylxd
-            track: "4.0/edge"
           - test: storage-buckets
             track: "4.0/edge"
           - test: storage-disks-vm
             track: "4.0/edge"
-          - test: "storage-vm dir"
+          - test: storage-vm btrfs
             track: "4.0/edge"
-          - test: "storage-vm btrfs"
+          - test: storage-vm ceph
             track: "4.0/edge"
-          - test: "storage-vm ceph"
+          - test: storage-vm dir
             track: "4.0/edge"
-          - test: "storage-vm lvm"
+          - test: storage-vm lvm
             track: "4.0/edge"
-          - test: "storage-vm lvm-thin"
+          - test: storage-vm lvm-thin
             track: "4.0/edge"
-          - test: "storage-vm zfs"
+          - test: storage-vm zfs
             track: "4.0/edge"
           - test: storage-volumes-vm
             track: "4.0/edge"
           - test: tpm-vm
             track: "4.0/edge"
+          - test: vm-migration
+            track: "4.0/edge"
           # not compatible with 5.0/*
-          - test: efi-vars-editor-vm  # not compatible with 5.0/*
+          - test: efi-vars-editor-vm
             track: "5.0/edge"
-          # waiting for integration with microceph
-          - test: "storage-vm ceph"
+          - test: vm-migration
+            track: "5.0/edge"
           # skip track/os combinaisons that are too far appart
           - track: "4.0/edge"
-            os: "24.04"
+            os: 24.04
           - track: "5.0/edge"
-            os: "24.04"
+            os: 24.04
           - track: "5.0/edge"
-            os: "20.04"
+            os: 20.04
           - track: "5.21/edge"
-            os: "20.04"
+            os: 20.04
           - track: "latest/edge"
-            os: "20.04"
+            os: 20.04
           - track: "latest/edge"
-            os: "22.04"
-          - test: "vm-migration"
-            track: "4.0/edge"
-          - test: "vm-migration"
-            track: "5.0/edge"
+            os: 22.04
 
     steps:
       - name: Performance tuning
@@ -199,8 +194,8 @@ jobs:
           # disable dpkg from calling sync()
           echo "force-unsafe-io" | sudo tee /etc/dpkg/dpkg.cfg.d/force-unsafe-io
 
-      - name: Reclaim some space (storage tests only)
-        if: ${{ startsWith(matrix.test, 'storage') || matrix.test == 'vm-nesting' || matrix.test == 'conversion' }}
+      - name: Reclaim some space
+        if: ${{ matrix.test == 'conversion' || startsWith(matrix.test, 'storage-') || matrix.test == 'vm-nesting' }}
         run: |
           set -eux
           df -h
@@ -265,6 +260,10 @@ jobs:
         with:
           path: /home/runner/work/cache
           key: cache-${{ steps.get-date.outputs.date }}
+
+      - name: Setup MicroCeph
+        if: ${{ matrix.test == 'conversion' || matrix.test == 'storage-buckets' || matrix.test == 'storage-vm ceph' || matrix.test == 'storage-volumes-vm' }}
+        uses: canonical/lxd/.github/actions/setup-microceph@main
 
       - name: ${{ matrix.test }} (${{ matrix.track }})
         run: |

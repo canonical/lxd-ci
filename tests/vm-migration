@@ -96,17 +96,14 @@ fi
 
 # Create a preseed file for member2 to join member1.
 member2Address="$(lxc query /1.0/instances/member2?recursion=2 | jq -r ".state.network.enp5s0.addresses[0].address")"
-preseed="$(
-  cat <<EOF
+
+# Initialise member2 with the preseed.
+lxc exec member2 -- lxd init --preseed << EOF
 cluster:
   enabled: true
   server_address: "${member2Address}"
   cluster_token: "${joinToken}"
 EOF
-)"
-
-# Initialise member2 with the preseed.
-echo "${preseed}" | lxc exec member2 -- lxd init --preseed
 
 # Copy the ceph config from the microceph node into each cluster member.
 rm -rf etc/ceph
@@ -122,10 +119,10 @@ lxc exec member1 -- lxc storage create ceph ceph --target member2
 lxc exec member1 -- lxc storage create ceph ceph
 
 # Create a volume in the ceph pool to test that we can live-migrate a VM with this volume attached.
-lxc exec member1 -- lxc storage volume create ceph vol1 --type=block size=500MiB
+lxc exec member1 -- lxc storage volume create ceph vol1 --type=block size=64MiB
 
 # Create a VM in the cluster, on member1.
-lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=512MiB
+lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=512MiB -d root,size=3584MiB
 
 # Add vol1 as a disk device to the VM.
 lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol1

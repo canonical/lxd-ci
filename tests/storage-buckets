@@ -27,21 +27,7 @@ elif [ "${arch}" = "riscv64" ] ; then
   exit 0
 fi
 
-poolDriverList="${1:-dir btrfs lvm lvm-thin zfs ceph}"
-
-if echo "${poolDriverList}" | grep -qwF "ceph"; then
-  echo "::warning::Skipping test on ceph until we can integrate with microceph"
-  # shellcheck disable=SC2001
-  poolDriverList="$(echo "${poolDriverList}" | sed 's/ \?\bceph\b//')"
-fi
-
-if echo "${poolDriverList}" | grep -qwF "ceph"; then
-  # XXX: LXD will be reloaded further down
-  snap set lxd ceph.external=true
-
-  # Install dependencies
-  install_deps ceph-common
-fi
+poolDriverList="${1:-ceph dir btrfs lvm lvm-thin zfs}"
 
 # Clean up the build dir in case it hung around from a failed test.
 rm -rf /opt/minio
@@ -71,15 +57,15 @@ for poolDriver in $poolDriverList
 do
   echo "==> Create storage pool using driver ${poolDriver}"
   if [ "${poolDriver}" = "dir" ]; then
-    lxc storage create "${poolName}" "${poolDriver}" volume.size=5GB
+    lxc storage create "${poolName}" "${poolDriver}" volume.size=5GiB
   elif [ "${poolDriver}" = "ceph" ]; then
-    lxc storage create "${poolName}" cephobject cephobject.radosgw.endpoint="${LXD_CEPH_CEPHOBJECT_RADOSGW}"
+    lxc storage create "${poolName}" cephobject cephobject.radosgw.endpoint="${LXD_CEPH_CEPHOBJECT_RADOSGW:-http://127.0.0.1}"
   elif [ "${poolDriver}" = "lvm" ]; then
-    lxc storage create "${poolName}" "${poolDriver}" size=40GiB lvm.use_thinpool=false volume.size=5GB
+    lxc storage create "${poolName}" "${poolDriver}" size=40GiB lvm.use_thinpool=false volume.size=5GiB
   elif [ "${poolDriver}" = "lvm-thin" ]; then
-    lxc storage create "${poolName}" lvm size=20GiB volume.size=5GB
+    lxc storage create "${poolName}" lvm size=20GiB volume.size=5GiB
   else
-    lxc storage create "${poolName}" "${poolDriver}" size=20GB volume.size=5GB
+    lxc storage create "${poolName}" "${poolDriver}" size=20GiB volume.size=5GiB
   fi
 
   if [ "${poolDriver}" != "ceph" ]; then
