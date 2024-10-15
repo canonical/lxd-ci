@@ -23,7 +23,7 @@ if ! echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
 
     echo "==> Test getting the correct exit code for a signaled process"
     # Signaling the process spawned by lxc exec and checking its exit code.
-    # Simulates what can happen if the container stops in the middle of lxc exec.
+    # Simulates what can happen if the VM stops in the middle of lxc exec.
     for signal in SIGTERM SIGHUP SIGTERM; do
         echo "==> Test getting the correct exit code when sending ${signal} to an exec'ed process"
         code="$(kill -l "${signal}")"
