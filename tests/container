@@ -159,22 +159,26 @@ echo "==> Ensure aliased image won't launch with VM flag set"
 lxc image alias create containeralias "$(lxc config get c1 volatile.base_image)"
 ! lxc launch containeralias --vm || false
 
-echo "==> Test exit codes when container disconnects during lxc exec"
+echo "==> Test getting the correct exit code for a signaled process"
+# Signaling the process spawned by lxc exec and checking its exit code.
+# Simulates what can happen if the container stops cleanly in the middle of lxc exec.
+for signal in SIGTERM SIGHUP SIGTERM; do
+    echo "==> Test getting the correct exit code when sending ${signal} to an exec'ed process"
+    code="$(kill -l "${signal}")"
+    # killall is not included in minimal images so we use escaping to combine pgrep and kill.
+    (sleep 5 && lxc exec c1 -- bash -c "kill -s ${signal} \$(pgrep sleep)") &
+    lxc exec c1 -- sleep 60 || exitCode=$?
+    # Check exit code, should be 128 plus signal number, 1 for SIGHUP, 9 for SIGKILL and 15 for SIGTERM.
+    [ "${exitCode:-0}" -eq $((128 + code)) ]
+done
 
+echo "==> Test exit codes when container disconnects during lxc exec"
 # Try disconnecting a container stopping forcefully and gracefully to make sure they differ appropriately.
 (sleep 1 && lxc stop -f c1) &
 lxc exec c1 -- sleep 10 || exitCode=$?
 [ "${exitCode:-0}" -eq 137 ]
-
 wait $!
-lxc start c1
-waitInstanceBooted c1
-(sleep 1 && lxc stop c1) &
-lxc exec c1 -- sleep 10 || exitCode=$?
-# Both 129 and 143 have been seen and both make sense here.
-[ "${exitCode:-0}" -eq 129 ] || [ "${exitCode:-0}" -eq 143 ]
 
-wait $!
 lxc delete -f c1
 
 # shellcheck disable=SC2034
