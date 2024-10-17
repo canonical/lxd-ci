@@ -1,6 +1,5 @@
 name: Tests
 on:
-  push:
   pull_request:
     paths:
       - '.github/**'
@@ -55,11 +54,6 @@ jobs:
         with:
           # A non-shallow clone is needed for the Differential ShellCheck
           fetch-depth: 0
-
-      - name: yamllint
-        uses: ibiqlik/action-yamllint@v3
-        with:
-          file_or_dir: .github/workflows/
 
       - id: ShellCheck
         name: Differential ShellCheck
