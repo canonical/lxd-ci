@@ -18,6 +18,19 @@ lxc network create lxdbr0 \
     ipv4.address=192.0.2.1/24 \
     ipv6.address=2001:db8::1/64 \
     ipv4.dhcp.ranges=192.0.2.2-192.0.2.199
+
+if hasNeededAPIExtension warnings; then
+    echo "=> Ensure that IPv6 CIDR size checks in LXD are correct"
+    # Check that we produce a warning if user sets a prefix larger than /64
+    lxc network set lxdbr0 ipv6.address=2001:db8::1/48
+    lxc warning list | grep "IPv6 networks with a prefix larger than 64"
+    # Check that there is no warning if user sets prefix smaller than /64
+    lxc network set lxdbr0 ipv6.address=2001:db8::1/65
+    ! lxc warning list | grep "IPv6 networks with a prefix larger than 64" || false
+    # set a right subnet for the test
+    lxc network set lxdbr0 ipv6.address=2001:db8::1/64
+fi
+
 lxc profile device add default root disk path=/ pool=default
 
 echo "=> Setting up firewall tooling and checking versions"
