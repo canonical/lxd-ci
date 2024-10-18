@@ -43,6 +43,10 @@ iptables --version 2>&1 | grep legacy
 ip6tables --version 2>&1 | grep legacy
 ebtables --version 2>&1 | grep legacy
 
+# Check if br_netfilter module is already loaded.
+BR_NETFILTER_LOADED=false
+lsmod | grep -qw ^br_netfilter && BR_NETFILTER_LOADED=true
+
 # Setup bridge filter and unmanaged bridges
 modprobe br_netfilter
 ip link add lxdbr0unmanaged type bridge
@@ -300,6 +304,11 @@ lxc storage delete default
 # Clear firewall.
 lxd shutdown
 iptables -D INPUT
+
+# Unload br_netfilter only if it was loaded by the test script
+if [ "${BR_NETFILTER_LOADED}" = "false" ]; then
+    modprobe -r br_netfilter
+fi
 
 # shellcheck disable=SC2034
 FAIL=0
