@@ -192,7 +192,6 @@ jobs:
           set -eux
           df -h
 
-          sudo snap remove lxd --purge
           # Purge older snap revisions that are disabled/superseded by newer revisions of the same snap
           snap list --all | while read -r name _ rev _ _ notes _; do
             [[ "${notes}" =~ disabled$ ]] && sudo snap remove "${name}" --revision "${rev}" --purge
