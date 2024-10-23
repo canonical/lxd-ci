@@ -175,16 +175,7 @@ jobs:
 
     steps:
       - name: Performance tuning
-        run: |
-          set -eux
-          # optimize ext4 FSes for performance, not reliability
-          for fs in $(findmnt --noheading --type ext4 --list --uniq | awk '{print $1}'); do
-            # nombcache and data=writeback cannot be changed on remount
-            sudo mount -o remount,noatime,barrier=0,commit=6000 "${fs}" || cat /proc/self/mountinfo
-          done
-
-          # disable dpkg from calling sync()
-          echo "force-unsafe-io" | sudo tee /etc/dpkg/dpkg.cfg.d/force-unsafe-io
+        uses: canonical/lxd/.github/actions/tune-disk-performance@main
 
       - name: Reclaim disk space
         if: ${{ matrix.test == 'conversion' || startsWith(matrix.test, 'storage-') || matrix.test == 'vm-nesting' }}
