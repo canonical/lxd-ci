@@ -90,7 +90,7 @@ lxc delete -f v1
 
 if hasNeededAPIExtension vm_limits_cpu_pin_strategy; then
   echo "==> Check CPU auto pinning when limits.cpu.pin_strategy=auto"
-  lxc launch "${IMAGE}" v1 --vm -c limits.cpu="${cpuCount}" -c limits.cpu.pin_strategy=auto -s "${poolName}"
+  lxc launch --empty v1 --vm -c limits.cpu="${cpuCount}" -c limits.cpu.pin_strategy=auto -s "${poolName}"
 
   # Try changing limits.cpu.pin_strategy while VM is running (shouldn't work)
   ! lxc config set v1 limits.cpu.pin_strategy=none || false
