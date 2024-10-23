@@ -111,7 +111,8 @@ if hasNeededAPIExtension vm_limits_cpu_pin_strategy; then
   lxc delete -f v1
 fi
 
-echo "==> Stopping and deleting ephemeral VM"
+echo "==> Testing ephemeral VM cleanup on stop"
+lxc launch --empty v1 --vm -s "${poolName}" --ephemeral
 lxc stop -f v1
 ! lxc info v1 || false
 
