@@ -15,12 +15,6 @@ if ! hasNeededAPIExtension cpu_hotplug; then
   exit 0
 fi
 
-# required for "CPU auto pinning" feature check
-# as we don't have a separate API extension for it
-# and we rely on the debug output in the LXD daemon logs.
-snap set lxd daemon.debug=true
-systemctl restart snap.lxd.daemon.service
-
 # Configure LXD
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
@@ -73,16 +67,35 @@ for i in $(seq "${cpuCount}" -1 1); do
   [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${i}" ]
 done
 
-# Try doing pinning while VM is running (shouldn't work)
-! lxc config set v1 limits.cpu=1,2 || false
+echo "==> Check that there is no CPU pinning set"
+QEMU_PID=$(lxc info v1 | awk '/^PID:/ {print $2}')
+! taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ':\s+[0-9]+$' || false
+taskset --cpu-list -a -p "${QEMU_PID}" | grep "0-$((cpuCount-1))"
 
 # Set max CPU count
 lxc config set v1 limits.cpu="${cpuCount}"
 [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${cpuCount}" ]
 
-# check that CPU affinity is automatically set if feature present
-QEMU_PID=$(lxc info v1 | awk '/^PID:/ {print $2}')
-if journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.service | grep "Scheduler: virtual-machine"; then
+# Try doing pinning while VM is running (shouldn't work)
+! lxc config set v1 limits.cpu=1,2 || false
+
+# Unset CPU limit
+lxc config unset v1 limits.cpu
+
+# Unsetting the limit should leave the VM with 1 CPU
+[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "1" ]
+
+if hasNeededAPIExtension vm_limits_cpu_pin_strategy; then
+  echo "==> Check CPU auto pinning when limits.cpu.pin_strategy=auto"
+
+  # Stop VM
+  lxc stop -f v1
+  lxc launch "${IMAGE}" v1 --vm -c limits.cpu="${cpuCount}" -c limits.cpu.pin_strategy=auto -s "${poolName}" --ephemeral
+
+  # Try changing limits.cpu.pin_strategy while VM is running (shouldn't work)
+  ! lxc config set v1 limits.cpu.pin_strategy=none || false
+
+  QEMU_PID=$(lxc info v1 | awk '/^PID:/ {print $2}')
   # Check that there are processes with pinning set
   # It will be shown like this (for limits.cpu=2):
   # pid 2894's current affinity list: 6
@@ -93,20 +106,9 @@ if journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.s
   # 2894 and 2895 have affinity set, while others don't
   PINNED_THREADS_NUM=$(taskset --cpu-list -a -p "${QEMU_PID}" | grep -cE ':\s+[0-9]+$')
   [ "${PINNED_THREADS_NUM}" -ge "$(lxc config get v1 limits.cpu)" ]
-else
-  # check that there is no pinning set
-  ! taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ':\s+[0-9]+$' || false
-  taskset --cpu-list -a -p "${QEMU_PID}" | grep "0-$((cpuCount-1))"
 fi
 
-# Unset CPU limit
-lxc config unset v1 limits.cpu
-
-# Unsetting the limit should leave the VM with 1 CPU
-[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "1" ]
-
 echo "==> Stopping and deleting ephemeral VM"
-# Stop VM and check its deleted.
 lxc stop -f v1
 ! lxc info v1 || false
 
