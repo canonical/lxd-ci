@@ -9,8 +9,16 @@ lxd init --auto
 
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
-# Launch test instance
-lxc launch "${IMAGE}" v1 --vm
+echo "==> Create test instance"
+lxc init "${IMAGE}" v1 --vm
+
+echo "==> Ensure aliased image can launch without VM flag set"
+lxc image alias create vmalias "$(lxc config get v1 volatile.base_image)"
+lxc launch vmalias v2
+lxc delete -f v2
+
+echo "==> Start test instance"
+lxc start v1
 waitInstanceBooted v1
 
 echo "==> Test cleanly stopping a VM"
