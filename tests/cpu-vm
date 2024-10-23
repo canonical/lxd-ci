@@ -40,8 +40,8 @@ lxc init v0 --vm --empty -s "${poolName}"
 
 lxc delete v0
 
-echo "==> Create ephemeral VM and boot"
-lxc launch "${IMAGE}" v1 --vm -s "${poolName}" --ephemeral
+echo "==> Create and boot VM"
+lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
 waitInstanceReady v1
 lxc info v1
 
@@ -85,12 +85,12 @@ lxc config unset v1 limits.cpu
 # Unsetting the limit should leave the VM with 1 CPU
 [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "1" ]
 
+echo "==> Deleting VM"
+lxc delete -f v1
+
 if hasNeededAPIExtension vm_limits_cpu_pin_strategy; then
   echo "==> Check CPU auto pinning when limits.cpu.pin_strategy=auto"
-
-  # Stop VM
-  lxc stop -f v1
-  lxc launch "${IMAGE}" v1 --vm -c limits.cpu="${cpuCount}" -c limits.cpu.pin_strategy=auto -s "${poolName}" --ephemeral
+  lxc launch "${IMAGE}" v1 --vm -c limits.cpu="${cpuCount}" -c limits.cpu.pin_strategy=auto -s "${poolName}"
 
   # Try changing limits.cpu.pin_strategy while VM is running (shouldn't work)
   ! lxc config set v1 limits.cpu.pin_strategy=none || false
@@ -106,6 +106,9 @@ if hasNeededAPIExtension vm_limits_cpu_pin_strategy; then
   # 2894 and 2895 have affinity set, while others don't
   PINNED_THREADS_NUM=$(taskset --cpu-list -a -p "${QEMU_PID}" | grep -cE ':\s+[0-9]+$')
   [ "${PINNED_THREADS_NUM}" -ge "$(lxc config get v1 limits.cpu)" ]
+
+  echo "==> Deleting VM"
+  lxc delete -f v1
 fi
 
 echo "==> Stopping and deleting ephemeral VM"
