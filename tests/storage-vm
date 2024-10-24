@@ -56,6 +56,10 @@ else
     echo "==> Skipping zfs.external test"
 fi
 
+echo "==> use external LVM tooling"
+snap set lxd lvm.external=true
+systemctl restart snap.lxd.daemon.service
+
 for poolDriver in $poolDriverList; do
         poolName="vmpool-${poolDriver}-$$"
         echo "==> Create storage pool using driver ${poolDriver}"
