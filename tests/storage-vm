@@ -24,7 +24,7 @@ GiB="$((1024 * MiB))"
 if echo "${poolDriverList}" | grep -qwF "zfs" && grep -qF zfs.external /snap/lxd/current/commands/daemon.start; then
     echo "==> Use external ZFS tools"
     snap set lxd zfs.external=true
-    snap restart lxd
+    snap restart --reload lxd
 
     if command -v zfs; then
         apt-get autopurge -y zfsutils-linux
