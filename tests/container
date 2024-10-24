@@ -155,10 +155,6 @@ lxc stop c1
 lxc start c1
 waitInstanceBooted c1
 
-echo "==> Ensure aliased image won't launch with VM flag set"
-lxc image alias create containeralias "$(lxc config get c1 volatile.base_image)"
-! lxc launch containeralias --vm || false
-
 echo "==> Test getting the correct exit code for a signaled process"
 # Signaling the process spawned by lxc exec and checking its exit code.
 # Simulates what can happen if the container stops cleanly in the middle of lxc exec.
@@ -179,6 +175,11 @@ lxc exec c1 -- sleep 10 || exitCode=$?
 [ "${exitCode:-0}" -eq 137 ]
 wait $!
 
+echo "==> Ensure aliased image won't launch with VM flag set"
+lxc image alias create containeralias "$(lxc config get c1 volatile.base_image)"
+! lxc launch containeralias c2 --vm || false
+
+# Cleanup
 lxc delete -f c1
 
 # shellcheck disable=SC2034
