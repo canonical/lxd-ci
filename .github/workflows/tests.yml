@@ -73,6 +73,8 @@ jobs:
   system-tests:
     name: ${{ matrix.test }} (${{ matrix.track }} - ${{ matrix.os }})
     runs-on: ubuntu-${{ matrix.os }}
+    # avoid runaway test burning 6 hours of CI
+    timeout-minutes: 60
     permissions:
       # need that to manipulate caches
       actions: write
