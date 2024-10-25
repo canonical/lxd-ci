@@ -97,6 +97,7 @@ jobs:
           - interception
           - network-bridge-firewall
           - network-ovn
+          - network-ovn "microovn" "22.03/stable"
           - network-routed
           - pylxd
           - snapd
@@ -133,6 +134,8 @@ jobs:
             os: 20.04
             track: "4.0/edge"
           - test: network-ovn
+            track: "4.0/edge"
+          - test: network-ovn "microovn" "22.03/stable"
             track: "4.0/edge"
           - test: storage-buckets
             track: "4.0/edge"

@@ -1,24 +1,46 @@
 #!/bin/bash
 set -eux
 
-# Install dependencies
-install_deps ovn-host ovn-central bind9-dnsutils jq
-
 # Install LXD
 install_lxd
-
-# Configure OVN.
-ovs-vsctl set open_vswitch . \
-  external_ids:ovn-remote=unix:/var/run/ovn/ovnsb_db.sock \
-  external_ids:ovn-encap-type=geneve \
-  external_ids:ovn-encap-ip=127.0.0.1
-
-# Empty controller log so ACL log checks are consistent over repeat runs.
-echo "" > /var/log/ovn/ovn-controller.log
 
 # Configure LXD.
 lxc project switch default
 lxc storage create default zfs
+
+# Install generic dependencies
+install_deps bind9-dnsutils jq
+
+# If the first parameter is "microovn", we use the MicroOVN snap as a backend for the tests.
+if [ "$#" -gt 0 ] && [ "$1" = "microovn" ]; then
+    if [ -n "$2" ]; then
+        microovn_channel="$2"
+        shift 1
+    else
+        microovn_channel="latest/stable"
+    fi
+
+    snap install microovn --channel="${microovn_channel}"
+    microovn cluster bootstrap
+    snap restart microovn
+    microovnAddr=$(microovn cluster list --format json | jq -r '.[0].address | split(":") | first')
+    lxc config set network.ovn.northbound_connection "ssl:${microovnAddr}:6641"
+    snap alias microovn.ovn-nbctl ovn-nbctl
+    snap alias microovn.ovs-vsctl ovs-vsctl
+    shift 1
+else
+    # Install OVN dependencies
+    install_deps ovn-host ovn-central
+
+    # Configure OVN.
+    ovs-vsctl set open_vswitch . \
+        external_ids:ovn-remote=unix:/var/run/ovn/ovnsb_db.sock \
+        external_ids:ovn-encap-type=geneve \
+        external_ids:ovn-encap-ip=127.0.0.1
+
+    # Empty controller log so ACL log checks are consistent over repeat runs.
+    echo "" > /var/log/ovn/ovn-controller.log
+fi
 
 # XXX: known DNS resolution on for .lxd domain with 24.04 instances
 IMAGE="${TEST_IMG:-ubuntu-daily:22.04}"
