@@ -1397,7 +1397,7 @@ ovn_peering_tests() {
 
     echo "==> Check that acl rule for ovn ingress has all the expected values"
     ovn_logs="$(lxc network acl show-log ovn1 --project=ovn1)"
-    [ -n "${ovn_logs}" ] || false
+    [ -n "${ovn_logs}" ]
     echo "${ovn_logs}" | while IFS= read -r logline; do
       proto=$(echo "$logline" | jq -r '.proto')
       src=$(echo "$logline" | jq -r '.src')
@@ -1406,20 +1406,20 @@ ovn_peering_tests() {
       icmp_code=$(echo "$logline" | jq -r '.icmp_code')
       action=$(echo "$logline" | jq -r '.action')
 
-      [ "$action" = "allow" ] || false
+      [ "$action" = "allow" ]
 
       if [ "$proto" = "icmp" ]; then
         echo "==> IPv4 ping from ovn2 to ovn1 allowed"
-        [ "$src" = "${ovn2NICIPv4}" ] || false
-        [ "$dst" = "${ovn1NICIPv4}" ] || false
-        [ "$icmp_type" = "8" ] || false
-        [ "$icmp_code" = "0" ] || false
+        [ "$src" = "${ovn2NICIPv4}" ]
+        [ "$dst" = "${ovn1NICIPv4}" ]
+        [ "$icmp_type" = "8" ]
+        [ "$icmp_code" = "0" ]
       elif [ "$proto" = "icmp6" ]; then
         echo "==> IPv6 ping from ovn2 to ovn1 allowed"
-        [ "$src" = "${ovn2NICIPv6}" ] || false
-        [ "$dst" = "${ovn1NICIPv6}" ] || false
-        [ "$icmp_type" = "128" ] || false
-        [ "$icmp_code" = "0" ] || false
+        [ "$src" = "${ovn2NICIPv6}" ]
+        [ "$dst" = "${ovn1NICIPv6}" ]
+        [ "$icmp_type" = "128" ]
+        [ "$icmp_code" = "0" ]
       fi
     done
 
@@ -1465,27 +1465,27 @@ ovn_dhcp_reservation_tests() {
     lxc network list | grep ovn1
 
     echo "==> Check there are no dns records entries and only the gateway IP is reserved"
-    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "0" ] || false
-    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1"')" = "1" ] || false
+    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "0" ]
+    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1"')" = "1" ]
 
     echo "==> Create instance and check empty DNS record entry is created (showing successfully adding a NIC)"
     lxc init "${IMAGE}" u1 -s default -n ovn1
-    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "1" ] || false
+    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "1" ]
 
     echo "==> Check specifying a static IP is added to DHCP reservations"
     lxc config device set u1 eth0 ipv4.address=10.10.11.200
-    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1 10.10.11.200"')" = "1" ] || false
+    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1 10.10.11.200"')" = "1" ]
 
     echo "==> Check changing static IP is reflected in DHCP reservations"
     lxc config device set u1 eth0 ipv4.address=10.10.11.2
-    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1 10.10.11.2"')" = "1" ] || false
+    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1 10.10.11.2"')" = "1" ]
 
     echo "==> Launch new dynamic IP instance and check its not allocated the reserved IP"
     lxc launch "${IMAGE}" u2 -s default -n ovn1
     waitInstanceBooted u2
     lxc list
     U2_IPV4="$(lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
-    [ "${U2_IPV4}" != "10.10.11.2" ] || false
+    [ "${U2_IPV4}" != "10.10.11.2" ]
     lxc delete -f u2
 
     echo "==> Copy instance with static IP so it creates an IP conflict"
@@ -1496,31 +1496,31 @@ ovn_dhcp_reservation_tests() {
     ! lxc start u2 || false
 
     echo "==> Check there is only 1 DNS record entry and only 1 reserved instance IP"
-    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "1" ] || false
-    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1 10.10.11.2"')" = "1" ] || false
+    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "1" ]
+    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1 10.10.11.2"')" = "1" ]
 
     echo "==> Delete the new copy which caused the conflict and check the DNS record entry and reserved IP for the original"
     echo "==> instance is left alone"
     lxc delete -f u2
-    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "1" ] || false
-    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1 10.10.11.2"')" = "1" ] || false
+    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "1" ]
+    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1 10.10.11.2"')" = "1" ]
 
     echo "==> Create conflict again, but this time delete the original instance, checking that the DNS record entry is"
     echo "==> removed along with the original instance's IP reservation"
     lxc copy u1 u2
     lxc delete -f u1
-    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "0" ] || false
-    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1"')" = "1" ] || false
+    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "0" ]
+    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1"')" = "1" ]
 
     echo "==> Check that starting the instance copy creates the missing DNS record entry and IP reservation"
     lxc start u2
-    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "1" ] || false
-    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1 10.10.11.2"')" = "1" ] || false
+    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "1" ]
+    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1 10.10.11.2"')" = "1" ]
 
     echo "==> Check that deleting the instance copy after successful start removes the DNS record entry and IP allocation"
     lxc delete -f u2
-    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "0" ] || false
-    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1"')" = "1" ] || false
+    [ "$(ovn-nbctl list dns | grep -Fc 'records')" = "0" ]
+    [ "$(ovn-nbctl list logical_switch | grep -Fc 'exclude_ips="10.10.11.1"')" = "1" ]
 
     lxc network delete ovn1
     lxc network delete lxdbr0
