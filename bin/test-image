@@ -84,7 +84,7 @@ if [ "${TYPE}" = "vm" ]; then
     INSTANCES="${TEST_IMAGE}"
 
     # Cloud-init testing.
-    if [ "${VARIANT}" = "cloud" ]; then
+    if [ "${VARIANT}" = "cloud" ] || lxc exec "${name}" -- sh -c "command -v cloud-init"; then
         lxc config set "${TEST_IMAGE}" user.user-data "$(cat << EOF
 #cloud-config
 write_files:
