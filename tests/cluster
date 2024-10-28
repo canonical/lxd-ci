@@ -120,13 +120,13 @@ if [ "${TEST_RESTRICTED}" = "1" ]; then
 fi
 
 echo "==> Check the certificates for their permissions"
-lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".restricted" | grep -xF false
-lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".type" | grep -xF client
+lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -er '.restricted == false'
+lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -er '.type == "client"'
 
 if [ "${TEST_RESTRICTED}" = "1" ]; then
-  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".restricted" | grep -xF true
-  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".type" | grep -xF client
-  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -er '.restricted == false'
+  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -er '.type == "client"'
+  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -er '.projects[0] == "default"'
 fi
 
 if [ "${TEST_RESTRICTED}" = "1" ]; then
@@ -139,11 +139,11 @@ if [ "${TEST_RESTRICTED}" = "1" ]; then
   restricted_metrics_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/metrics-restricted.crt")"
 
   echo "==> Check the metrics certificates for its permissions"
-  lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF false
-  lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
-  lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF true
-  lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
-  lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+  lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -er '.restricted == false'
+  lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -er '.type == "metrics"'
+  lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -er '.restricted == true'
+  lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -er '.type == "metrics"'
+  lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -er '.projects[0] == "default"'
 fi
 
 echo "==> Upgrading the cluster"
@@ -169,21 +169,21 @@ lxc exec "${PREFIX}-1" -- lxc info
 lxc exec "${PREFIX}-1" -- lxc cluster list
 
 echo "==> Check the certificates for its permissions after cluster upgrade"
-lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".restricted" | grep -xF false
-lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -r ".type" | grep -xF client
+lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -er '.restricted == false'
+lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -er '.type == "client"'
 if [ "${TEST_RESTRICTED}" = "1" ]; then
-    lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".restricted" | grep -xF true
-    lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".type" | grep -xF client
-    lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+    lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -er '.restricted == true'
+    lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -er '.type == "client"'
+    lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -er '.projects[0] == "default"'
 fi
 
 if [ "${TEST_RESTRICTED}" = "1" ]; then
     echo "==> Check the metrics certificates for its permissions after cluster upgrade"
-    lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF false
-    lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
-    lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".restricted" | grep -xF true
-    lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".type" | grep -xF metrics
-    lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -r ".projects[0]" | grep -xF default
+    lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -er '.restricted == false'
+    lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -er '.type == "metrics"'
+    lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -er '.restricted == true'
+    lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -er '.type == "metrics"'
+    lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -er '.projects[0] == "default"'
 fi
 
 echo "==> Deleting the cluster"
