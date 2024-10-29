@@ -92,7 +92,7 @@ if [ "${TYPE}" = "vm" ]; then
     INSTANCES="${TEST_IMAGE}"
 
     # Cloud-init testing.
-    if [ "${VARIANT}" = "cloud" ]; then
+    if has_cloud_init; then
         lxc config set "${TEST_IMAGE}" user.user-data "$(cat << EOF
 #cloud-config
 write_files:
@@ -131,7 +131,7 @@ else
         fi
 
         # Cloud-init testing.
-        if [ "${VARIANT}" = "cloud" ]; then
+        if has_cloud_init; then
             lxc config set "${TEST_IMAGE}-${PRIV}" user.user-data "$(cat << EOF
 #cloud-config
 write_files:
@@ -259,7 +259,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     fi
 
     # Cloud-init testing
-    if [ "${VARIANT}" = "cloud" ]; then
+    if has_cloud_init; then
         if [ "$(lxc file pull "${name}/user-data" - 2>/dev/null)" = "foo" ]; then
             echo "===> PASS: cloud-init user-data provisioning: ${name}"
         else
@@ -277,7 +277,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
 done
 
 # Check that cloud variants can be rebooted cleanly.
-if [ "${VARIANT}" = "cloud" ]; then
+if has_cloud_init; then
     echo "==> Performing post cloud-init reboot test"
     for name in ${INSTANCES}; do
         lxc exec "${name}" -- cloud-init status --wait --long
