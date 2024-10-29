@@ -326,6 +326,15 @@ createPowerFlexPool() (
     powerflex.mode="${POWERFLEX_MODE:-nvme}"
 )
 
+# createPureStoragePool: creates a new storage pool using the Pure Storage driver.
+createPureStoragePool() (
+  lxc storage create "${1}" pure \
+    pure.gateway="${PURE_GATEWAY}" \
+    pure.gateway.verify="${PURE_GATEWAY_VERIFY:-true}" \
+    pure.api.token="${PURE_API_TOKEN}" \
+    pure.mode="${PURE_MODE:-nvme}"
+)
+
 # createCertificateAndKey: creates a new key pair.
 createCertificateAndKey() (
   key_file="${1}"
