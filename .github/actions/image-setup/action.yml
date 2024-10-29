@@ -20,6 +20,9 @@ runs:
             build-essential \
             bzip2 \
             debootstrap \
+            btrfs-progs \
+            dosfstools \
+            gdisk \
             git \
             gpg \
             jq \
