@@ -124,14 +124,14 @@ fi
 
 # Cloud-init testing.
 if has_cloud_init; then
-    lxc config set "${TEST_INSTANCE}" user.user-data '
+    lxc config set "${TEST_INSTANCE}" cloud-init.user-data '
 #cloud-config
 write_files:
   - content: "foo\n"
     path: /user-data
 '
 
-    lxc config set "${TEST_INSTANCE}" user.vendor-data '
+    lxc config set "${TEST_INSTANCE}" cloud-init.vendor-data '
 #cloud-config
 bootcmd:
   - echo bar > /vendor-data
