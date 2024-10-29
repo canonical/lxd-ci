@@ -47,6 +47,14 @@ else
     exit 1
 fi
 
+# has_cloud_init: returns 0 if yes, 1 otherwise
+has_cloud_init() {
+    if [ "${VARIANT}" = "cloud" ] || [ "${VARIANT}" = "desktop" ]; then
+        return 0
+    fi
+    return 1
+}
+
 cleanup() {
     rm -Rf "${TEST_DIR}"
     lxc delete -f "${TEST_IMAGE}" 2>/dev/null || true
