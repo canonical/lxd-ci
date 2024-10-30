@@ -47,6 +47,14 @@ else
     exit 1
 fi
 
+# has_cloud_init: returns 0 if yes, 1 otherwise
+has_cloud_init() {
+    if [ "${VARIANT}" = "cloud" ] || [ "${VARIANT}" = "desktop" ]; then
+        return 0
+    fi
+    return 1
+}
+
 cleanup() {
     rm -Rf "${TEST_DIR}"
     lxc delete -f "${TEST_IMAGE}" 2>/dev/null || true
@@ -69,77 +77,65 @@ lxc image import "${TEST_IMAGE_META}" "${TEST_IMAGE_ROOT}" --alias "${TEST_IMAGE
 echo "==> Creating the instances"
 INSTANCES=""
 if [ "${TYPE}" = "vm" ]; then
+    TEST_INSTANCE="${TEST_IMAGE}"
     lxc init "${TEST_IMAGE}" "${TEST_IMAGE}" \
         --vm \
         -c limits.cpu=4 \
         -c limits.memory=4GiB
+    INSTANCES="${TEST_INSTANCE}"
 
     # Some distros don't support secure boot.
     case "${DISTRO}" in
         alpine|archlinux|gentoo|nixos|openeuler)
-            lxc config set "${TEST_IMAGE}" security.secureboot=false
+            lxc config set "${TEST_INSTANCE}" security.secureboot=false
             ;;
     esac
-
-    INSTANCES="${TEST_IMAGE}"
-
-    # Cloud-init testing.
-    if [ "${VARIANT}" = "cloud" ] || lxc exec "${name}" -- sh -c "command -v cloud-init"; then
-        lxc config set "${TEST_IMAGE}" user.user-data "$(cat << EOF
-#cloud-config
-write_files:
-  - content: "foo\n"
-    path: /user-data
-EOF
-)"
-
-        lxc config set "${TEST_IMAGE}" user.vendor-data "$(cat << EOF
-#cloud-config
-bootcmd:
-  - "echo bar > /vendor-data"
-EOF
-)"
-    fi
 else
     for PRIV in "priv" "unpriv"; do
-        lxc init "${TEST_IMAGE}" "${TEST_IMAGE}-${PRIV}"
-        INSTANCES="${INSTANCES} ${TEST_IMAGE}-${PRIV}"
+        TEST_INSTANCE="${TEST_IMAGE}-${PRIV}"
+        lxc init "${TEST_IMAGE}" "${TEST_INSTANCE}"
+        INSTANCES="${INSTANCES} ${TEST_INSTANCE}"
 
         # FIXME: workaround for Linux 6.6.3 apparmor regression.
-        printf "2\ndenylist\nreject_force_umount\n[all]\nfsconfig errno 38\nfsopen errno 38\n" | lxc config set "${TEST_IMAGE}-${PRIV}" raw.seccomp -
+        lxc config set "${TEST_INSTANCE}" raw.seccomp "
+2
+denylist
+reject_force_umount
+[all]
+fsconfig errno 38
+fsopen errno 38
+"
 
         if [ "${PRIV}" = "priv" ]; then
-            lxc config set "${TEST_IMAGE}-${PRIV}" security.privileged=true
+            lxc config set "${TEST_INSTANCE}" security.privileged=true
         fi
 
-        if [ "${DISTRO}" = "voidlinux" ]; then
-            # Workaround weird init system.
-            lxc config set "${TEST_IMAGE}-${PRIV}" raw.lxc lxc.signal.halt=SIGCONT
-        fi
+        # Workaround weird init systems.
+        case "${DISTRO}" in
+            slackware)
+                lxc config set "${TEST_INSTANCE}" raw.lxc lxc.signal.halt=SIGKILL
+                ;;
+            voidlinux)
+                lxc config set "${TEST_INSTANCE}" raw.lxc lxc.signal.halt=SIGCONT
+                ;;
+        esac
+    done
+fi
 
-        if [ "${DISTRO}" = "slackware" ]; then
-            # Workaround weird init system.
-            lxc config set "${TEST_IMAGE}-${PRIV}" raw.lxc lxc.signal.halt=SIGKILL
-        fi
-
-        # Cloud-init testing.
-        if [ "${VARIANT}" = "cloud" ]; then
-            lxc config set "${TEST_IMAGE}-${PRIV}" user.user-data "$(cat << EOF
+# Cloud-init testing.
+if has_cloud_init; then
+    lxc config set "${TEST_INSTANCE}" cloud-init.user-data '
 #cloud-config
 write_files:
   - content: "foo\n"
     path: /user-data
-EOF
-)"
+'
 
-            lxc config set "${TEST_IMAGE}-${PRIV}" user.vendor-data "$(cat << EOF
+    lxc config set "${TEST_INSTANCE}" cloud-init.vendor-data '
 #cloud-config
 bootcmd:
-  - "echo bar > /vendor-data"
-EOF
-)"
-        fi
-    done
+  - echo bar > /vendor-data
+'
 fi
 
 # Start all instances.
@@ -251,7 +247,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
     fi
 
     # Cloud-init testing
-    if [ "${VARIANT}" = "cloud" ]; then
+    if has_cloud_init; then
         if [ "$(lxc file pull "${name}/user-data" - 2>/dev/null)" = "foo" ]; then
             echo "===> PASS: cloud-init user-data provisioning: ${name}"
         else
@@ -269,7 +265,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
 done
 
 # Check that cloud variants can be rebooted cleanly.
-if [ "${VARIANT}" = "cloud" ]; then
+if has_cloud_init; then
     echo "==> Performing post cloud-init reboot test"
     for name in ${INSTANCES}; do
         lxc exec "${name}" -- cloud-init status --wait --long
