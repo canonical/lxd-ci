@@ -745,11 +745,6 @@ ovn_forward_tests() {
     ! lxc network set ovn-virtual-network2 ipv4.address=192.168.0.1/24 || false
     ! lxc network set ovn-virtual-network2 ipv6.address=2001:db8:1:3::1/64 || false
 
-    echo "==> Check network forwards are removed when network is removed"
-    [ "$(ovn-nbctl list load_balancer | grep -cF name)" = 4 ]
-    lxc network delete ovn-virtual-network2
-    [ "$(ovn-nbctl list load_balancer | grep -cF name)" = 2 ]
-
     echo "==> Create instance connected to ovn-virtual-network"
     lxc launch "${IMAGE}" u1 -n ovn-virtual-network -s default
     waitInstanceBooted u1
@@ -857,6 +852,18 @@ EOF
     lxc exec u2 -- systemctl start dnsmasq
     dig a +tcp @192.0.2.1 u2.lxd
     dig aaaa +tcp @2001:db8:1:2::1 u2.lxd
+
+    echo "==> Check a forward cannot conflict with the volatile IP of other OVN networks on the same uplink"
+    ip4VolatileIP2=$(lxc network get ovn-virtual-network2 volatile.network.ipv4.address)
+    ip6VolatileIP2=$(lxc network get ovn-virtual-network2 volatile.network.ipv6.address)
+    lxc network set lxdbr0 ipv4.routes="${ip4VolatileIP2}/32" ipv6.routes="${ip6VolatileIP2}/128" --project=default
+    ! lxc network forward create ovn-virtual-network "${ip4VolatileIP2}" || false
+    ! lxc network forward create ovn-virtual-network "${ip6VolatileIP2}" || false
+
+    echo "==> Check network forwards are removed when network is removed"
+    [ "$(ovn-nbctl list load_balancer | grep -cF name)" = 6 ]
+    lxc network delete ovn-virtual-network2
+    [ "$(ovn-nbctl list load_balancer | grep -cF name)" = 4 ]
 
     echo "==> Clean up"
     lxc delete -f u1
