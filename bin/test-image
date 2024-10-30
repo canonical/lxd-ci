@@ -124,18 +124,20 @@ fi
 
 # Cloud-init testing.
 if has_cloud_init; then
-    lxc config set "${TEST_INSTANCE}" cloud-init.user-data '
+    for i in ${INSTANCES}; do
+        lxc config set "${i}" cloud-init.user-data '
 #cloud-config
 write_files:
   - content: "foo\n"
     path: /user-data
 '
 
-    lxc config set "${TEST_INSTANCE}" cloud-init.vendor-data '
+        lxc config set "${i}" cloud-init.vendor-data '
 #cloud-config
 bootcmd:
   - echo bar > /vendor-data
 '
+    done
 fi
 
 # Start all instances.
