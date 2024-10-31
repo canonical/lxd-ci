@@ -124,7 +124,7 @@ lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -er '.restricted 
 lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -er '.type == "client"'
 
 if [ "${TEST_RESTRICTED}" = "1" ]; then
-  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -er '.restricted == false'
+  lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -er '.restricted == true'
   lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -er '.type == "client"'
   lxc query "/1.0/certificates/${restricted_fingerprint}" | jq -er '.projects[0] == "default"'
 fi
