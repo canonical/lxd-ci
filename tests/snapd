@@ -12,7 +12,7 @@ snap set lxd daemon.preseed='{"config": {"core.https_address": "[::]:8443"}}'
 lxd waitready --timeout=300
 
 # Check that preseed via snap works
-lxc config show | grep -qF "core.https_address: '[::]:8443'" 
+[ "$(lxc config get core.https_address)" = "[::]:8443" ]
 
 # LXD setup
 lxc storage create default dir
