@@ -6,6 +6,25 @@ TEST_USER="testuser"
 # Install lxd without starting daemon
 install_lxd false
 
+test_lxc() {
+    DURATION="${1}"
+
+    echo "Repeatedly call 'lxc help' for ${DURATION} and see how fast/slow it is"
+    # shellcheck disable=SC2016
+    ITERATIONS="$(timeout "${DURATION}" bash -c 'i=0; trap "echo \$i" EXIT; while i=$((i+1)); do lxc help >/dev/null; done' || true)"
+    FORKS_PER_SECOND="$(awk "BEGIN {printf \"%d\n\", ${ITERATIONS}/${DURATION}}")"
+
+    # Check that lxc forks/s are not below a certain threshold
+    if [ "${FORKS_PER_SECOND}" -lt 15 ]; then
+        echo "::warning::lxc forks/s: ${FORKS_PER_SECOND} (< 15/s)"
+    else
+        echo "::notice::lxc forks/s: ${FORKS_PER_SECOND}"
+    fi
+}
+
+# Repeatedly call 'lxc help'
+test_lxc 30
+
 # Set preseed via snap
 snap set lxd daemon.preseed='{"config": {"core.https_address": "[::]:8443"}}'
 
