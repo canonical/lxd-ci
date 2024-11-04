@@ -246,7 +246,7 @@ lxc stop -f v2
 
 # XXX: LXD releases 5.21 and earlier don't support long names (yet)
 if echo "${LXD_SNAP_CHANNEL}" | grep -E '^([45]\.0|5\.21)/'; then
-    echo "::warning::${LXD_SNAP_CHANNEL} detected, using a shorter name"
+    echo "${LXD_SNAP_CHANNEL} detected, using a shorter name"
     LONG_DEVICE_NAME="notSoLongName"
 fi
 
