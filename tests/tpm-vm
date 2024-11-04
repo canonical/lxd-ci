@@ -48,7 +48,7 @@ echo "==> Test handling TPMs with long names"
 longName="device-with-very-long-name-and-/-4-qemu-property-handling-test_"
 # XXX: LXD releases 5.21 and earlier don't support long names (yet)
 if echo "${LXD_SNAP_CHANNEL}" | grep -E '^([45]\.0|5\.21)/'; then
-    echo "::warning::${LXD_SNAP_CHANNEL} detected, using a shorter name"
+    echo "${LXD_SNAP_CHANNEL} detected, using a shorter name"
     longName="notSoLongName"
 fi
 lxc config device add "${vmName}" "${longName}" tpm
