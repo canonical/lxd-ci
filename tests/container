@@ -111,6 +111,8 @@ ignore_known_issues() {
     return 1
 }
 
+# Silence GH warnings in isSystemdClean
+export WARNING_PREFIX=""
 for release in $RELEASES; do
     if [ "${release}" = "24.04" ] && echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
         echo "Skip 24.04 container tests on ${LXD_SNAP_CHANNEL}"
@@ -149,6 +151,7 @@ for release in $RELEASES; do
     [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues "n11" "nested"
     lxc delete -f n1
 done
+unset WARNING_PREFIX
 
 IMAGE="ubuntu-minimal-daily:24.04"
 
