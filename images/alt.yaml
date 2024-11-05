@@ -182,5 +182,17 @@ actions:
   variants:
   - cloud
 
+# XXX: Prevent cloud-init from attempting to modify the hostname. Otherwise, cloud-init fails with
+# an attribute error: "module 'cloudinit.util' has no attribute 'load_file'") in "update_hostname".
+- trigger: post-packages
+  action: |-
+    #!/bin/sh
+    set -eux
+
+    # Disable the update_hostname module in cloud-init.
+    sed -i '/update_hostname/d' /etc/cloud/cloud.cfg
+  variants:
+  - cloud
+
 mappings:
   architecture_map: altlinux
