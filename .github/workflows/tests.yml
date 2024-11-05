@@ -234,7 +234,7 @@ jobs:
             src_track="$(echo "${dst_track}" | cut -d/ -f1)/stable"
             EXTRA_ARGS="${EXTRA_ARGS:-3} ${src_track} ${{ matrix.track }}"
           fi
-          sudo --preserve-env=TEST_IMG ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
+          sudo --preserve-env=GITHUB_STEP_SUMMARY,TEST_IMG ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
 
       # always update cache as we have our own logic of
       # cache invalidation and updates in addition to a date check
