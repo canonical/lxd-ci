@@ -6,20 +6,32 @@ TEST_USER="testuser"
 # Install lxd without starting daemon
 install_lxd false
 
+test_lxc() {
+    DURATION="${1}"
+
+    echo "Repeatedly call 'lxc help' for ${DURATION} and see how fast/slow it is"
+    # shellcheck disable=SC2016
+    ITERATIONS="$(timeout "${DURATION}" bash -c 'i=0; trap "echo \$i" EXIT; while i=$((i+1)); do lxc help >/dev/null; done' || true)"
+    FORKS_PER_SECOND="$(awk "BEGIN {printf \"%d\n\", ${ITERATIONS}/${DURATION}}")"
+
+    # Check that lxc forks/s are not below a certain threshold
+    if [ "${FORKS_PER_SECOND}" -lt 15 ]; then
+        echo "::warning::lxc forks/s: ${FORKS_PER_SECOND} (< 15/s)"
+    else
+        echo "::notice::lxc forks/s: ${FORKS_PER_SECOND}"
+    fi
+}
+
+# Repeatedly call 'lxc help'
+test_lxc 30
+
 # Set preseed via snap
 snap set lxd daemon.preseed='{"config": {"core.https_address": "[::]:8443"}}'
 
 lxd waitready --timeout=300
 
 # Check that preseed via snap works
-lxc config show | grep -qF "core.https_address: '[::]:8443'" 
-
-# LXD setup
-lxc storage create default dir
-lxc profile device add default root disk pool=default path=/
-
-lxc network create lxdbr0
-lxc profile device add default eth0 nic nictype=bridged parent=lxdbr0 name=eth0
+[ "$(lxc config get core.https_address)" = "[::]:8443" ]
 
 # Check that user access works
 useradd -m ${TEST_USER} -G lxd
@@ -29,16 +41,6 @@ su ${TEST_USER} -c "${LXC} info"
 # Cleanup
 echo "==> Deleting test user"
 userdel -r ${TEST_USER} 2>/dev/null || true
-
-echo "==> Deleting network device"
-lxc profile device remove default eth0
-
-echo "==> Deleting network"
-lxc network delete lxdbr0
-
-echo "==> Deleting storage"
-lxc profile device remove default root
-lxc storage delete default
 
 # shellcheck disable=SC2034
 FAIL=0
