@@ -1,3 +1,93 @@
+# Prepare VM to run tests locally
+
+To run the tests locally, it's ideal to run them in a shortlived VM. The simplest way is to create a `lxd-ci` profile that you then use when creating the shortlived VM.
+
+## lxd-ci profile
+
+```
+name: lxd-ci
+description: ""
+config:
+  cloud-init.user-data: |-
+    #cloud-config
+    ssh_import_id: [lp:sdeziel]
+    apt:
+      # Speed things up by not pulling from backports/security and avoid restricted/multiverse pockets.
+      # In general, backported packages or those from restricted/multiverse shouldn't be relied on because
+      # they don't come with the same level of support as those from main for example.
+      # The security repo doesn't make much sense when pulling from a Canonical maintained archive mirror.
+      disable_suites:
+      - backports
+      - security
+      conf: |
+        # Faster downloads
+        Acquire::Languages "none";
+        APT::Get::Show-Versions "true";
+
+    # Faster dpkg installs
+    write_files:
+    - content: "force-unsafe-io\n"
+      path: /etc/dpkg/dpkg.cfg
+      append: true
+
+    runcmd:
+    - echo "PURGE_LXD=1" >> /etc/environment
+    # Remove sources of noise
+    - systemctl stop unattended-upgrades.service
+    - apt-get autopurge -y cron needrestart networkd-dispatcher unattended-upgrades
+    - cd /etc/systemd/system/timers.target.wants/ && systemctl disable --now *.timer
+
+    package_update: true
+    package_upgrade: true
+    packages:
+    - debootstrap
+    - git
+    - gpg
+    - jq
+    - make
+    - qemu-utils
+    - rsync
+    - squashfs-tools
+  limits.cpu: "4"
+  limits.memory: 16GiB
+  security.devlxd.images: "true"
+devices:
+  eth0:
+    name: eth0
+    network: lxdbr0
+    type: nic
+  lxd:
+    path: /root/lxd
+    source: /home/sdeziel/git/lxd
+    type: disk
+  lxd-ci:
+    path: /root/lxd-ci
+    source: /home/sdeziel/git/lxd-ci
+    type: disk
+  root:
+    path: /
+    pool: default
+    size: 40GiB
+    type: disk
+used_by: []
+```
+
+```{note}
+The above profile includes source paths that needs updating to reflect your local environment. Hint: use `$HOME`.
+```
+
+Then it's easy to create a shortlived VM:
+
+```
+lxc launch ubuntu-minimal-daily:24.04 v1 --vm -p lxd-ci
+```
+
+```
+$ lxc shell v1
+root@v1:~# cd lxd-ci/
+root@v1:~/lxd-ci# ./bin/local-run tests/snapd latest/edge
+```
+
 # Running tests locally
 
 To run a test locally (directly where you invoke it), use the `bin/local-run` helper:
