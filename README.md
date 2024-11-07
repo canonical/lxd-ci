@@ -72,9 +72,8 @@ devices:
 used_by: []
 ```
 
-```{note}
-The above profile includes source paths that needs updating to reflect your local environment. Hint: use `$HOME`.
-```
+> [!NOTE]
+> The above profile includes source paths that needs updating to reflect your local environment. Hint: use `$HOME`.
 
 Then it's easy to create a shortlived VM:
 
