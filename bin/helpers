@@ -168,6 +168,10 @@ install_lxd() (
         cp "${LXD_SIDELOAD_PATH}" /var/snap/lxd/common/lxd.debug
     fi
 
+    if [ -n "${LXC_SIDELOAD_PATH:-}" ]; then
+        cp "${LXC_SIDELOAD_PATH}" /var/snap/lxd/common/lxc.debug
+    fi
+
     if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
         mount --bind "${LXD_AGENT_SIDELOAD_PATH}" /snap/lxd/current/bin/lxd-agent
     fi
@@ -243,41 +247,44 @@ cleanup() {
     if [ "${FAIL}" = "1" ]; then
         echo "Test failed"
 
-        echo "::group::diagnostic"
-        # Report current disk usage to diagnose potential out of space issues
-        df -h
+        # Displaying a wall of text is OK in CI but best avoided when running locally
+        if [ -n "${GITHUB_ACTIONS:-}" ]; then
+            echo "::group::diagnostic"
+            # Report current disk usage to diagnose potential out of space issues
+            df -h
 
-        # Report some more information for diagnostic purposes
-        snap list lxd
-        uname -a
-        if echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
-            lxc list
-        else
-            lxc list --all-projects
+            # Report some more information for diagnostic purposes
+            snap list lxd
+            uname -a
+            if echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
+                lxc list
+            else
+                lxc list --all-projects
+            fi
+            echo "::endgroup::"
+
+            echo "::group::lsmod"
+            lsmod
+            echo "::endgroup::"
+
+            echo "::group::meminfo"
+            cat /proc/meminfo
+            echo "::endgroup::"
+
+            echo "::group::mountinfo"
+            cat /proc/1/mountinfo
+            echo "::endgroup::"
+
+            # LXD daemon logs
+            echo "::group::lxd logs"
+            journalctl --quiet --no-hostname --no-pager --boot=0 --lines=100 --unit=snap.lxd.daemon.service
+            echo "::endgroup::"
+
+            # dmesg may contain oops, IO errors, crashes, etc
+            echo "::group::dmesg logs"
+            journalctl --quiet --no-hostname --no-pager --boot=0 --lines=100 --dmesg
+            echo "::endgroup::"
         fi
-        echo "::endgroup::"
-
-        echo "::group::lsmod"
-        lsmod
-        echo "::endgroup::"
-
-        echo "::group::meminfo"
-        cat /proc/meminfo
-        echo "::endgroup::"
-
-        echo "::group::mountinfo"
-        cat /proc/1/mountinfo
-        echo "::endgroup::"
-
-        # LXD daemon logs
-        echo "::group::lxd logs"
-        journalctl --quiet --no-hostname --no-pager --boot=0 --lines=100 --unit=snap.lxd.daemon.service
-        echo "::endgroup::"
-
-        # dmesg may contain oops, IO errors, crashes, etc
-        echo "::group::dmesg logs"
-        journalctl --quiet --no-hostname --no-pager --boot=0 --lines=100 --dmesg
-        echo "::endgroup::"
 
         exit 1
     fi
