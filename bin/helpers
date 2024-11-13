@@ -168,6 +168,10 @@ install_lxd() (
         cp "${LXD_SIDELOAD_PATH}" /var/snap/lxd/common/lxd.debug
     fi
 
+    if [ -n "${LXC_SIDELOAD_PATH:-}" ]; then
+        cp "${LXC_SIDELOAD_PATH}" /var/snap/lxd/common/lxc.debug
+    fi
+
     if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
         mount --bind "${LXD_AGENT_SIDELOAD_PATH}" /snap/lxd/current/bin/lxd-agent
     fi
