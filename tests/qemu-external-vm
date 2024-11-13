@@ -43,8 +43,8 @@ LXD_QEMU_SNAP_HASH_SUM=$(find . -type f -print0 | sort -z | xargs -0 sha256sum |
 if [ "${LXD_QEMU_SNAP_CACHED_HASH_SUM}" != "${LXD_QEMU_SNAP_HASH_SUM}" ]; then
   echo "==> Hash is changed (${LXD_QEMU_SNAP_CACHED_HASH_SUM} != ${LXD_QEMU_SNAP_HASH_SUM}). Rebuild is needed."
 
-  # Install snapcraft
-  snap install snapcraft --classic
+  # Install snapcraft (use latest/candidate to help catch regressions in LXD/snapcraft earlier)
+  snap install snapcraft --classic --channel=latest/candidate
 
   snapcraft # this should produce a qemu-for-lxd_1_amd64.snap file
 
