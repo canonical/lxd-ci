@@ -120,6 +120,43 @@ jobs:
         exclude:
           # not compatible with 4.0/*
           - test: container-copy
+            track: "4.0/candidate"
+          - test: conversion
+            track: "4.0/candidate"
+          - test: cpu-vm
+            track: "4.0/candidate"
+          - test: devlxd-vm
+            track: "4.0/candidate"
+          - test: efi-vars-editor-vm
+            track: "4.0/candidate"
+          - test: network-bridge-firewall
+            track: "4.0/candidate"
+            os: 20.04
+          - test: network-ovn
+            track: "4.0/candidate"
+          - test: storage-buckets
+            track: "4.0/candidate"
+          - test: storage-disks-vm
+            track: "4.0/candidate"
+          - test: storage-vm btrfs
+            track: "4.0/candidate"
+          - test: storage-vm ceph
+            track: "4.0/candidate"
+          - test: storage-vm dir
+            track: "4.0/candidate"
+          - test: storage-vm lvm
+            track: "4.0/candidate"
+          - test: storage-vm lvm-thin
+            track: "4.0/candidate"
+          - test: storage-vm zfs
+            track: "4.0/candidate"
+          - test: storage-volumes-vm
+            track: "4.0/candidate"
+          - test: tpm-vm
+            track: "4.0/candidate"
+          - test: vm-migration
+            track: "4.0/candidate"
+          - test: container-copy
             track: "4.0/edge"
           - test: conversion
             track: "4.0/edge"
@@ -130,8 +167,8 @@ jobs:
           - test: efi-vars-editor-vm
             track: "4.0/edge"
           - test: network-bridge-firewall
-            os: 20.04
             track: "4.0/edge"
+            os: 20.04
           - test: network-ovn
             track: "4.0/edge"
           - test: storage-buckets
@@ -158,22 +195,34 @@ jobs:
             track: "4.0/edge"
           # not compatible with 5.0/*
           - test: efi-vars-editor-vm
+            track: "5.0/candidate"
+          - test: efi-vars-editor-vm
             track: "5.0/edge"
+          - test: vm-migration
+            track: "5.0/candidate"
           - test: vm-migration
             track: "5.0/edge"
           # skip track/os combinations that are too far appart
-          - track: "4.0/edge"
-            os: 24.04
-          - track: "5.0/edge"
-            os: 24.04
-          - track: "5.0/edge"
-            os: 20.04
-          - track: "5.21/edge"
-            os: 20.04
-          - track: "latest/edge"
-            os: 20.04
-          - track: "latest/edge"
-            os: 22.04
+          - os: 24.04
+            track: "4.0/candidate"
+          - os: 24.04
+            track: "4.0/edge"
+          - os: 24.04
+            track: "5.0/candidate"
+          - os: 24.04
+            track: "5.0/edge"
+          - os: 20.04
+            track: "5.0/candidate"
+          - os: 20.04
+            track: "5.0/edge"
+          - os: 20.04
+            track: "5.21/candidate"
+          - os: 20.04
+            track: "5.21/edge"
+          - os: 20.04
+            track: "latest/candidate"
+          - os: 20.04
+            track: "latest/edge"
 
     steps:
       - name: Performance tuning
