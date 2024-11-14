@@ -25,7 +25,6 @@ jobs:
         release:
           - Sisyphus
           - p11
-          - p10
         variant:
           - default
           - cloud
