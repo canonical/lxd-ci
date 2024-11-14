@@ -91,7 +91,7 @@ fi
 
 # Below tests for image export rely on an event being emitted on export. This will not be backported to 4.0 or 5.0,
 # so exit the test here.
-if [ "${LXD_SNAP_CHANNEL}" = "4.0/edge" ] || [ "${LXD_SNAP_CHANNEL}" = "5.0/edge" ]; then
+if echo "${LXD_SNAP_CHANNEL}" | grep -E '^([45]\.0)/'; then
   echo "Skipping devlxd image export tests, not supported"
   FAIL=0
   exit
