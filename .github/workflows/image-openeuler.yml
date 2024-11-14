@@ -3,33 +3,27 @@ name: Build openEuler Images
 on:
   schedule:
     - cron: '0 0 * * *'  # Build amd64 (Daily at 00:00 UTC).
-    - cron: '0 0 * * 1'  # Build arm64 (Weekly on Monday at 00:00 UTC).
   workflow_dispatch:
     inputs:
       publish:
         type: boolean
         default: false
         description: Publish built image
-      build-arm64:
-        type: boolean
-        default: false
-        description: Build arm64 images
 
 jobs:
   openeuler:
     if: github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci'
-    runs-on: ${{ matrix.architecture == 'arm64' && 'Ubuntu_ARM64_4C_16G_01' || 'ubuntu-latest' }}
+    runs-on: 'ubuntu-latest'
     strategy:
       fail-fast: false
       matrix:
         release:
-          - 22.03
           - 24.03
         variant:
           - default
           - cloud
         architecture:
-          - ${{ (inputs.build-arm64 == true || github.event.schedule == '0 0 * * 1') && 'arm64' ||'amd64' }}
+          - 'amd64'
     env:
       type: "container"
       distro: "${{ github.job }}"
