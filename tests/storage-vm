@@ -227,6 +227,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Checking running migrated VM snapshot (different storage pool)"
         lxc copy v1/snap0 localhost:v2 -s "${poolName}2"
+        lxc delete v1/snap0
         lxc start v2
         waitInstanceReady v2
         [ "$(lxc exec v2 -- cat /root/foo.txt)" = "foo" ]
@@ -253,7 +254,6 @@ for poolDriver in $poolDriverList; do
         waitInstanceReady v2
 
         lxc delete -f v2
-        lxc delete v1/snap0
         lxc remote rm localhost
         lxc config trust rm "$(lxc query /1.0/certificates?recursion=1 | jq -r '.[].fingerprint')"
         lxc storage delete "${poolName}2"
