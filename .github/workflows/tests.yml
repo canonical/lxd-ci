@@ -161,7 +161,7 @@ jobs:
             track: "5.0/edge"
           - test: vm-migration
             track: "5.0/edge"
-          # skip track/os combinaisons that are too far appart
+          # skip track/os combinations that are too far appart
           - track: "4.0/edge"
             os: 24.04
           - track: "5.0/edge"
