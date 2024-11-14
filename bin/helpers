@@ -159,10 +159,19 @@ install_lxd() (
             snap remove --purge lxd || true
         fi
 
-        if snap list lxd 2>/dev/null; then
-            snap refresh lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+        # Installing a locally provided snap requires to first install from the
+        # snapstore then install with --dangerous. The alias needs to be created
+        # manually too.
+        if [ -n "${LXD_SNAP_PATH:-}" ]; then
+            snap list lxd 2>/dev/null || snap install lxd
+            snap install --dangerous "${LXD_SNAP_PATH}"
+            snap alias lxd.lxc lxc
         else
-            snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+            if snap list lxd 2>/dev/null; then
+                snap refresh lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+            else
+                snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+            fi
         fi
     fi
 
