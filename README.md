@@ -102,6 +102,12 @@ without taking any snapshot:
 PURGE_LXD=1 ./bin/local-run tests/interception latest/edge
 ```
 
+To test a with the exising/already installed LXD snap, you can set the `KEEP_LXD` environment variable.
+
+```
+KEEP_LXD=1 ./bin/local-run tests/interception latest/edge
+```
+
 Note: if you need to run tests on temporary machines, [Testflinger reservations](https://docs.google.com/document/d/11Kot68mnBY9Wq9DXRzTVrKpx5cMkkhBC5RrM51eyybY) might be useful.
 
 To test a custom build of LXD, you can set the `LXD_SIDELOAD_PATH` environment variable.
@@ -109,6 +115,12 @@ This will be copied to `/var/snap/lxd/common/lxd.debug` and the daemon will be r
 
 ```
 LXD_SIDELOAD_PATH=/tmp/lxd ./bin/local-run tests/interception latest/edge
+```
+
+To test a custom snap of LXD, you can set the `LXD_SNAP_PATH` environment variable.
+
+```
+LXD_SNAP_PATH=/tmp/lxd_0+git.89550582_amd64.snap ./bin/local-run tests/interception latest/edge
 ```
 
 
