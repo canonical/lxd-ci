@@ -50,7 +50,7 @@ echo -e "\n## Feature 2"
 echo -e "What it is? How to use it? Link to the docs"
 echo -e "Documentation: LINK"
 
-echo -e "\n## Bugfixes"
+echo -e "\n## Bug Fixes"
 echo "- Fixed ..."
 echo "- Fixed ..."
 
