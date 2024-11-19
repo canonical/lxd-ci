@@ -6,7 +6,7 @@ simplestream:
 
 source:
   downloader: almalinux-http
-  url: https://mirror.csclub.uwaterloo.ca/almalinux
+  url: https://repo.almalinux.org/almalinux/9/isos/x86_64/
   keys:
   # RPM-GPG-KEY-AlmaLinux-8
   - |-
