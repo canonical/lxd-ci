@@ -149,17 +149,32 @@ install_lxd() (
     # Wait for snapd seeding
     waitSnapdSeed
 
-    # Prior to removal, snap takes a snapshot of the user data. This is
-    # slow and IO intensive so best skipped if possible by a purge.
-    if [ -n "${PURGE_LXD:-}" ]; then
-        snap remove --purge lxd || true
+    if [ -n "${KEEP_LXD:-}" ]; then
+        # Make sure LXD is started at least
+        systemctl start snap.lxd.daemon.service
+    else
+        # Prior to removal, snap takes a snapshot of the user data. This is
+        # slow and IO intensive so best skipped if possible by a purge.
+        if [ -n "${PURGE_LXD:-}" ]; then
+            snap remove --purge lxd || true
+        fi
+
+        # Installing a locally provided snap requires to first install from the
+        # snapstore then install with --dangerous. The alias needs to be created
+        # manually too.
+        if [ -n "${LXD_SNAP_PATH:-}" ]; then
+            snap list lxd 2>/dev/null || snap install lxd
+            snap install --dangerous "${LXD_SNAP_PATH}"
+            snap alias lxd.lxc lxc
+        else
+            if snap list lxd 2>/dev/null; then
+                snap refresh lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+            else
+                snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+            fi
+        fi
     fi
 
-    if snap list lxd 2>/dev/null; then
-        snap refresh lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
-    else
-        snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
-    fi
     snap list lxd
     uname -a
     cat /proc/cmdline

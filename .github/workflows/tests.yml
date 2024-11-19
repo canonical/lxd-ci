@@ -291,8 +291,7 @@ jobs:
         if: ${{ steps.cache-restore.outputs.cache-hit }}
         continue-on-error: true
         run: |
-          gh extension install actions/gh-actions-cache
-          gh actions-cache delete "cache-${{ steps.get-date.outputs.date }}" --confirm
+          gh cache delete "cache-${{ steps.get-date.outputs.date }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/cache/save@v4
