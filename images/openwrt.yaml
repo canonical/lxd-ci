@@ -214,8 +214,6 @@ packages:
   - packages:
     - sudo
     action: install
-    releases:
-    - 23.05
 
 actions:
 - trigger: post-unpack
@@ -225,6 +223,15 @@ actions:
     echo "console::askfirst:/usr/libexec/login.sh" >> /etc/inittab
   architectures:
   - amd64
+
+- trigger: post-unpack
+  action: |
+    #!/bin/sh
+    # Ensure /var/log exists before running package manager.
+    # Otherwise, the command can fail due to missing directory.
+    mkdir -p /var/log
+  releases:
+  - snapshot
 
 - trigger: post-files
   action: |
