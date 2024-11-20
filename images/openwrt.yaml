@@ -234,6 +234,3 @@ actions:
     sed -i 's/procd_add_jail/: \0/g' /etc/init.d/dnsmasq
     # Disable conflicting sysntpd service to avoid crash loop
     rm -f /etc/rc.d/*sysntpd
-  releases:
-  - snapshot
-  - 23.05
