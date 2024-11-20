@@ -20,8 +20,10 @@ install_lxd
 
 set -x
 
-# Install go from Snap.
-snap install go --classic
+if ! command -v go; then
+    # Install go from Snap.
+    snap install go --classic
+fi
 
 export PATH="${HOME}/go/bin:${PATH}"
 
