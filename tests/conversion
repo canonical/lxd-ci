@@ -200,11 +200,11 @@ conversion() {
 
         echo "${hostAddr}"     # Address of the target LXD server.
         sleep 1
-        echo "y"               # Yes, this is correct fingerprint.
+        echo "y"               # Confirm the local LXD server is the target.
         sleep 1
         echo "1"               # Use a certificate token.
         echo "${token}"        # Token.
-        echo "${instTypeCode}" # Instace type (1 == container, 2 == virtual-machine).
+        echo "${instTypeCode}" # Instance type (1 == container, 2 == virtual-machine).
 
         if [ "$(lxc project ls -f csv | wc -l)" -gt 1 ]; then
             echo "default"     # Project name (required if there is more then 1 project)
