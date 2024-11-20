@@ -214,8 +214,6 @@ packages:
   - packages:
     - sudo
     action: install
-    releases:
-    - 23.05
 
 actions:
 - trigger: post-unpack
