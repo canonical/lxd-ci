@@ -23,10 +23,12 @@ set -x
 # Install go from Snap.
 snap install go --classic
 
+export PATH="${HOME}/go/bin:${PATH}"
+
 # Install latest lxd-migrate binary tool.
 CGO_ENABLED=0 go install github.com/canonical/lxd/lxd-migrate@latest
-
-export PATH="${HOME}/go/bin:${PATH}"
+# Make it smaller
+strip --strip-all "$(command -v lxd-migrate)"
 
 # Configure LXD
 lxd init --auto --network-address "[::]" --network-port "8443"
