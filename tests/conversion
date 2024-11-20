@@ -175,8 +175,7 @@ conversion() {
         # Install rsync and lxd-migrate.
         lxc exec "${instName}" -- apt-get update
         lxc exec "${instName}" -- apt-get install --no-install-recommends -y rsync file
-        lxc exec "${instName}" -- snap install go --classic
-        lxc exec "${instName}" --env CGO_ENABLED=0 -- go install github.com/canonical/lxd/lxd-migrate@latest
+        lxc file push --create-dirs --mode 0755 --quiet "$(command -v lxd-migrate)" "${instName}"/root/go/bin/lxd-migrate
 
         # Set instName to the name of the new container that will be created
         # from the existing one.
