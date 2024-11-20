@@ -6,7 +6,7 @@ simplestream:
 
 source:
   downloader: almalinux-http
-  url: https://repo.almalinux.org/almalinux/9/isos/x86_64/
+  url: https://repo.almalinux.org/almalinux
   keys:
   # RPM-GPG-KEY-AlmaLinux-8
   - |-
