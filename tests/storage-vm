@@ -13,6 +13,14 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 poolDriverList="${1:-ceph dir btrfs lvm lvm-thin zfs}"
 
+# XXX: DEBUG
+if [ "${poolDriverList}" = "lvm-external" ]; then
+    snap set lxd lvm.external=true
+    systemctl restart snap.lxd.daemon.service
+    poolDriverList="lvm"
+fi
+sysctl -a | grep uring
+
 # Configure LXD
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
