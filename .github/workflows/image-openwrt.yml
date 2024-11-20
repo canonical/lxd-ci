@@ -51,9 +51,15 @@ jobs:
           [ "${ARCH}" = "amd64" ] && IMAGE_ARCH="x86_64"
           [ "${ARCH}" = "arm64" ] && IMAGE_ARCH="aarch64"
 
+          EXTRA_ARGS=""
+          if [ "${{ matrix.release }}" = "23.05" ]; then
+              EXTRA_ARGS="-o packages.manager=opkg"
+          fi
+
           ./bin/build-distro "${YAML}" "${ARCH}" "${TYPE}" "${TIMEOUT}" "${{ env.target }}" \
               -o image.architecture="${IMAGE_ARCH}" \
-              -o image.release=${{ matrix.release }}
+              -o image.release=${{ matrix.release }} \
+              ${EXTRA_ARGS}
 
       - name: Print build artifacts
         run: ls -lah "${{ env.target }}"

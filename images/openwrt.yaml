@@ -206,13 +206,16 @@ files:
         option proto 'dhcpv6'
 
 packages:
-  manager: opkg
+  # Note: Older releases of OpenWrt use "opkg" package manager.
+  manager: apk
   update: false
   cleanup: true
   sets:
   - packages:
     - sudo
     action: install
+    releases:
+    - 23.05
 
 actions:
 - trigger: post-unpack
@@ -231,6 +234,3 @@ actions:
     sed -i 's/procd_add_jail/: \0/g' /etc/init.d/dnsmasq
     # Disable conflicting sysntpd service to avoid crash loop
     rm -f /etc/rc.d/*sysntpd
-  releases:
-  - snapshot
-  - 23.05
