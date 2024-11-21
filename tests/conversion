@@ -20,13 +20,17 @@ install_lxd
 
 set -x
 
-# Install go from Snap.
-snap install go --classic
+if ! command -v go; then
+    # Install go from Snap.
+    snap install go --classic
+fi
+
+export PATH="${HOME}/go/bin:${PATH}"
 
 # Install latest lxd-migrate binary tool.
 CGO_ENABLED=0 go install github.com/canonical/lxd/lxd-migrate@latest
-
-export PATH="${HOME}/go/bin:${PATH}"
+# Make it smaller
+strip --strip-all "$(command -v lxd-migrate)"
 
 # Configure LXD
 lxd init --auto --network-address "[::]" --network-port "8443"
@@ -173,8 +177,7 @@ conversion() {
         # Install rsync and lxd-migrate.
         lxc exec "${instName}" -- apt-get update
         lxc exec "${instName}" -- apt-get install --no-install-recommends -y rsync file
-        lxc exec "${instName}" -- snap install go --classic
-        lxc exec "${instName}" --env CGO_ENABLED=0 -- go install github.com/canonical/lxd/lxd-migrate@latest
+        lxc file push --create-dirs --mode 0755 --quiet "$(command -v lxd-migrate)" "${instName}"/root/go/bin/lxd-migrate
 
         # Set instName to the name of the new container that will be created
         # from the existing one.
@@ -199,11 +202,11 @@ conversion() {
 
         echo "${hostAddr}"     # Address of the target LXD server.
         sleep 1
-        echo "y"               # Yes, this is correct fingerprint.
+        echo "y"               # Confirm the local LXD server is the target.
         sleep 1
         echo "1"               # Use a certificate token.
         echo "${token}"        # Token.
-        echo "${instTypeCode}" # Instace type (1 == container, 2 == virtual-machine).
+        echo "${instTypeCode}" # Instance type (1 == container, 2 == virtual-machine).
 
         if [ "$(lxc project ls -f csv | wc -l)" -gt 1 ]; then
             echo "default"     # Project name (required if there is more then 1 project)
