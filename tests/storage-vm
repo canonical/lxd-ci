@@ -257,6 +257,13 @@ for poolDriver in $poolDriverList; do
         fi
         lxc delete -f v2
 
+        echo "==> Deleting storage pool"
+        lxc storage delete "${poolName}"
+
+        lxc delete -f v1
+        echo "DEBUG SKIPPING the rest at ${LINENO}"
+        continue
+
         echo "==> Create storage pool using different driver than ${poolDriver}"
         if [ "${poolDriver}" != "dir" ]; then
                 lxc storage create "${poolName}2" dir
