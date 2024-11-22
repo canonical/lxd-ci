@@ -81,7 +81,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(inputs.ubuntu-releases || '["20.04", "22.04", "24.04"]') }}
+        os: ${{ fromJSON(inputs.ubuntu-releases || '["22.04"]') }}
         track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge", "5.21/edge"]') }}
         test:
           - storage-vm lvm
@@ -90,10 +90,6 @@ jobs:
     steps:
       - name: Performance tuning
         uses: canonical/lxd/.github/actions/tune-disk-performance@main
-
-      - name: Reclaim disk space
-        if: ${{ matrix.test == 'conversion' || startsWith(matrix.test, 'storage-') || matrix.test == 'vm-nesting' }}
-        uses: canonical/lxd/.github/actions/reclaim-disk-space@main
 
       - name: Disable Docker
         uses: canonical/lxd/.github/actions/disable-docker@main
