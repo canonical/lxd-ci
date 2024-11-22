@@ -38,10 +38,14 @@ if [ "${LXD_SNAP_CHANNEL}" != "latest/edge" ]; then
         mount -o ro,bind core24/x86_64-linux-gnu/ "/snap/${base}/current/usr/lib/x86_64-linux-gnu/"
     done
 
+    echo "Make sgdisk not executable (doesn't work with core24's libc"
+    mount -o ro,bind /dev/zero "/snap/lxd/current/bin/sgdisk"
+
     echo "md5 after"
     md5sum /snap/core2?/current/usr/lib/x86_64-linux-gnu/libc.so.6
     md5sum /snap/core2?/current/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
     md5sum /snap/core22/current/usr/lib/x86_64-linux-gnu/libbpf.so.0*
+
     echo "restarting LXD"
     systemctl restart snap.lxd.daemon.service
 fi
