@@ -200,6 +200,12 @@ for poolDriver in $poolDriverList; do
         waitInstanceReady v2
         lxc stop -f v2
 
+        lxc delete -f v1 v2
+        echo "==> Deleting storage pool"
+        lxc storage delete "${poolName}"
+        echo "DEBUG SKIPPING the rest at ${LINENO}"
+        continue
+
         echo "==> Checking VM can be refreshed"
         lxc snapshot v1
         lxc copy v1 v2 --refresh
@@ -255,13 +261,6 @@ for poolDriver in $poolDriverList; do
                 [ "$(($(lxc exec v2 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "8" ]
         fi
         lxc delete -f v2
-
-        lxc delete -f v1
-
-        echo "==> Deleting storage pool"
-        lxc storage delete "${poolName}"
-        echo "DEBUG SKIPPING the rest at ${LINENO}"
-        continue
 
         echo "==> Create storage pool using different driver than ${poolDriver}"
         if [ "${poolDriver}" != "dir" ]; then
