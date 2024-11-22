@@ -13,7 +13,7 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 poolDriverList="${1:-ceph dir btrfs lvm lvm-thin zfs}"
 
-if [ "${LXD_SNAP_CHANNEL}" != "latest/edge" ]; then
+if [ "${LXD_SNAP_CHANNEL}" != "latest/edge" ] && [ "${CORE24_OVERRIDE:-0}" = "1" ]; then
     echo "DEBUG with libc sideloading"
     echo "Installing core24"
     snap install core24
@@ -66,7 +66,6 @@ if [ "${poolDriverList}" = "lvm-external" ]; then
     systemctl restart snap.lxd.daemon.service
     poolDriverList="lvm"
 fi
-sysctl -a | grep uring
 
 # Configure LXD
 lxc network create lxdbr0
@@ -257,10 +256,10 @@ for poolDriver in $poolDriverList; do
         fi
         lxc delete -f v2
 
+        lxc delete -f v1
+
         echo "==> Deleting storage pool"
         lxc storage delete "${poolName}"
-
-        lxc delete -f v1
         echo "DEBUG SKIPPING the rest at ${LINENO}"
         continue
 
