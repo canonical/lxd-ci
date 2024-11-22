@@ -21,17 +21,27 @@ if [ "${LXD_SNAP_CHANNEL}" != "latest/edge" ]; then
     echo "md5 before"
     md5sum /snap/core2?/current/usr/lib/x86_64-linux-gnu/libc.so.6
     md5sum /snap/core2?/current/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+    md5sum /snap/core22/current/usr/lib/x86_64-linux-gnu/libbpf.so.0*
+
+    # Prepare copy of core24's libc6 to cope with `/snap/core22/current/usr/lib/x86_64-linux-gnu/libbpf.so.0` existing only in core22.
+    # This being a single file, it cannot be bind mounted, not even into a different ld.so.conf path...
+    mkdir -p core24/x86_64-linux-gnu/
+    rsync -a /snap/core24/current/usr/lib/x86_64-linux-gnu/ core24/x86_64-linux-gnu/
+    if [ -e /snap/core22/current/usr/lib/x86_64-linux-gnu/libbpf.so.0 ]; then
+        echo "Including libpbf.so.0 from core22 as core24 only has libbpf.so.1"
+        rsync -a /snap/core22/current/usr/lib/x86_64-linux-gnu/libbpf.so* core24/x86_64-linux-gnu/
+    fi
 
     for base in core20 core22; do
         [ -e "/snap/${base}/current" ] || continue
-        CORE="${base}"
-        echo "Sideloading core24's libc6 onto ${CORE}'s"
-        mount -o ro,bind /snap/core24/current/usr/lib/x86_64-linux-gnu/ "/snap/${CORE}/current/usr/lib/x86_64-linux-gnu/"
+        echo "Sideloading core24's libc6 onto ${base}'s"
+        mount -o ro,bind core24/x86_64-linux-gnu/ "/snap/${base}/current/usr/lib/x86_64-linux-gnu/"
     done
 
     echo "md5 after"
     md5sum /snap/core2?/current/usr/lib/x86_64-linux-gnu/libc.so.6
     md5sum /snap/core2?/current/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+    md5sum /snap/core22/current/usr/lib/x86_64-linux-gnu/libbpf.so.0*
     echo "restarting LXD"
     systemctl restart snap.lxd.daemon.service
 fi
