@@ -186,7 +186,7 @@ for poolDriver in $poolDriverList; do
         nsenter --mount=/run/snapd/ns/lxd.mnt rm "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo"
 
         echo "==> Checking restore VM snapshot"
-        lxc restore v1 snap0
+        time lxc restore v1 snap0
         waitInstanceReady v1
         [ "$(lxc exec v1 -- cat /root/foo.txt)" = "foo" ]
 
@@ -194,7 +194,7 @@ for poolDriver in $poolDriverList; do
         nsenter --mount=/run/snapd/ns/lxd.mnt [ -f "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo" ]
 
         echo "==> Checking VM can be copied with snapshots"
-        lxc copy v1 v2
+        time lxc copy v1 v2
         [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
         lxc start v2
         waitInstanceReady v2
