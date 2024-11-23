@@ -13,7 +13,7 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 poolDriverList="${1:-ceph dir btrfs lvm lvm-thin zfs}"
 
-if [ "${LXD_SNAP_CHANNEL}" != "latest/edge" ] && [ "${CORE24_OVERRIDE:-0}" = "1" ]; then
+if [ "${LXD_SNAP_CHANNEL}" != "latest/edge" ] && [ "${CORE24_OVERRIDE:-1}" = "1" ]; then
     echo "DEBUG with libc sideloading"
     echo "Installing core24"
     snap install core24
