@@ -3,8 +3,8 @@
 # waitSnapdSeed: wait for snapd to be seeded.
 # Optional argument: timeout in seconds, defaults to 60.
 waitSnapdSeed() (
+  { set +x; } 2>/dev/null
   waitSecs="${1:-60}"
-  set +x
   if timeout "${waitSecs}" snap wait system seed.loaded; then
     return 0 # Success.
   fi
@@ -14,7 +14,7 @@ waitSnapdSeed() (
 
 # waitInstanceReady: waits for the instance to be ready (processes count > 1).
 waitInstanceReady() (
-  set +x
+  { set +x; } 2>/dev/null
   maxWait="${MAX_WAIT_SECONDS:-120}"
   instName="${1}"
   instProj="${2:-}"
@@ -39,7 +39,7 @@ waitInstanceReady() (
 
 # waitInstanceBooted: waits for the instance to be ready and fully booted.
 waitInstanceBooted() (
-  set +x
+  { set +x; } 2>/dev/null
   prefix="${WARNING_PREFIX:-::warning::}"
   maxWait=90
   instName="$1"
@@ -74,7 +74,7 @@ waitInstanceBooted() (
 # isSystemdClean: wait for instance to be booted and check for systemd failures.
 # ==> Returns 1 if systemd state is clean (no failure), 1 otherwise.
 isSystemdClean() (
-  set +x
+  { set +x; } 2>/dev/null
   instName="$1"
   instProj="${2:-}"
   if [ -z "${instProj}" ]; then
@@ -97,7 +97,7 @@ isSystemdClean() (
 
 # enableSRIOV: enable SR-IOV on a NIC.
 enableNICSRIOV() (
-  set +x
+  { set +x; } 2>/dev/null
   parentNIC="${1}"
   numVFS="${2:-"7"}"
 
@@ -119,7 +119,7 @@ enableNICSRIOV() (
 
 # install_deps: install dependencies if needed.
 install_deps() (
-    set +x
+    { set +x; } 2>/dev/null
     PKGS="${*}"
     missing=""
     PKGS_LIST="$(dpkg --get-selections | awk '{print $1}')"
