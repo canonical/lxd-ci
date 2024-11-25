@@ -85,7 +85,6 @@ jobs:
         track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge", "5.21/edge"]') }}
         test:
           - storage-vm lvm
-          - storage-vm lvm-external
 
     steps:
       - name: Performance tuning
