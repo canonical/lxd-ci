@@ -7,7 +7,15 @@ set -eux
 install_deps jq
 
 if [ "${LXD_SNAP_CHANNEL}" = "latest/edge" ]; then
-    wget https://sdeziel.info/pub/lxd-dd-timing.snap
+    echo "DEBUG with dd from core22"
+    echo "Installing core22"
+    snap install core22
+
+    echo "Saving dd from core22"
+    cp /snap/core22/current/usr/bin/dd dd.core22
+
+    echo "Downloading debug snap"
+    wget -q https://sdeziel.info/pub/lxd-dd-timing.snap
     export LXD_SNAP_PATH="lxd-dd-timing.snap"
 fi
 
@@ -18,48 +26,15 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 poolDriverList="${1:-ceph dir btrfs lvm lvm-thin zfs}"
 
-if [ "${LXD_SNAP_CHANNEL}" != "latest/edge" ] && [ "${CORE24_OVERRIDE:-0}" = "1" ]; then
-    echo "DEBUG with libc sideloading"
-    echo "Installing core24"
-    snap install core24
-
+if [ "${LXD_SNAP_CHANNEL}" = "latest/edge" ]; then
     echo "md5 before"
-    md5sum /snap/core2?/current/usr/lib/x86_64-linux-gnu/libc.so.6
-    md5sum /snap/core2?/current/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
-    md5sum /snap/core22/current/usr/lib/x86_64-linux-gnu/libbpf.so.*
-    md5sum /snap/core22/current/usr/lib/x86_64-linux-gnu/libpcre.so.*
-    md5sum /snap/core22/current/usr/lib/x86_64-linux-gnu/libprocps.so.*
+    md5sum /snap/core24/current/usr/bin/dd
 
-    # Prepare copy of core24's libc6 to cope with `/snap/core22/current/usr/lib/x86_64-linux-gnu/libbpf.so.0` existing only in core22.
-    # This being a single file, it cannot be bind mounted, not even into a different ld.so.conf path...
-    mkdir -p core24/x86_64-linux-gnu/
-    rsync -a /snap/core24/current/usr/lib/x86_64-linux-gnu/ core24/x86_64-linux-gnu/
-    if [ -e /snap/core22/current ]; then
-        echo "Including libpbf.so.0 from core22 as core24 only has libbpf.so.1"
-        rsync -a /snap/core22/current/usr/lib/x86_64-linux-gnu/libbpf.so* core24/x86_64-linux-gnu/
-
-        echo "Including libpcre.so.3 from core22 as core24 only has libpcre2-8.so.0"
-        rsync -a /snap/core22/current/usr/lib/x86_64-linux-gnu/libpcre.so* core24/x86_64-linux-gnu/
-
-        echo "Including libprocps.so.8 from core22 as core24 doesn't have any"
-        rsync -a /snap/core22/current/usr/lib/x86_64-linux-gnu/libprocps.so* core24/x86_64-linux-gnu/
-    fi
-
-    for base in core20 core22; do
-        [ -e "/snap/${base}/current" ] || continue
-        echo "Sideloading core24's libc6 onto ${base}'s"
-        mount -o ro,bind core24/x86_64-linux-gnu/ "/snap/${base}/current/usr/lib/x86_64-linux-gnu/"
-    done
-
-    echo "Make sgdisk not executable (doesn't work with core24's libc"
-    mount -o ro,bind /dev/zero "/snap/lxd/current/bin/sgdisk"
+    echo "Bind mount dd from core22 to core24"
+    mount -o ro,bind dd.core22 /snap/core24/current/usr/bin/dd
 
     echo "md5 after"
-    md5sum /snap/core2?/current/usr/lib/x86_64-linux-gnu/libc.so.6
-    md5sum /snap/core2?/current/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
-    md5sum /snap/core22/current/usr/lib/x86_64-linux-gnu/libbpf.so.*
-    md5sum /snap/core22/current/usr/lib/x86_64-linux-gnu/libpcre.so.*
-    md5sum /snap/core22/current/usr/lib/x86_64-linux-gnu/libprocps.so.*
+    md5sum /snap/core24/current/usr/bin/dd
 
     echo "restarting LXD"
     systemctl restart snap.lxd.daemon.service
