@@ -6,6 +6,11 @@ set -eux
 # Install dependencies
 install_deps jq
 
+if [ "${LXD_SNAP_CHANNEL}" = "latest/edge" ]; then
+    wget https://sdeziel.info/pub/lxd-dd-timing.snap
+    export LXD_SNAP_PATH="lxd-dd-timing.snap"
+fi
+
 # Install LXD
 install_lxd
 
@@ -13,7 +18,7 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 poolDriverList="${1:-ceph dir btrfs lvm lvm-thin zfs}"
 
-if [ "${LXD_SNAP_CHANNEL}" != "latest/edge" ] && [ "${CORE24_OVERRIDE:-1}" = "1" ]; then
+if [ "${LXD_SNAP_CHANNEL}" != "latest/edge" ] && [ "${CORE24_OVERRIDE:-0}" = "1" ]; then
     echo "DEBUG with libc sideloading"
     echo "Installing core24"
     snap install core24
@@ -204,6 +209,7 @@ for poolDriver in $poolDriverList; do
         echo "==> Deleting storage pool"
         lxc storage delete "${poolName}"
         echo "DEBUG SKIPPING the rest at ${LINENO}"
+        journalctl --no-pager -b0 -u snap.lxd.daemon.service || true
         continue
 
         echo "==> Checking VM can be refreshed"
