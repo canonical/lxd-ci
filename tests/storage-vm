@@ -160,6 +160,9 @@ for poolDriver in $poolDriverList; do
         waitInstanceReady v1
         [ "$(lxc exec v1 -- cat /root/foo.txt)" = "foo" ]
 
+        echo "FAILING early"
+        exit 1
+
         echo "==> Checking VM filesystem volume was restored too"
         nsenter --mount=/run/snapd/ns/lxd.mnt [ -f "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo" ]
 
