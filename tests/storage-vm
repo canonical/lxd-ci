@@ -30,13 +30,6 @@ if [ "${LXD_SNAP_CHANNEL}" = "latest/edge" ]; then
     systemctl restart snap.lxd.daemon.service
 fi
 
-# XXX: DEBUG
-if [ "${poolDriverList}" = "lvm-external" ]; then
-    snap set lxd lvm.external=true
-    systemctl restart snap.lxd.daemon.service
-    poolDriverList="lvm"
-fi
-
 # Configure LXD
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
