@@ -6,19 +6,6 @@ set -eux
 # Install dependencies
 install_deps jq
 
-if [ "${LXD_SNAP_CHANNEL}" = "latest/edge" ]; then
-    echo "DEBUG with dd from core22"
-    echo "Installing core22"
-    snap install core22
-
-    echo "Saving dd from core22"
-    cp /snap/core22/current/usr/bin/dd dd.core22
-
-    echo "Downloading debug snap"
-    wget -q https://sdeziel.info/pub/lxd-dd-timing.snap
-    export LXD_SNAP_PATH="lxd-dd-timing.snap"
-fi
-
 # Install LXD
 install_lxd
 
@@ -27,14 +14,17 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 poolDriverList="${1:-ceph dir btrfs lvm lvm-thin zfs}"
 
 if [ "${LXD_SNAP_CHANNEL}" = "latest/edge" ]; then
-    echo "md5 before"
-    md5sum /snap/core24/current/usr/bin/dd
+    echo "Installing core22"
+    snap install core22
 
-    echo "Bind mount dd from core22 to core24"
-    mount -o ro,bind dd.core22 /snap/core24/current/usr/bin/dd
+    echo "md5 before"
+    md5sum /snap/core2?/current/usr/sbin/losetup
+
+    echo "Bind mount losetup from core22 to core24"
+    mount -o ro,bind /snap/core22/current/usr/sbin/losetup /snap/core24/current/usr/sbin/losetup
 
     echo "md5 after"
-    md5sum /snap/core24/current/usr/bin/dd
+    md5sum /snap/core2?/current/usr/sbin/losetup
 
     echo "restarting LXD"
     systemctl restart snap.lxd.daemon.service
