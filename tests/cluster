@@ -149,6 +149,8 @@ fi
 echo "==> Upgrading the cluster"
 for i in $(seq "${SIZE}"); do
     lxc exec "${PREFIX}-$i" -- snap refresh
+    # XXX: there should be no refresh ongoing but we've seen races before so let's collect evidences
+    lxc exec "${PREFIX}-$i" -- snap changes
     lxc exec "${PREFIX}-$i" -- snap switch lxd --channel="$3"
     if [ "$i" = "${SIZE}" ]; then
         lxc exec "${PREFIX}-$i" -- snap wait system seed.loaded
