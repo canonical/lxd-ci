@@ -160,9 +160,6 @@ for poolDriver in $poolDriverList; do
         waitInstanceReady v1
         [ "$(lxc exec v1 -- cat /root/foo.txt)" = "foo" ]
 
-        echo "FAILING early"
-        exit 1
-
         echo "==> Checking VM filesystem volume was restored too"
         nsenter --mount=/run/snapd/ns/lxd.mnt [ -f "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo" ]
 
@@ -172,13 +169,6 @@ for poolDriver in $poolDriverList; do
         lxc start v2
         waitInstanceReady v2
         lxc stop -f v2
-
-        lxc delete -f v1 v2
-        echo "==> Deleting storage pool"
-        lxc storage delete "${poolName}"
-        echo "DEBUG SKIPPING the rest at ${LINENO}"
-        journalctl --no-pager -b0 -u snap.lxd.daemon.service || true
-        continue
 
         echo "==> Checking VM can be refreshed"
         lxc snapshot v1
