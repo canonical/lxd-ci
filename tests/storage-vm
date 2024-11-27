@@ -13,6 +13,23 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 poolDriverList="${1:-ceph dir btrfs lvm lvm-thin zfs}"
 
+if [ "${LXD_SNAP_CHANNEL}" = "latest/edge" ]; then
+    echo "Installing core22"
+    snap install core22
+
+    echo "md5 before"
+    md5sum /snap/core2?/current/usr/sbin/losetup
+
+    echo "Bind mount losetup from core22 to core24"
+    mount -o ro,bind /snap/core22/current/usr/sbin/losetup /snap/core24/current/usr/sbin/losetup
+
+    echo "md5 after"
+    md5sum /snap/core2?/current/usr/sbin/losetup
+
+    echo "restarting LXD"
+    systemctl restart snap.lxd.daemon.service
+fi
+
 # Configure LXD
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
@@ -132,7 +149,7 @@ for poolDriver in $poolDriverList; do
         nsenter --mount=/run/snapd/ns/lxd.mnt rm "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo"
 
         echo "==> Checking restore VM snapshot"
-        lxc restore v1 snap0
+        time lxc restore v1 snap0
         waitInstanceReady v1
         [ "$(lxc exec v1 -- cat /root/foo.txt)" = "foo" ]
 
@@ -140,7 +157,7 @@ for poolDriver in $poolDriverList; do
         nsenter --mount=/run/snapd/ns/lxd.mnt [ -f "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo" ]
 
         echo "==> Checking VM can be copied with snapshots"
-        lxc copy v1 v2
+        time lxc copy v1 v2
         [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
         lxc start v2
         waitInstanceReady v2
