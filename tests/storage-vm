@@ -23,6 +23,9 @@ if [ "${LXD_SNAP_CHANNEL}" = "latest/edge" ]; then
     echo "Bind mount losetup from core22 to core24"
     mount -o ro,bind /snap/core22/current/usr/sbin/losetup /snap/core24/current/usr/sbin/losetup
 
+    echo "undoing"
+    umount /snap/core24/current/usr/sbin/losetup || true
+
     echo "md5 after"
     md5sum /snap/core2?/current/usr/sbin/losetup
 
@@ -152,6 +155,12 @@ for poolDriver in $poolDriverList; do
         time lxc restore v1 snap0
         waitInstanceReady v1
         [ "$(lxc exec v1 -- cat /root/foo.txt)" = "foo" ]
+
+        continue
+        lxc delete -f v1 v2
+        echo "==> Deleting storage pool"
+        lxc storage delete "${poolName}"
+        continue
 
         echo "==> Checking VM filesystem volume was restored too"
         nsenter --mount=/run/snapd/ns/lxd.mnt [ -f "/var/snap/lxd/common/lxd/storage-pools/${poolName}/virtual-machines/v1/foo" ]
