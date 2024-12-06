@@ -191,9 +191,6 @@ install_lxd() (
         mount --bind "${LXD_AGENT_SIDELOAD_PATH}" /snap/lxd/current/bin/lxd-agent
     fi
 
-    # Enable debug logging if not done already
-    [ "$(snap get lxd daemon.debug 2>/dev/null)" = "true" ] || snap set lxd daemon.debug=true
-
     if [ "$start_daemon" = "true" ]; then
         lxd waitready --timeout=300
     fi

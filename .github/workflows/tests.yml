@@ -94,6 +94,7 @@ jobs:
           - devlxd-vm
           - docker
           - efi-vars-editor-vm
+          - lxd-user
           - interception
           - network-bridge-firewall
           - network-ovn
@@ -128,6 +129,8 @@ jobs:
           - test: devlxd-vm
             track: "4.0/candidate"
           - test: efi-vars-editor-vm
+            track: "4.0/candidate"
+          - test: lxd-user
             track: "4.0/candidate"
           - test: network-bridge-firewall
             track: "4.0/candidate"
@@ -165,6 +168,8 @@ jobs:
           - test: devlxd-vm
             track: "4.0/edge"
           - test: efi-vars-editor-vm
+            track: "4.0/edge"
+          - test: lxd-user
             track: "4.0/edge"
           - test: network-bridge-firewall
             track: "4.0/edge"
