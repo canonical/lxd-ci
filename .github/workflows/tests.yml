@@ -324,7 +324,22 @@ jobs:
               EXTRA_ARGS=""
             fi
           fi
-          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_STEP_SUMMARY,TEST_IMG,OVN_SOURCE ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
+
+          git clone https://github.com/hamistao/lxd
+          cd lxd
+          git checkout disk_size_fixes
+          sudo apt update
+          sudo apt install acl attr autoconf automake dnsmasq-base git libacl1-dev libcap-dev liblxc1 liblxc-dev libsqlite3-dev libtool libudev-dev liblz4-dev libuv1-dev make pkg-config rsync squashfs-tools tar tcl xz-utils ebtables
+          command -v snap >/dev/null || sudo apt-get install snapd
+          sudo snap install --classic go
+          make deps
+          export CGO_CFLAGS="-I/home/runner/go/deps/dqlite/include/"
+          export CGO_LDFLAGS="-L/home/runner/go/deps/dqlite/.libs/"
+          export LD_LIBRARY_PATH="/home/runner/go/deps/dqlite/.libs/"
+          export CGO_LDFLAGS_ALLOW="(-Wl,-wrap,pthread_create)|(-Wl,-z,now)"
+          make
+          cd ..
+          sudo LXD_SIDELOAD_PATH=/home/runner/go/bin/lxd --preserve-env=GITHUB_ACTIONS,GITHUB_STEP_SUMMARY,TEST_IMG,OVN_SOURCE ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
 
       # always update cache as we have our own logic of
       # cache invalidation and updates in addition to a date check
