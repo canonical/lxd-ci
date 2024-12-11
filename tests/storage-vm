@@ -599,6 +599,53 @@ for poolDriver in $poolDriverList; do
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
         fi
 
+        lxc stop -f v1
+        # Set 'volume.size' and create new VM
+        lxc storage set "${poolName}" volume.size="7GiB"
+        lxc init -s "${poolName}" testimage v3
+
+        # Get instance root disk sizes
+        [ "$(lxc info v1 | awk '/Disk total:/ {found=1} found && /root:/ {print $2; exit}')" = "10GiB" ]
+        [ "$(lxc info v3 | awk '/Disk total:/ {found=1} found && /root:/ {print $2; exit}')" = "7GiB" ]
+
+        # Check volume 'size' and volume state also show correct total size.
+        [ "$(lxc storage volume get virtual-machine/v1 size)" = "10GiB" ]
+        [ "$(lxc storage volume info virtual-machine/v1 | grep "Total:")"  = "10GiB" ]
+        [ "$(lxc storage volume get virtual-machine/v3 size)" = "7GiB" ]
+        [ "$(lxc storage volume info virtual-machine/v3 | grep "Total:")"  = "7GiB" ]
+
+        # Shrinking v1 is not allowed, grow v1 and v3.
+        # Device size should override default size and 'volume.size'.
+        lxc start v1
+        lxc start v3
+        ! lxc config device set v1 root size="7GiB" || false
+        ! lxc storage volume set virtual-machine/v1 size="11GiB" || false
+        lxc config device set v1 root size="11GiB"
+        lxc config device set v3 root size="10GiB"
+
+        # Resizing does not apply while instance is running.
+        [ "$(lxc info v1 | awk '/Disk total:/ {found=1} found && /root:/ {print $2; exit}')" = "10GiB" ]
+        [ "$(lxc info v3 | awk '/Disk total:/ {found=1} found && /root:/ {print $2; exit}')" = "7GiB" ]
+
+        # While instance is stopped, show new instance root disk size even though
+        # The volume itself only gets resized on instance start.
+        lxc stop -f v1 v3
+        [ "$(lxc info v1 | awk '/Disk total:/ {found=1} found && /root:/ {print $2; exit}')" = "11GiB" ]
+        [ "$(lxc storage volume get virtual-machine/v1 volatile.rootfs.size)" = "10GiB" ]
+        [ "$(lxc storage volume info virtual-machine/v1 | grep "Total:")"  = "10GiB" ]
+
+        [ "$(lxc info v3 | awk '/Disk total:/ {found=1} found && /root:/ {print $2; exit}')" = "10GiB" ]
+        [ "$(lxc storage volume get virtual-machine/v3 volatile.rootfs.size)" = "7GiB" ]
+        [ "$(lxc storage volume info virtual-machine/v3 | grep "Total:")"  = "7GiB" ]
+
+        # Volume gets resized on start,
+        lxc start v1
+        [ "$(lxc storage volume get virtual-machine/v1 volatile.rootfs.size)" = "11GiB" ]
+        [ "$(lxc storage volume info virtual-machine/v1 | grep "Total:")"  = "11GiB" ]
+
+        [ "$(lxc storage volume get virtual-machine/v3 volatile.rootfs.size)" = "10GiB" ]
+        [ "$(lxc storage volume info virtual-machine/v3 | grep "Total:")"  = "10GiB" ]
+
         echo "===> Renaming VM"
         lxc stop -f v1
         lxc rename v1 v1renamed
