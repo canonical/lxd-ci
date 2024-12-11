@@ -775,7 +775,7 @@ ovn_forward_tests() {
     lxc exec u1 -- systemctl mask dnsmasq
     lxc exec u1 -- apt-get update
     lxc exec u1 -- apt-get install --no-install-recommends --yes dnsmasq
-cat <<EOF | lxc exec u1 -- tee /etc/dnsmasq.d/lxd_test.conf
+    lxc exec u1 -- tee /etc/dnsmasq.d/lxd_test.conf << EOF
 interface=eth0
 bind-interfaces
 interface-name=u1.lxd,eth0
@@ -801,7 +801,7 @@ EOF
     lxc exec u2 -- systemctl mask dnsmasq
     lxc exec u2 -- apt-get update
     lxc exec u2 -- apt-get install --no-install-recommends --yes dnsmasq
-cat <<EOF | lxc exec u2 -- tee /etc/dnsmasq.d/lxd_test.conf
+    lxc exec u2 -- tee /etc/dnsmasq.d/lxd_test.conf << EOF
 interface=eth0
 bind-interfaces
 interface-name=u2.lxd,eth0
@@ -1039,7 +1039,7 @@ ovn_load_balancer_tests() {
     lxc exec u1 -- systemctl mask dnsmasq
     lxc exec u1 -- apt-get update
     lxc exec u1 -- apt-get install --no-install-recommends --yes dnsmasq
-cat <<EOF | lxc exec u1 -- tee /etc/dnsmasq.d/lxd_test.conf
+    lxc exec u1 -- tee /etc/dnsmasq.d/lxd_test.conf << EOF
 interface=eth0
 bind-interfaces
 interface-name=u1.lxd,eth0
@@ -1078,7 +1078,7 @@ EOF
     lxc exec u2 -- systemctl mask dnsmasq
     lxc exec u2 -- apt-get update
     lxc exec u2 -- apt-get install --no-install-recommends --yes dnsmasq
-cat <<EOF | lxc exec u2 -- tee /etc/dnsmasq.d/lxd_test.conf
+    lxc exec u2 -- tee /etc/dnsmasq.d/lxd_test.conf << EOF
 interface=eth0
 bind-interfaces
 interface-name=u2.lxd,eth0
