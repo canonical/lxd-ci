@@ -2,19 +2,16 @@
 set -eux
 
 # Install dependencies
-install_deps ovn-host ovn-central bind9-dnsutils iputils-ping jq
+install_deps bind9-dnsutils iputils-ping jq
+
+# Install OVN
+install_ovn
 
 # Install LXD
 install_lxd
 
 # Configure OVN.
-ovs-vsctl set open_vswitch . \
-  external_ids:ovn-remote=unix:/var/run/ovn/ovnsb_db.sock \
-  external_ids:ovn-encap-type=geneve \
-  external_ids:ovn-encap-ip=127.0.0.1
-
-# Empty controller log so ACL log checks are consistent over repeat runs.
-echo "" > /var/log/ovn/ovn-controller.log
+configure_ovn
 
 # Configure LXD.
 lxc project switch default
