@@ -2,7 +2,7 @@
 set -eux
 
 # Install dependencies
-install_deps ovn-host ovn-central bind9-dnsutils jq
+install_deps ovn-host ovn-central bind9-dnsutils iputils-ping jq
 
 # Install LXD
 install_lxd
