@@ -1408,42 +1408,44 @@ ovn_peering_tests() {
     lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -6 -w5 "${ovn1NICIPv6}"
 
     echo "==> Check that acl rule for ovn ingress has all the expected values"
-    ovn_logs="$(lxc network acl show-log ovn1 --project=ovn1)"
+    if [ "${OVN_SOURCE:-latest/edge}" = "deb" ]; then
+      ovn_logs="$(lxc network acl show-log ovn1 --project=ovn1)"
 
-    # XXX: unable to get logs from old OVN .deb from 20.04
-    if [ -z "${ovn_logs}" ]; then
-        . /etc/os-release
-        if [ "${VERSION_ID}" = "20.04" ]; then
-            echo "Ignoring network acl show-log not working on ${VERSION_ID}"
-        else
-            false
-        fi
-    fi
-
-    echo "${ovn_logs}" | while IFS= read -r logline; do
-      proto=$(echo "$logline" | jq -r '.proto')
-      src=$(echo "$logline" | jq -r '.src')
-      dst=$(echo "$logline" | jq -r '.dst')
-      icmp_type=$(echo "$logline" | jq -r '.icmp_type')
-      icmp_code=$(echo "$logline" | jq -r '.icmp_code')
-      action=$(echo "$logline" | jq -r '.action')
-
-      [ "$action" = "allow" ]
-
-      if [ "$proto" = "icmp" ]; then
-        echo "==> IPv4 ping from ovn2 to ovn1 allowed"
-        [ "$src" = "${ovn2NICIPv4}" ]
-        [ "$dst" = "${ovn1NICIPv4}" ]
-        [ "$icmp_type" = "8" ]
-        [ "$icmp_code" = "0" ]
-      elif [ "$proto" = "icmp6" ]; then
-        echo "==> IPv6 ping from ovn2 to ovn1 allowed"
-        [ "$src" = "${ovn2NICIPv6}" ]
-        [ "$dst" = "${ovn1NICIPv6}" ]
-        [ "$icmp_type" = "128" ]
-        [ "$icmp_code" = "0" ]
+      # XXX: unable to get logs from old OVN .deb from 20.04
+      if [ -z "${ovn_logs}" ]; then
+          . /etc/os-release
+          if [ "${VERSION_ID}" = "20.04" ]; then
+              echo "Ignoring network acl show-log not working on ${VERSION_ID}"
+          else
+              false
+          fi
       fi
-    done
+
+      echo "${ovn_logs}" | while IFS= read -r logline; do
+        proto=$(echo "$logline" | jq -r '.proto')
+        src=$(echo "$logline" | jq -r '.src')
+        dst=$(echo "$logline" | jq -r '.dst')
+        icmp_type=$(echo "$logline" | jq -r '.icmp_type')
+        icmp_code=$(echo "$logline" | jq -r '.icmp_code')
+        action=$(echo "$logline" | jq -r '.action')
+
+        [ "$action" = "allow" ]
+
+        if [ "$proto" = "icmp" ]; then
+          echo "==> IPv4 ping from ovn2 to ovn1 allowed"
+          [ "$src" = "${ovn2NICIPv4}" ]
+          [ "$dst" = "${ovn1NICIPv4}" ]
+          [ "$icmp_type" = "8" ]
+          [ "$icmp_code" = "0" ]
+        elif [ "$proto" = "icmp6" ]; then
+          echo "==> IPv6 ping from ovn2 to ovn1 allowed"
+          [ "$src" = "${ovn2NICIPv6}" ]
+          [ "$dst" = "${ovn1NICIPv6}" ]
+          [ "$icmp_type" = "128" ]
+          [ "$icmp_code" = "0" ]
+        fi
+      done
+    fi
 
     echo "==> Check cannot add an ACL to a network NIC that references a peer connection from another network"
     lxc network create ovn1b --type=ovn network=lxdbr0 --project=ovn1
