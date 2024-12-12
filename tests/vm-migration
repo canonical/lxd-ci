@@ -130,7 +130,9 @@ lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol
 # Start the VM.
 lxc exec member1 -- lxc start v1
 sleep 60
-lxc exec member1 -- lxc move v1 --target member2
+
+# Move the VM to member2 but with a timeout as this sometimes hangs indefinitely but when it works it's fast.
+timeout 600 lxc exec member1 -- lxc move v1 --target member2
 
 # shellcheck disable=SC2034
 FAIL=0
