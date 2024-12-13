@@ -97,7 +97,8 @@ jobs:
           - lxd-user
           - interception
           - network-bridge-firewall
-          - network-ovn
+          - network-ovn ovn:deb
+          - network-ovn ovn:latest/edge
           - network-routed
           - pylxd
           - snapd
@@ -135,7 +136,9 @@ jobs:
           - test: network-bridge-firewall
             track: "4.0/candidate"
             os: 20.04
-          - test: network-ovn
+          - test: network-ovn ovn:deb
+            track: "4.0/candidate"
+          - test: network-ovn ovn:latest/edge
             track: "4.0/candidate"
           - test: storage-buckets
             track: "4.0/candidate"
@@ -174,7 +177,9 @@ jobs:
           - test: network-bridge-firewall
             track: "4.0/edge"
             os: 20.04
-          - test: network-ovn
+          - test: network-ovn ovn:deb
+            track: "4.0/edge"
+          - test: network-ovn ovn:latest/edge
             track: "4.0/edge"
           - test: storage-buckets
             track: "4.0/edge"
@@ -202,6 +207,10 @@ jobs:
           - test: efi-vars-editor-vm
             track: "5.0/candidate"
           - test: efi-vars-editor-vm
+            track: "5.0/edge"
+          - test: network-ovn ovn:latest/edge
+            track: "5.0/candidate"
+          - test: network-ovn ovn:latest/edge
             track: "5.0/edge"
           - test: vm-migration
             track: "5.0/candidate"
@@ -290,8 +299,14 @@ jobs:
             dst_track="${{ matrix.track }}"
             src_track="$(echo "${dst_track}" | cut -d/ -f1)/stable"
             EXTRA_ARGS="${EXTRA_ARGS:-3} ${src_track} ${{ matrix.track }}"
+          elif [ "${TEST_SCRIPT}" = "network-ovn" ]; then
+            if [ -n "${EXTRA_ARGS}" ]; then
+              # Strip the `ovn:` prefix
+              export OVN_SOURCE="${EXTRA_ARGS##ovn:}"
+              EXTRA_ARGS=""
+            fi
           fi
-          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_STEP_SUMMARY,TEST_IMG ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
+          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_STEP_SUMMARY,TEST_IMG,OVN_SOURCE ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
 
       # always update cache as we have our own logic of
       # cache invalidation and updates in addition to a date check

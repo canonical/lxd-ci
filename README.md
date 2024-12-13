@@ -123,6 +123,19 @@ To test a custom snap of LXD, you can set the `LXD_SNAP_PATH` environment variab
 LXD_SNAP_PATH=/tmp/lxd_0+git.89550582_amd64.snap ./bin/local-run tests/interception latest/edge
 ```
 
+To run `tests/network-ovn` against various OVN implementation:
+
+```
+# Using the deb package from the base Os
+OVN_SOURCE=deb PURGE_LXD=1 ./bin/local-run tests/network-ovn latest/edge
+
+# Use numbered releases of MicroOVN
+OVN_SOURCE=22.03/edge PURGE_LXD=1 ./bin/local-run tests/network-ovn latest/edge
+OVN_SOURCE=24.03/edge PURGE_LXD=1 ./bin/local-run tests/network-ovn latest/edge
+
+# Using the `latest/edge` MicroOVN snap channel
+PURGE_LXD=1 ./bin/local-run tests/network-ovn latest/edge
+```
 
 # Running tests on OpenStack (ProdStack)
 

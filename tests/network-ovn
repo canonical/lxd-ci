@@ -2,19 +2,16 @@
 set -eux
 
 # Install dependencies
-install_deps ovn-host ovn-central bind9-dnsutils jq
+install_deps bind9-dnsutils iputils-ping jq
+
+# Install OVN
+install_ovn
 
 # Install LXD
 install_lxd
 
 # Configure OVN.
-ovs-vsctl set open_vswitch . \
-  external_ids:ovn-remote=unix:/var/run/ovn/ovnsb_db.sock \
-  external_ids:ovn-encap-type=geneve \
-  external_ids:ovn-encap-ip=127.0.0.1
-
-# Empty controller log so ACL log checks are consistent over repeat runs.
-echo "" > /var/log/ovn/ovn-controller.log
+configure_ovn
 
 # Configure LXD.
 lxc project switch default
@@ -766,8 +763,8 @@ ovn_forward_tests() {
 
     echo "==> Check forward is working by probing TCP/22"
     # Relies on static route (above) rather than neighbour adverts see https://github.com/ovn-org/ovn/issues/124
-    nc -zv 192.0.2.1 22
-    nc -zv 2001:db8:1:2::1 22
+    timeout 5 grep -m1 ^SSH < /dev/tcp/192.0.2.1/22
+    timeout 5 grep -m1 ^SSH < /dev/tcp/2001:db8:1:2::1/22
 
     echo "==> Check forward is working by pinging it"
     # XXX: ping used to work but doesn't anymore due to a regression in OVN in Jammy (22.03.3-0ubuntu0.22.04.1?)
@@ -778,7 +775,7 @@ ovn_forward_tests() {
     lxc exec u1 -- systemctl mask dnsmasq
     lxc exec u1 -- apt-get update
     lxc exec u1 -- apt-get install --no-install-recommends --yes dnsmasq
-cat <<EOF | lxc exec u1 -- tee /etc/dnsmasq.d/lxd_test.conf
+    lxc exec u1 -- tee /etc/dnsmasq.d/lxd_test.conf << EOF
 interface=eth0
 bind-interfaces
 interface-name=u1.lxd,eth0
@@ -804,7 +801,7 @@ EOF
     lxc exec u2 -- systemctl mask dnsmasq
     lxc exec u2 -- apt-get update
     lxc exec u2 -- apt-get install --no-install-recommends --yes dnsmasq
-cat <<EOF | lxc exec u2 -- tee /etc/dnsmasq.d/lxd_test.conf
+    lxc exec u2 -- tee /etc/dnsmasq.d/lxd_test.conf << EOF
 interface=eth0
 bind-interfaces
 interface-name=u2.lxd,eth0
@@ -1042,7 +1039,7 @@ ovn_load_balancer_tests() {
     lxc exec u1 -- systemctl mask dnsmasq
     lxc exec u1 -- apt-get update
     lxc exec u1 -- apt-get install --no-install-recommends --yes dnsmasq
-cat <<EOF | lxc exec u1 -- tee /etc/dnsmasq.d/lxd_test.conf
+    lxc exec u1 -- tee /etc/dnsmasq.d/lxd_test.conf << EOF
 interface=eth0
 bind-interfaces
 interface-name=u1.lxd,eth0
@@ -1081,7 +1078,7 @@ EOF
     lxc exec u2 -- systemctl mask dnsmasq
     lxc exec u2 -- apt-get update
     lxc exec u2 -- apt-get install --no-install-recommends --yes dnsmasq
-cat <<EOF | lxc exec u2 -- tee /etc/dnsmasq.d/lxd_test.conf
+    lxc exec u2 -- tee /etc/dnsmasq.d/lxd_test.conf << EOF
 interface=eth0
 bind-interfaces
 interface-name=u2.lxd,eth0
@@ -1411,42 +1408,44 @@ ovn_peering_tests() {
     lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -6 -w5 "${ovn1NICIPv6}"
 
     echo "==> Check that acl rule for ovn ingress has all the expected values"
-    ovn_logs="$(lxc network acl show-log ovn1 --project=ovn1)"
+    if [ "${OVN_SOURCE:-latest/edge}" = "deb" ]; then
+      ovn_logs="$(lxc network acl show-log ovn1 --project=ovn1)"
 
-    # XXX: unable to get logs from old OVN .deb from 20.04
-    if [ -z "${ovn_logs}" ]; then
-        . /etc/os-release
-        if [ "${VERSION_ID}" = "20.04" ]; then
-            echo "Ignoring network acl show-log not working on ${VERSION_ID}"
-        else
-            false
-        fi
-    fi
-
-    echo "${ovn_logs}" | while IFS= read -r logline; do
-      proto=$(echo "$logline" | jq -r '.proto')
-      src=$(echo "$logline" | jq -r '.src')
-      dst=$(echo "$logline" | jq -r '.dst')
-      icmp_type=$(echo "$logline" | jq -r '.icmp_type')
-      icmp_code=$(echo "$logline" | jq -r '.icmp_code')
-      action=$(echo "$logline" | jq -r '.action')
-
-      [ "$action" = "allow" ]
-
-      if [ "$proto" = "icmp" ]; then
-        echo "==> IPv4 ping from ovn2 to ovn1 allowed"
-        [ "$src" = "${ovn2NICIPv4}" ]
-        [ "$dst" = "${ovn1NICIPv4}" ]
-        [ "$icmp_type" = "8" ]
-        [ "$icmp_code" = "0" ]
-      elif [ "$proto" = "icmp6" ]; then
-        echo "==> IPv6 ping from ovn2 to ovn1 allowed"
-        [ "$src" = "${ovn2NICIPv6}" ]
-        [ "$dst" = "${ovn1NICIPv6}" ]
-        [ "$icmp_type" = "128" ]
-        [ "$icmp_code" = "0" ]
+      # XXX: unable to get logs from old OVN .deb from 20.04
+      if [ -z "${ovn_logs}" ]; then
+          . /etc/os-release
+          if [ "${VERSION_ID}" = "20.04" ]; then
+              echo "Ignoring network acl show-log not working on ${VERSION_ID}"
+          else
+              false
+          fi
       fi
-    done
+
+      echo "${ovn_logs}" | while IFS= read -r logline; do
+        proto=$(echo "$logline" | jq -r '.proto')
+        src=$(echo "$logline" | jq -r '.src')
+        dst=$(echo "$logline" | jq -r '.dst')
+        icmp_type=$(echo "$logline" | jq -r '.icmp_type')
+        icmp_code=$(echo "$logline" | jq -r '.icmp_code')
+        action=$(echo "$logline" | jq -r '.action')
+
+        [ "$action" = "allow" ]
+
+        if [ "$proto" = "icmp" ]; then
+          echo "==> IPv4 ping from ovn2 to ovn1 allowed"
+          [ "$src" = "${ovn2NICIPv4}" ]
+          [ "$dst" = "${ovn1NICIPv4}" ]
+          [ "$icmp_type" = "8" ]
+          [ "$icmp_code" = "0" ]
+        elif [ "$proto" = "icmp6" ]; then
+          echo "==> IPv6 ping from ovn2 to ovn1 allowed"
+          [ "$src" = "${ovn2NICIPv6}" ]
+          [ "$dst" = "${ovn1NICIPv6}" ]
+          [ "$icmp_type" = "128" ]
+          [ "$icmp_code" = "0" ]
+        fi
+      done
+    fi
 
     echo "==> Check cannot add an ACL to a network NIC that references a peer connection from another network"
     lxc network create ovn1b --type=ovn network=lxdbr0 --project=ovn1

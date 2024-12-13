@@ -141,6 +141,39 @@ install_deps() (
     fi
 )
 
+# install_ovn: install OVN packages or MicroOVN snap.
+install_ovn() (
+    if [ "${OVN_SOURCE:-latest/edge}" = "deb" ]; then
+        # Avoid clashing with the microovn snap
+        if snap list microovn 2>/dev/null; then
+            snap remove --purge microovn
+        fi
+
+        install_deps ovn-host ovn-central
+    elif ! snap list microovn 2>/dev/null; then
+        # Avoid clashing with the deb packages
+        apt-get autopurge --yes ovn-host ovn-central || true
+
+        snap install microovn --channel="${OVN_SOURCE:-latest/edge}" --cohort=+
+    fi
+)
+
+# configure_ovn: prepare OVN for use by LXD.
+configure_ovn() {
+    if [ "${OVN_SOURCE:-latest/edge}" = "deb" ]; then
+        ovs-vsctl set open_vswitch . \
+          external_ids:ovn-remote=unix:/var/run/ovn/ovnsb_db.sock \
+          external_ids:ovn-encap-type=geneve \
+          external_ids:ovn-encap-ip=127.0.0.1
+
+        # Empty controller log so ACL log checks are consistent over repeat runs.
+        echo "" > /var/log/ovn/ovn-controller.log
+    else
+        microovn status || microovn cluster bootstrap
+        lxc config set network.ovn.northbound_connection "ssl:127.0.0.1:6641"
+    fi
+}
+
 # install_lxd: install LXD from a specific channel or `latest/edge` if none is provided.
 # Optional argument: boolean which indicates whether to start the daemon. Default is true.
 install_lxd() (
