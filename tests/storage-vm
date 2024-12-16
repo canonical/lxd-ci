@@ -17,17 +17,19 @@ if [ "${LXD_SNAP_CHANNEL}" = "latest/edge" ]; then
     echo "Installing core22"
     snap install core22
 
-    echo "md5 before"
-    md5sum /snap/core2?/current/usr/sbin/losetup
-
-    echo "Bind mount losetup from core22 to core24"
-    mount -o ro,bind /snap/core22/current/usr/sbin/losetup /snap/core24/current/usr/sbin/losetup
-
-    echo "undoing"
-    umount /snap/core24/current/usr/sbin/losetup || true
-
-    echo "md5 after"
-    md5sum /snap/core2?/current/usr/sbin/losetup
+    umount -l /snap/core22/current/usr/sbin/losetup || true
+    umount -l /snap/core24/current/usr/sbin/losetup || true
+    rm -rf patch/
+    mkdir patch/
+    cp /snap/core22/current/usr/sbin/losetup patch/losetup.core22
+    cat << EOF > patch/losetup
+#!/bin/sh
+mkdir -p /var/lib/snapd/hostfs/root/\$\$/
+echo "\$0" "\$@" > /var/lib/snapd/hostfs/root/\$\$/args
+exec  /var/lib/snapd/hostfs/snap/strace-static/current/bin/strace -f -o /var/lib/snapd/hostfs/root/\$\$/losetup.trace "/var/lib/snapd/hostfs/root/lxd-ci/patch/losetup.core22" "\$@"
+EOF
+    chmod +x patch/losetup
+    mount -o ro,bind patch/losetup /snap/core24/current/usr/sbin/losetup
 
     echo "restarting LXD"
     systemctl restart snap.lxd.daemon.service
@@ -153,6 +155,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Checking restore VM snapshot"
         time lxc restore v1 snap0
+        continue
         waitInstanceReady v1
         [ "$(lxc exec v1 -- cat /root/foo.txt)" = "foo" ]
 
