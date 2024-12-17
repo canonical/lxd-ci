@@ -11,8 +11,8 @@ install_lxd
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 
-poolName="ctpool$$"
-poolDriver=dir
+poolName="vmpool$$"
+poolDriver=zfs
 
 echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
@@ -131,8 +131,14 @@ lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol
 lxc exec member1 -- lxc start v1
 sleep 60
 
+# Ascertain that the VM is indeed on member1.
+[ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member1" ]
+
 # Move the VM to member2 but with a timeout as this sometimes hangs indefinitely but when it works it's fast.
-timeout 600 lxc exec member1 -- lxc move v1 --target member2
+lxc exec member1 -- timeout 600 lxc move v1 --target member2
+
+# Verify the migration did succeeded and the VM is running on member2.
+[ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member2" ]
 
 # shellcheck disable=SC2034
 FAIL=0
