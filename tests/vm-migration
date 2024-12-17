@@ -132,7 +132,7 @@ lxc exec member1 -- lxc start v1
 sleep 60
 
 # Move the VM to member2 but with a timeout as this sometimes hangs indefinitely but when it works it's fast.
-timeout 600 lxc exec member1 -- lxc move v1 --target member2
+lxc exec member1 -- timeout 600 lxc move v1 --target member2
 
 # shellcheck disable=SC2034
 FAIL=0
