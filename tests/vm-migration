@@ -135,7 +135,13 @@ sleep 60
 [ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member1" ]
 
 # Move the VM to member2 but with a timeout as this sometimes hangs indefinitely but when it works it's fast.
-lxc exec member1 -- timeout 600 lxc move v1 --target member2
+if ! lxc exec member1 -- timeout 600 lxc move v1 --target member2; then
+    # Collect logs in case of failure
+    lxc exec member1 -- lxc list
+    lxc exec member1 -- journalctl -n 10 -u snap.lxd.daemon.service
+    lxc exec member2 -- journalctl -n 10 -u snap.lxd.daemon.service
+    false
+fi
 
 # Verify the migration did succeeded and the VM is running on member2.
 [ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member2" ]
