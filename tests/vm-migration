@@ -4,6 +4,18 @@ set -eux
 # Install dependencies
 install_deps jq
 
+# Install MicroCeph
+install_microceph
+
+# Disk for use by MicroCeph
+backing_file="$(mktemp)"
+truncate -s 20GiB "${backing_file}"
+CEPH_DISK="$(losetup --direct-io=on --show --find "${backing_file}")"
+export CEPH_DISK
+
+# Configure MicroCeph
+configure_microceph
+
 # Install LXD
 install_lxd
 
@@ -17,41 +29,6 @@ poolDriver=zfs
 echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 lxc profile device add default root disk path="/" pool="${poolName}"
-
-# Create ceph node
-lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" ceph --vm -c limits.cpu=2 -c limits.memory=4GiB
-lxc storage volume create "${poolName}" ceph-disk size=20GiB --type=block
-lxc config device add ceph ceph-disk disk pool="${poolName}" source=ceph-disk
-lxc start ceph
-
-# Wait for snap in ceph instance.
-waitInstanceReady ceph
-# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
-lxc exec ceph -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
-
-# Install and configure ceph
-lxc exec ceph -- snap install microceph --edge
-lxc exec ceph -- microceph cluster bootstrap
-lxc exec ceph -- microceph.ceph config set global osd_pool_default_size 1
-lxc exec ceph -- microceph.ceph config set global mon_allow_pool_delete true
-lxc exec ceph -- microceph.ceph config set global osd_memory_target 939524096
-lxc exec ceph -- microceph.ceph osd crush rule rm replicated_rule
-lxc exec ceph -- microceph.ceph osd crush rule create-replicated replicated default osd
-for flag in nosnaptrim noscrub nobackfill norebalance norecover noscrub nodeep-scrub; do
-    lxc exec ceph -- microceph.ceph osd set "${flag}"
-done
-lxc exec ceph -- microceph disk add /dev/sdb
-lxc exec ceph -- microceph.ceph osd pool create cephfs_meta 32
-lxc exec ceph -- microceph.ceph osd pool create cephfs_data 32
-lxc exec ceph -- microceph.ceph fs new cephfs cephfs_meta cephfs_data
-lxc exec ceph -- microceph.ceph fs ls
-for _ in $(seq 60); do
-  if lxc exec ceph -- sudo microceph.ceph pg stat | grep -wF unknown; then
-    sleep 1
-  else
-    break
-  fi
-done
 
 # Launch two instances for our LXD cluster and wait for them to be ready.
 lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member1 --vm -c limits.memory=2GiB
@@ -105,11 +82,9 @@ cluster:
   cluster_token: "${joinToken}"
 EOF
 
-# Copy the ceph config from the microceph node into each cluster member.
-rm -rf etc/ceph
-lxc file pull -r ceph/var/snap/microceph/current/conf etc/ceph
-lxc file push -r -p etc/ceph/conf/* member1/etc/ceph/
-lxc file push -r -p etc/ceph/conf/* member2/etc/ceph/
+# Copy the ceph config from the local microceph snap into each cluster member.
+lxc file push -r -p /var/snap/microceph/current/conf/* member1/etc/ceph/
+lxc file push -r -p /var/snap/microceph/current/conf/* member2/etc/ceph/
 lxc exec member1 -- chmod +x /etc/ceph
 lxc exec member2 -- chmod +x /etc/ceph
 
