@@ -23,7 +23,6 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 39
           - 40
         variant:
           - default
