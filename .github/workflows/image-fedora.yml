@@ -24,7 +24,6 @@ jobs:
       matrix:
         release:
           - 40
-          - 41
         variant:
           - default
           - cloud
