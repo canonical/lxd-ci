@@ -2,7 +2,7 @@ name: Tests
 on:
   pull_request:
     paths:
-      - '.github/**'
+      - '.github/workflows/tests.yml'
       - 'bin/**'
       - 'tests/**'
   schedule:
