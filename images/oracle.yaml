@@ -1,14 +1,6 @@
 image:
   distribution: oracle
 
-simplestream:
-  requirements:
-  - requirements:
-      cgroup: v1
-    releases:
-    - 7
-
-
 source:
   downloader: oraclelinux-http
   url: https://mirrors.kernel.org/oracle/
@@ -50,37 +42,6 @@ files:
 - name: hosts
   path: /etc/hosts
   generator: hosts
-
-- name: ifcfg-eth0
-  path: /etc/sysconfig/network-scripts/ifcfg-eth0
-  generator: dump
-  templated: true
-  content: |-
-    DEVICE=eth0
-    BOOTPROTO=dhcp
-    ONBOOT=yes
-    HOSTNAME=LXC_NAME
-    NM_CONTROLLED=no
-    TYPE=Ethernet
-    MTU=
-    DHCP_HOSTNAME=`hostname`
-  releases:
-  - 7
-
-- name: ifcfg-eth0.lxd
-  path: /etc/sysconfig/network-scripts/ifcfg-eth0
-  generator: template
-  content: |-
-    DEVICE=eth0
-    BOOTPROTO=dhcp
-    ONBOOT=yes
-    HOSTNAME={{ container.name }}
-    NM_CONTROLLED=no
-    TYPE=Ethernet
-    MTU=
-    DHCP_HOSTNAME=`hostname`
-  releases:
-  - 7
 
 - name: ifcfg-eth0
   path: /etc/sysconfig/network-scripts/ifcfg-eth0
@@ -185,13 +146,6 @@ packages:
   update: true
   cleanup: true
   sets:
-  - packages:
-    - rsyslog
-    - tcp_wrappers-libs
-    action: install
-    releases:
-    - 7
-
   - packages:
     - attr
     - curl
