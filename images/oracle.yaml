@@ -55,9 +55,6 @@ files:
     TYPE=Ethernet
     MTU=
     DHCP_HOSTNAME=`cat /proc/sys/kernel/hostname`
-  releases:
-  - 8
-  - 9
 
 - name: ifcfg-eth0.lxd
   path: /etc/sysconfig/network-scripts/ifcfg-eth0
@@ -71,9 +68,6 @@ files:
     MTU=
     DHCP_HOSTNAME=`cat /proc/sys/kernel/hostname`
     IPV6INIT=yes
-  releases:
-  - 8
-  - 9
 
 - name: network
   path: /etc/sysconfig/network
@@ -109,9 +103,6 @@ files:
             control: auto{% else %}{{ config_get("user.network-config", "") }}{% endif %}
   variants:
   - cloud
-  releases:
-  - 8
-  - 9
 
 - name: user-data
   generator: cloud-init
@@ -137,9 +128,6 @@ files:
         distro: fedora
   variants:
   - cloud
-  releases:
-  - 8
-  - 9
 
 packages:
   manager: yum
@@ -163,9 +151,6 @@ packages:
   - packages:
     - NetworkManager
     action: install
-    releases:
-    - 8
-    - 9
 
   - packages:
     - cloud-init
@@ -184,9 +169,6 @@ packages:
       enabled=1
       gpgcheck=1
       gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-oracle
-    releases:
-    - 8
-    - 9
     variants:
     - cloud
 
