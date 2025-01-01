@@ -23,7 +23,6 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 7  # Requires cgroups v1 for tests. They will pass on ubuntu-20.04 runner.
           - 8
           - 9
         variant:
@@ -32,7 +31,6 @@ jobs:
         architecture:
           - ${{ (inputs.build-arm64 == true || github.event.schedule == '0 0 * * 1') && 'arm64' ||'amd64' }}
         exclude:
-          - {architecture: arm64, release: 7}
           - {architecture: arm64, release: 8}
     env:
       type: "container"
