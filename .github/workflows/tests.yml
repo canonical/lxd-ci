@@ -239,8 +239,11 @@ jobs:
             track: "latest/edge"
 
     steps:
-      - name: Performance tuning
+      - name: Tune disk performance
         uses: canonical/lxd/.github/actions/tune-disk-performance@main
+
+      - name: Reclaim some memory
+        uses: canonical/lxd/.github/actions/reclaim-memory@main
 
       - name: Reclaim disk space
         if: ${{ matrix.test == 'conversion' || startsWith(matrix.test, 'storage-') || matrix.test == 'vm-nesting' }}
