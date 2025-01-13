@@ -13,7 +13,8 @@ on:
 jobs:
   devuan:
     if: github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci'
-    runs-on: 'ubuntu-latest'
+    # XXX: Ubuntu 24.04 debootstrap doesn't work with Devuan Chimera (oldoldstable). Revert this when dropping Chimera on 2026-08-15
+    runs-on: 'ubuntu-22.04'
     strategy:
       fail-fast: false
       matrix:
