@@ -1,6 +1,9 @@
 #!/bin/bash
 set -eu
 
+# Setup swap if none exist
+setup_swap
+
 # Install dependencies
 install_deps jq iperf3
 
