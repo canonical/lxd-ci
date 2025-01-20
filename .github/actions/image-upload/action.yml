@@ -14,6 +14,8 @@ inputs:
 
 runs:
   using: composite
+  env:
+    SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   steps:
     - name: Print artifacts
       shell: bash
@@ -26,9 +28,9 @@ runs:
       run: |
         # Store image server private key.
         mkdir -p -m 0700 ~/.ssh
-        touch ~/.ssh/id_ed25519
-        chmod 0600 ~/.ssh/id_ed25519
-        echo "${{ inputs.ssh_private_key }}" > ~/.ssh/id_ed25519
+        ssh-agent -a "${SSH_AUTH_SOCK}" > /dev/null
+        ssh-add - <<< "${{ inputs.ssh_private_key }}"
+        ssh-add -L > ~/.ssh/id_ed25519.pub
 
         # Configure known host.
         echo "${SSH_HOST} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEkbjXwS373I8wGmlblwjh6NdFalP8wgK8kilCbuoI6e" >> ~/.ssh/known_hosts
