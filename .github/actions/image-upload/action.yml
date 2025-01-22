@@ -14,8 +14,6 @@ inputs:
 
 runs:
   using: composite
-  env:
-    SSH_AUTH_SOCK: /tmp/ssh_agent.sock
   steps:
     - name: Print artifacts
       shell: bash
@@ -25,6 +23,7 @@ runs:
       shell: bash
       env:
         SSH_HOST: images.lxd.canonical.com
+        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
       run: |
         # Store image server private key.
         mkdir -p -m 0700 ~/.ssh
