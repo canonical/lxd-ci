@@ -191,6 +191,86 @@ do
 	lxc storage volume detach "${poolName}" vol3 v1
 	lxc storage volume detach "${poolName}" vol6 v1 || true  # optional ISO
 
+	# attach VM root volumes
+	if hasNeededAPIExtension instance_root_volume_attachment; then
+		empty_vm_size=8KiB
+		if [ "${poolDriver}" = "powerflex" ]; then
+			empty_vm_size=8GiB
+		fi
+
+		lxc init --empty --vm v2 --storage "${poolName}" --device root,size="${empty_vm_size}"
+		lxc init --empty --vm v3 --storage "${poolName}" --device root,size="${empty_vm_size}"
+
+		# Requires either security.shared or security.protection.start
+		! lxc storage volume attach "${poolName}" virtual-machine/v2 v1 || false
+
+		lxc config set v2 security.protection.start=true
+
+		# security.protection.start on a VM allows exactly one other attachment
+		lxc storage volume attach "${poolName}" virtual-machine/v2 v1
+		! lxc storage volume attach "${poolName}" virtual-machine/v2 v3 || false
+
+		# Deleting the instance will fail while it's root volume is in use
+		! lxc delete v2 || false
+
+		# Make sure used_by is calculated correctly
+		lxc storage volume show "${poolName}" virtual-machine/v2 | grep -qF '/1.0/instances/v1'
+
+		# Can't unset security.protection.start when v2's root volume is attached to vm1
+		! lxc config unset v2 security.protection.start || false
+
+		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
+
+		# Unset security.protection.start works when not attached
+		lxc config unset v2 security.protection.start
+
+		lxc config set v2 security.protection.start=true
+		lxc storage volume attach "${poolName}" virtual-machine/v2 v1
+
+		lxc storage volume set "${poolName}" virtual-machine/v2 security.shared=true
+
+		# Unset security.shared works when security.protection.start=true
+		lxc storage volume unset "${poolName}" virtual-machine/v2 security.shared
+		lxc storage volume set "${poolName}" virtual-machine/v2 security.shared=true
+
+		# security.shared allows many attachments
+		lxc storage volume attach "${poolName}" virtual-machine/v2 v3
+
+		lxc storage volume show "${poolName}" virtual-machine/v2 | grep -qF '/1.0/instances/v1'
+		lxc storage volume show "${poolName}" virtual-machine/v2 | grep -qF '/1.0/instances/v3'
+
+		lxc config unset v2 security.protection.start
+
+		# Detach so that we can double-check hotplug
+		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
+
+		# Make sure that the devices actually show up and can be mounted
+		lxc start v1
+		waitInstanceReady v1
+
+		# Specify a different device name here; udev appears to be truncating the
+		# default name when it creates the /dev/disk/by-id/scsi* symlinks, so use
+		# a shorter name to prevent truncation.
+		lxc storage volume attach "${poolName}" virtual-machine/v2 v1 v2-root
+		lxc exec v1 -- test -L /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_v2--root
+		lxc stop --force v1
+
+		# Can't unset security.shared when v1's root volume is attached elsewhere
+		! lxc storage volume unset "${poolName}" virtual-machine/v2 security.shared || false
+
+		# Instances cannot be moved when their root disk is attached to another instance
+		! lxc move v2 v4 || false
+
+		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
+		lxc storage volume detach "${poolName}" virtual-machine/v2 v3
+
+		lxc storage volume unset "${poolName}" virtual-machine/v2 security.shared
+
+		lxc delete v2 v3
+	else
+		echo "==> Skipping instance root attachment tests, not supported"
+	fi
+
 	echo "==> Deleting VM"
 	lxc delete v1
 
