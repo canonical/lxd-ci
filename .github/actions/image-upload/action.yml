@@ -40,6 +40,7 @@ runs:
         SSH_HOST: images.lxd.canonical.com
         SSH_USER: imageserver
         SSH_PORT: 922
+        SSH_AUTH_SOCK: /tmp/ssh_agent.sock
       run: |
         # Ensure path of the source directory is expanded.
         SRC_DIR=$(echo ${{ inputs.target }})
