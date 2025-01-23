@@ -101,6 +101,7 @@ jobs:
           - network-ovn ovn:latest/edge
           - network-routed
           - pylxd
+          - qemu-external-vm
           - snapd
           - storage-buckets
           - storage-disks-vm
@@ -115,10 +116,6 @@ jobs:
           - vm
           - vm-migration
           - vm-nesting
-        include:
-          - test: qemu-external-vm
-            track: "latest/edge"
-            os: 24.04
         exclude:
           # not compatible with 4.0/*
           - test: container-copy
@@ -139,6 +136,8 @@ jobs:
           - test: network-ovn ovn:deb
             track: "4.0/candidate"
           - test: network-ovn ovn:latest/edge
+            track: "4.0/candidate"
+          - test: qemu-external-vm
             track: "4.0/candidate"
           - test: storage-buckets
             track: "4.0/candidate"
@@ -180,6 +179,8 @@ jobs:
           - test: network-ovn ovn:deb
             track: "4.0/edge"
           - test: network-ovn ovn:latest/edge
+            track: "4.0/edge"
+          - test: qemu-external-vm
             track: "4.0/edge"
           - test: storage-buckets
             track: "4.0/edge"
@@ -210,12 +211,26 @@ jobs:
             track: "5.0/edge"
           - test: network-ovn ovn:latest/edge
             track: "5.0/candidate"
+          - test: qemu-external-vm
+            track: "5.0/candidate"
           - test: network-ovn ovn:latest/edge
+            track: "5.0/edge"
+          - test: qemu-external-vm
             track: "5.0/edge"
           - test: vm-migration
             track: "5.0/candidate"
           - test: vm-migration
             track: "5.0/edge"
+          # not compatible with 5.21/*
+          - test: qemu-external-vm
+            track: "5.21/candidate"
+          - test: qemu-external-vm
+            track: "5.21/edge"
+          # some tests are not worth testing on specific OSes
+          - os: 20.04
+            test: qemu-external-vm
+          - os: 22.04
+            test: qemu-external-vm
           # skip track/os combinations that are too far appart
           - os: 24.04
             track: "4.0/candidate"
