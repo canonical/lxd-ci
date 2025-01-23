@@ -126,6 +126,71 @@ lxc start c1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
 lxc exec c1 -- nvidia-smi
 
+echo "==> Testing adding multiple GPUs with fully-qualified CDI names"
+lxc stop --force c1
+lxc config device add c1 gpu1 gpu id="nvidia.com/gpu=1"
+lxc start c1
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "2" ] || false
+lxc exec c1 -- nvidia-smi
+lxc delete -f c1
+
+# Check that CDI device files are cleanly removed even if the host machine is abruptly rebooted
+echo "==> Testing that CDI device files are cleanly removed after abrupt reboot"
+lxc init "${IMAGE}" c1
+if hasNeededAPIExtension devlxd_images; then
+  lxc config set c1 -c security.devlxd.images=true
+fi
+
+lxc config device add c1 gpu0 gpu pci="${first_card_pci_slot}"
+lxc start c1
+echo "==> Waiting for the container to be ready"
+waitInstanceReady c1
+
+echo "==> Installing NVIDIA drivers inside the container"
+lxc exec c1 -- apt-get update
+lxc exec c1 --env DEBIAN_FRONTEND=noninteractive -- apt-get install -y ubuntu-drivers-common
+lxc exec c1 --env DEBIAN_FRONTEND=noninteractive -- ubuntu-drivers autoinstall
+
+echo "==> Rebooting the container to load NVIDIA drivers"
+lxc restart c1
+
+waitInstanceReady c1
+
+echo "==> Verifying NVIDIA driver installation in the container"
+lxc exec c1 -- nvidia-smi
+
+echo "==> Installing LXD inside the container"
+lxc exec c1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+
+echo "==> Initializing LXD inside the container"
+lxc exec c1 -- lxd init --auto
+
+echo "==> Launching a nested container inside the container"
+lxc exec c1 -- lxc init "${IMAGE}" c11
+
+echo "==> Adding GPU to the nested container inside the container using CDI"
+lxc exec c1 -- lxc config device add c11 gpu0 gpu id="nvidia.com/gpu=0"
+lxc exec c1 -- lxc start c11
+# Wait for the container to be ready
+sleep 20
+
+echo "==> Verifying GPU access inside the nested container"
+lxc exec c1 -- lxc exec c11 -- nvidia-smi
+
+echo "==> Simulating abrupt reboot by force-stopping the container"
+lxc stop c1 -f
+
+echo "==> Starting the container again"
+lxc start c1
+
+waitInstanceReady c1
+
+echo "==> Starting the nested container inside the container after reboot"
+lxc exec c1 -- lxc start c11
+
+echo "==> Verifying GPU access inside the nested container after container reboot"
+lxc exec c1 -- lxc exec c11 -- nvidia-smi
+
 echo "==> Cleaning up"
 lxc delete -f c1
 lxc profile device remove default root
