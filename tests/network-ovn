@@ -620,7 +620,7 @@ ovn_forward_tests() {
         ipv6.address=fd42:4242:4242:1010::1/64 ipv6.nat=true \
         ipv6.ovn.ranges=fd42:4242:4242:1010::200-fd42:4242:4242:1010::254
 
-    echo "==> Create OVN network using physical uplink network"
+    echo "==> Create OVN network using bridge uplink network"
     lxc project create testovn \
         -c features.images=false \
         -c features.profiles=false \
