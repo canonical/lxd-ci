@@ -170,6 +170,9 @@ To run the VM storage tests on the Dell PowerFlex driver, provide the following 
 * `POWERFLEX_PASSWORD`: Password of the PowerFlex user
 * `POWERFLEX_MODE`: Operation mode for the consumption of storage volumes. The default is `nvme`.
 
+Ideally use a PowerFlex storage pool (`POWERFLEX_POOL`) which has zero-padding disabled so that the PowerFlex storage driver has to
+clear the blocks beforehand.
+
 # Infrastructure managed by IS
 
 The PS6 environment has inbound and outbound firewalling applied at the network edge. In order to access some external sites here are the firewall rules we added to firewall maintained by IS:
