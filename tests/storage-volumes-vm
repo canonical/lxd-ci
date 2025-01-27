@@ -252,6 +252,7 @@ do
 		# default name when it creates the /dev/disk/by-id/scsi* symlinks, so use
 		# a shorter name to prevent truncation.
 		lxc storage volume attach "${poolName}" virtual-machine/v2 v1 v2-root
+		sleep 3
 		lxc exec v1 -- test -L /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_v2--root
 		lxc stop --force v1
 
