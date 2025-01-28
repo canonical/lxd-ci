@@ -235,10 +235,6 @@ configure_ovn() {
 install_lxd() (
     local start_daemon="${1:-true}"
 
-    # Ensure latest snapd in case LXD requires a newer one than is installed.
-    apt-get update --yes
-    apt-get upgrade snapd --yes
-
     # Wait for snapd seeding
     waitSnapdSeed
 
