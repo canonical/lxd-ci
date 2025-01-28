@@ -238,13 +238,6 @@ install_lxd() (
     # Wait for snapd seeding
     waitSnapdSeed
 
-    # Ensure latest snapd in case LXD requires a newer one than is installed.
-    if snap list snapd 2> /dev/null; then
-        snap refresh snapd --cohort="+" || true
-    else
-        snap install snapd --cohort="+" || true
-    fi
-
     if [ -n "${KEEP_LXD:-}" ]; then
         # Make sure LXD is started at least
         systemctl start snap.lxd.daemon.service
