@@ -30,7 +30,8 @@ if hasNeededAPIExtension cloud_init; then
   lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/devices | jq
 fi
 lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'instance-id'
+lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'instance-id:'
+lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'local-hostname:'
 
 # Restart the container
 lxc restart -f c1
@@ -41,7 +42,8 @@ if hasNeededAPIExtension cloud_init; then
   lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/devices | jq
 fi
 lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'instance-id'
+lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'instance-id:'
+lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'local-hostname:'
 
 # Disable devlxd
 lxc config set c1 security.devlxd false
@@ -67,7 +69,8 @@ if hasNeededAPIExtension cloud_init; then
   lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/devices | jq
 fi
 lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'instance-id'
+lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'instance-id:'
+lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'local-hostname:'
 
 if hasNeededAPIExtension instance_ready_state; then
   # test instance Ready state
