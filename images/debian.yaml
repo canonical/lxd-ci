@@ -1149,8 +1149,16 @@ packages:
     - arm64
     releases:
     - bullseye
-    types:
-    - vm
+
+  - packages:
+    - polkit
+    action: install
+    architectures:
+    - amd64
+    - arm64
+    releases:
+    - trixie
+    - sid
 
   - packages:
     - pkexec
@@ -1162,8 +1170,6 @@ packages:
     - bookworm
     - trixie
     - sid
-    types:
-    - vm
 
   - packages:
     - grub-efi
