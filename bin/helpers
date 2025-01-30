@@ -252,7 +252,7 @@ install_lxd() (
         # snapstore then install with --dangerous. The alias needs to be created
         # manually too.
         if [ -n "${LXD_SNAP_PATH:-}" ]; then
-            snap list lxd 2>/dev/null || snap install lxd
+            snap list lxd 2>/dev/null || snap install lxd --channel "${LXD_SNAP_CHANNEL}" --cohort=+
             snap install --dangerous "${LXD_SNAP_PATH}"
             snap alias lxd.lxc lxc
         else
