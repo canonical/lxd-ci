@@ -141,7 +141,13 @@ if echo "${LXD_SNAP_CHANNEL}" | grep -E '^([45]\.0)/'; then
   ! lxc config device add v1 dir1 disk source="${testRoot}/allowed1" path="/mnt/bar" || false
 else
   # Hotplugging directories is allowed from LXD 5.21 onwards
-  lxc config device add v1 dir1 disk source="${testRoot}/allowed1" path="/mnt/bar"
+  lxc config device add v1 dir1 disk source="${testRoot}/allowed1" path="/mnt/bar" readonly=true
+  sleep 1
+  lxc exec v1 -- mount | grep -w "lxd_dir1 on /mnt/bar type virtiofs" | grep -w ro
+  lxc config device set v1 dir1 readonly=false
+  sleep 1
+  lxc exec v1 -- mount | grep -w "lxd_dir1 on /mnt/bar type virtiofs" | grep -w rw
+
   lxc config device remove v1 dir1
 fi
 
@@ -341,13 +347,13 @@ if hasNeededAPIExtension disk_io_bus; then
 
   # Add a NVMe disk
   lxc config device add v1 nvme-ssd disk source="${loopDevNVME}" io.bus=nvme
-  
+
   # Add a virtio-scsi disk
   lxc config device add v1 virtio-scsi-ssd disk source="${loopDevVirtioSCSI}" io.bus=virtio-scsi
 
   # Start VM
   lxc start v1
-  waitInstanceReady v1 
+  waitInstanceReady v1
 
   # Check if lspci is available
   if ! lxc exec v1 -- sh -c 'command -v lspci'; then
@@ -360,13 +366,13 @@ if hasNeededAPIExtension disk_io_bus; then
   # Check if NVMe and virtio-scsi controllers are added to the VM
   lxc exec v1 -- lspci | grep -F "QEMU NVM Express Controller"
   lxc exec v1 -- lspci | grep -E "Red Hat, Inc\. Virtio ([0-9]+\.[0-9]+ )?SCSI"
-  
+
   if hasNeededAPIExtension disk_io_bus_virtio_blk; then
     # Add a virtio-blk disk
     lxc config device add v1 virtio-blk-ssd disk source="${loopDevVirtioBlk}" io.bus=virtio-blk
     # Check if virtio-blk controller is added to the VM
     lxc exec v1 -- lspci | grep -E "Red Hat, Inc\. Virtio ([0-9]+\.[0-9]+ )?block device"
-  fi 
+  fi
 else
   echo 'Skipping disk_io_bus tests due to missing extension: "disk_io_bus"'
 fi
