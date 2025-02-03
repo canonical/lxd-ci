@@ -245,8 +245,7 @@ lxc delete -f c1
 
 # Unblock images remote.
 sed -i '/images\.lxd\.canonical\.com/d' /etc/hosts
-sleep 0.1
-resolvectl flush-caches
+systemctl restart systemd-resolved.service
 
 tmpdir="$(mktemp -d)"
 
