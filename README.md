@@ -173,6 +173,15 @@ To run the VM storage tests on the Dell PowerFlex driver, provide the following 
 Use a PowerFlex storage pool (`POWERFLEX_POOL`) which has zero-padding enabled.
 Using non zero-padding enabled pools is not allowed.
 
+# Running Pure Storage VM storage tests
+
+To run the VM storage tests using Pure Storage driver, provide the following environment variables:
+
+* `PURE_GATEWAY`: Address of the Pure Storage HTTP gateway
+* `PURE_GATEWAY_VERIFY`: Whether to verify the HTTP gateway's certificate. The default is `true`.
+* `PURE_API_KEY`: Pure Storage API key.
+* `PURE_MODE`: Operation mode for the consumption of storage volumes. The default is `nvme`.
+
 # Infrastructure managed by IS
 
 The PS6 environment has inbound and outbound firewalling applied at the network edge. In order to access some external sites here are the firewall rules we added to firewall maintained by IS:
