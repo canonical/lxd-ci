@@ -170,8 +170,8 @@ To run the VM storage tests on the Dell PowerFlex driver, provide the following 
 * `POWERFLEX_PASSWORD`: Password of the PowerFlex user
 * `POWERFLEX_MODE`: Operation mode for the consumption of storage volumes. The default is `nvme`.
 
-Ideally use a PowerFlex storage pool (`POWERFLEX_POOL`) which has zero-padding disabled so that the PowerFlex storage driver has to
-clear the blocks beforehand.
+Use a PowerFlex storage pool (`POWERFLEX_POOL`) which has zero-padding enabled.
+Using non zero-padding enabled pools is not allowed.
 
 # Infrastructure managed by IS
 
