@@ -24,6 +24,7 @@ jobs:
       matrix:
         release:
           - snapshot
+          - 24.10
           - 23.05
         variant:
           - default
