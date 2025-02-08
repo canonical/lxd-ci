@@ -254,6 +254,11 @@ do
 		lxc storage volume attach "${poolName}" virtual-machine/v2 v1 v2-root
 		sleep 3
 		lxc exec v1 -- test -L /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_v2--root
+
+		# `lxc stop [-f]` won't fail if unmounting the device fails
+		# `detach` will fail if the unmount fails, so just detach/reattach
+		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
+		lxc storage volume attach "${poolName}" virtual-machine/v2 v1 v2-root
 		lxc stop --force v1
 
 		# Can't unset security.shared when v1's root volume is attached elsewhere
