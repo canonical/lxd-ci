@@ -95,7 +95,7 @@ lxc profile device add default root disk path=/ pool=default
 
 # Launch instances with physical NICs
 echo "==> VM on default VLAN with physical"
-lxc init ubuntu-daily:24.04 v1-physical --vm -c limits.cpu=3
+lxc init "${IMAGE}" v1-physical --vm -c limits.cpu=3
 lxc config device add v1-physical eth0 nic nictype=physical parent="${parentNIC}v1" name=eth0
 lxc start v1-physical
 
@@ -117,7 +117,7 @@ lxc start c1-macvlan
 
 # Launch instances with sriov NICs
 echo "==> VM on default VLAN with sriov"
-lxc init ubuntu-daily:24.04 v1-sriov --vm -c limits.cpu=3
+lxc init "${IMAGE}" v1-sriov --vm -c limits.cpu=3
 lxc config device add v1-sriov eth0 nic nictype=sriov parent="${parentNIC}" name=eth0
 lxc start v1-sriov
 
