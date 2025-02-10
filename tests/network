@@ -167,7 +167,7 @@ waitInstanceBooted v1-physical
 
 # Interface "eth1" should exist in the VM with the correct name and MAC address.
 lxc exec v1-physical -- test -d /sys/class/net/eth1
-lxc exec v1-physical -- cat /sys/class/net/eth1/address | grep -Fx "${parentNICMAC}"
+[ "$(lxc exec v1-physical -- cat /sys/class/net/eth1/address)" = "${parentNICMAC}" ]
 
 # Remove "eth1" as it is no longer needed.
 lxc config device remove v1-physical eth1
