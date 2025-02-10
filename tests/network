@@ -155,14 +155,14 @@ echo "=> Performing VM physical NIC agent.nic_config tests"
 lxc exec v1-physical -- "sync"
 lxc stop v1-physical -f
 lxc config set v1-physical agent.nic_config=true
-lxc config device set v1-physical eth0 nictype=physical parent="${parentNIC}v1" name=eth0
+lxc config device set v1-physical eth0 nictype=physical parent="${parentNIC}v3" name=eth0
 lxc start v1-physical
 
 # Wait for lxd-agent to rename the interface.
 waitInstanceBooted v1-physical
 
 # Get the MAC address of the host NIC.
-parentNICMAC=$(cat /sys/class/net/"${parentNIC}v1"/address)
+parentNICMAC=$(cat /sys/class/net/"${parentNIC}v3"/address)
 
 # Interface "eth0" should exist in the VM with the correct name and MAC address.
 lxc exec v1-physical -- test -d /sys/class/net/eth0
