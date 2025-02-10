@@ -95,7 +95,7 @@ isSystemdClean() (
   return 1 # Failed.
 )
 
-# enableSRIOV: enable SR-IOV on a NIC.
+# enableNICSRIOV: enable SR-IOV on a NIC.
 enableNICSRIOV() (
   { set +x; } 2>/dev/null
   parentNIC="${1}"
