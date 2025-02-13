@@ -245,6 +245,11 @@ do
 
 		lxc snapshot v2
 
+		# Snapshots can be attached to profiles without security.shared because they
+		# will be mounted read-only
+		lxc profile create v2-snap0
+		lxc storage volume attach-profile "${poolName}" virtual-machine/v2/snap0 v2-snap0 v2-rs
+
 		# Detach so that we can double-check hotplug
 		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
 
@@ -275,6 +280,14 @@ do
 		# `detach` will fail if the unmount fails, so just detach/reattach
 		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
 		lxc storage volume attach "${poolName}" virtual-machine/v2 v1 v2-root
+
+		# Snapshots attached via profile
+		lxc profile add v1 v2-snap0
+		sleep 2
+
+		lxc exec v1 -- test -L "${snap0_path}"
+		lxc profile remove v1 v2-snap0
+
 		lxc stop --force v1
 
 		# Can't unset security.shared when v1's root volume is attached elsewhere
@@ -288,6 +301,7 @@ do
 
 		lxc storage volume unset "${poolName}" virtual-machine/v2 security.shared
 
+		lxc profile delete v2-snap0
 		lxc delete v2 v3
 	else
 		echo "==> Skipping instance root attachment tests, not supported"
