@@ -29,7 +29,8 @@ runs:
             make \
             qemu-utils \
             rsync \
-            squashfs-tools
+            squashfs-tools \
+            umoci
 
     - name: Setup LXD Imagebuilder ${{ inputs.lxd-imagebuilder-channel }}
       shell: bash
