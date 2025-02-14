@@ -210,6 +210,10 @@ jobs:
           - test: vm-migration
             track: "4.0/edge"
           # not compatible with 5.0/*
+          - test: cloud-init
+            track: "5.0/candidate"
+          - test: cloud-init
+            track: "5.0/edge"
           - test: efi-vars-editor-vm
             track: "5.0/candidate"
           - test: efi-vars-editor-vm
