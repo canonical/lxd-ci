@@ -1,0 +1,60 @@
+#!/bin/bash
+set -eux
+
+# Install LXD
+install_lxd
+
+if ! hasNeededAPIExtension "cloud_init"; then
+  echo "Skipping cloud-init tests on LXD $(lxd version) as \"cloud-init\" extension is not present"
+  # shellcheck disable=SC2034
+  FAIL=0
+  exit 0
+fi
+
+# Configure LXD
+lxd init --auto
+
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
+
+echo "==> Create key pairs for tests"
+ssh-keygen -t ed25519 -f "./profile-key" -N ""
+ssh-keygen -t ed25519 -f "./additional-key" -N ""
+
+echo "==> Create configure profile for tests"
+lxc profile set default cloud-init.user-data "$(cat <<EOF
+#cloud-config
+users:
+  - name: root
+    ssh_authorized_keys: $(cat ./profile-key.pub)
+  - name: ubuntu
+    ssh_authorized_keys: $(cat ./profile-key.pub)
+EOF
+)"
+
+echo "==> Create test instance"
+lxc init "${IMAGE}" c1
+
+if hasNeededAPIExtension "cloud_init_ssh_keys"; then
+  lxc config set c1 cloud-init.ssh-keys.mykey="root:$(cat ./additional-key.pub)"
+fi
+
+lxc start c1
+waitInstanceBooted c1
+
+echo "==> Test SSH after cloud-init seeded the authorized_keys files of the respective users"
+C_IPV4="$(lxc list c1 -c4 --format=csv | cut -d' ' -f1)"
+[ "$(ssh -o StrictHostKeyChecking=no -q -i ./profile-key "root@${C_IPV4}" whoami)" = "root" ]
+[ "$(ssh -o StrictHostKeyChecking=no -q -i ./profile-key "ubuntu@${C_IPV4}" whoami)" = "ubuntu" ]
+! ssh -o StrictHostKeyChecking=no -q -i ./additional-key "ubuntu@${C_IPV4}" whoami || false
+
+if hasNeededAPIExtension "cloud_init_ssh_keys"; then
+  [ "$(ssh -o StrictHostKeyChecking=no -q -i ./additional-key "root@${C_IPV4}" whoami)" = "root" ]
+fi
+
+# Cleanup
+rm ./profile-key ./profile-key.pub ./additional-key ./additional-key.pub
+lxc profile unset default cloud-init.user-data
+lxc delete -f c1
+
+# shellcheck disable=SC2034
+FAIL=0
