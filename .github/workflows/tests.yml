@@ -216,10 +216,10 @@ jobs:
             track: "5.0/edge"
           - test: network-ovn ovn:latest/edge
             track: "5.0/candidate"
-          - test: qemu-external-vm
-            track: "5.0/candidate"
           - test: network-ovn ovn:latest/edge
             track: "5.0/edge"
+          - test: qemu-external-vm
+            track: "5.0/candidate"
           - test: qemu-external-vm
             track: "5.0/edge"
           - test: vm-migration
