@@ -119,6 +119,8 @@ jobs:
           - vm-nesting
         exclude:
           # not compatible with 4.0/*
+          - test: cloud-init
+            track: "4.0/candidate"
           - test: container-copy
             track: "4.0/candidate"
           - test: conversion
@@ -162,6 +164,8 @@ jobs:
             track: "4.0/candidate"
           - test: vm-migration
             track: "4.0/candidate"
+          - test: cloud-init
+            track: "4.0/edge"
           - test: container-copy
             track: "4.0/edge"
           - test: conversion
@@ -206,16 +210,20 @@ jobs:
           - test: vm-migration
             track: "4.0/edge"
           # not compatible with 5.0/*
+          - test: cloud-init
+            track: "5.0/candidate"
+          - test: cloud-init
+            track: "5.0/edge"
           - test: efi-vars-editor-vm
             track: "5.0/candidate"
           - test: efi-vars-editor-vm
             track: "5.0/edge"
           - test: network-ovn ovn:latest/edge
             track: "5.0/candidate"
+          - test: network-ovn ovn:latest/edge
+            track: "5.0/edge"
           - test: qemu-external-vm
             track: "5.0/candidate"
-          - test: network-ovn ovn:latest/edge
-            track: "5.0/edge"
           - test: qemu-external-vm
             track: "5.0/edge"
           - test: vm-migration
