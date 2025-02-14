@@ -119,6 +119,8 @@ jobs:
           - vm-nesting
         exclude:
           # not compatible with 4.0/*
+          - test: cloud-init
+            track: "4.0/candidate"
           - test: container-copy
             track: "4.0/candidate"
           - test: conversion
@@ -162,6 +164,8 @@ jobs:
             track: "4.0/candidate"
           - test: vm-migration
             track: "4.0/candidate"
+          - test: cloud-init
+            track: "4.0/edge"
           - test: container-copy
             track: "4.0/edge"
           - test: conversion
