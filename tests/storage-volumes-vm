@@ -250,6 +250,9 @@ do
 		lxc profile create v2-snap0
 		lxc storage volume attach-profile "${poolName}" virtual-machine/v2/snap0 v2-snap0 v2-rs
 
+		# Deleting an attached snapshot should fail
+		! lxc delete v2/snap0 || false
+
 		# Detach so that we can double-check hotplug
 		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
 
