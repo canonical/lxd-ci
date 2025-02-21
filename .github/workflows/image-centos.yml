@@ -18,7 +18,7 @@ on:
 jobs:
   centos:
     if: github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci'
-    runs-on: ${{ matrix.architecture == 'arm64' && 'Ubuntu_ARM64_4C_16G_01' || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
