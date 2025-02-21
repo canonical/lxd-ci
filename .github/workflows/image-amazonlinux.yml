@@ -23,7 +23,6 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 2  # Requires cgroups v1 for tests. They will pass on ubuntu-20.04 runner.
           - 2023
         variant:
           - default
