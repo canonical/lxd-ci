@@ -18,12 +18,11 @@ on:
 jobs:
   amazonlinux:
     if: github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci'
-    runs-on: ${{ matrix.architecture == 'arm64' && 'Ubuntu_ARM64_4C_16G_01' || 'ubuntu-20.04' }}
+    runs-on: ${{ matrix.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
         release:
-          - 2  # Requires cgroups v1 for tests. They will pass on ubuntu-20.04 runner.
           - 2023
         variant:
           - default
