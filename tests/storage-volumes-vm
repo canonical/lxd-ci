@@ -55,7 +55,7 @@ do
 	else
 		lxc storage volume create "${poolName}" vol4 size=8GiB
 	fi
-	lxc storage volume attach "${poolName}" vol4 v1 /foo=
+	lxc storage volume attach "${poolName}" vol4 v1 /foo
 
 	echo "==> Start VM and add content to custom block volume"
 	lxc start v1
