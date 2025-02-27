@@ -182,6 +182,16 @@ do
 	  echo "==> Skipping custom ISO volume tests, not supported"
     fi
 
+	echo "==> Readonly custom block volumes are readonly"
+	lxc storage volume create "${poolName}" volblro --type block
+
+	lxc config device add v1 volblro disk pool="${poolName}" source=volblro readonly=true
+
+	# shellcheck disable=SC2016
+	DISK_DEV="$(basename "$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_volblro)")"
+	lxc exec v1 -- sh -c "for i in \$(seq 10); do test -e /sys/block/${DISK_DEV}/ro && break; echo \"Waiting for sys file to appear (\${i}s)\"; sleep 1; done"
+	[ "$(lxc exec v1 -- cat /sys/block/"${DISK_DEV}"/ro)" -eq 1 ]
+
 	echo "==> Detaching volumes"
 	lxc exec v1 -- "sync"
 	lxc stop -f v1
@@ -190,6 +200,7 @@ do
 	lxc storage volume detach "${poolName}" vol2 v1
 	lxc storage volume detach "${poolName}" vol3 v1
 	lxc storage volume detach "${poolName}" vol6 v1 || true  # optional ISO
+	lxc storage volume detach "${poolName}" volblro v1
 
 	# attach VM root volumes
 	if hasNeededAPIExtension instance_root_volume_attachment; then
@@ -287,6 +298,7 @@ do
 	lxc storage volume rm "${poolName}" vol4
 	lxc storage volume rm "${poolName}" vol5 || true  # optional ISO
 	lxc storage volume rm "${poolName}" vol6 || true  # optional ISO
+	lxc storage volume rm "${poolName}" volblro
 	lxc storage rm "${poolName}"
 done
 
