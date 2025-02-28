@@ -12,7 +12,7 @@ on:
       ubuntu-releases:
         description: List of Ubuntu releases to run the tests against. In JSON format, i.e. '["22.04", "24.04"]'.
         type: string
-        default: '["20.04", "22.04", "24.04"]'
+        default: '["22.04", "24.04"]'
       snap-tracks:
         description: List of snap tracks to run the tests. In JSON format, i.e. '["latest/stable", "5.0/candidate"]'.
         type: string
@@ -81,7 +81,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(inputs.ubuntu-releases || '["20.04", "22.04", "24.04"]') }}
+        os: ${{ fromJSON(inputs.ubuntu-releases || '["22.04", "24.04"]') }}
         track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge", "5.21/edge", "5.0/edge", "4.0/edge"]') }}
         test:
           - cgroup
@@ -133,9 +133,6 @@ jobs:
             track: "4.0/candidate"
           - test: lxd-user
             track: "4.0/candidate"
-          - test: network-bridge-firewall
-            track: "4.0/candidate"
-            os: 20.04
           - test: network-ovn ovn:deb
             track: "4.0/candidate"
           - test: network-ovn ovn:latest/edge
@@ -178,9 +175,6 @@ jobs:
             track: "4.0/edge"
           - test: lxd-user
             track: "4.0/edge"
-          - test: network-bridge-firewall
-            track: "4.0/edge"
-            os: 20.04
           - test: network-ovn ovn:deb
             track: "4.0/edge"
           - test: network-ovn ovn:latest/edge
@@ -236,8 +230,6 @@ jobs:
           - test: qemu-external-vm
             track: "5.21/edge"
           # some tests are not worth testing on specific OSes
-          - os: 20.04
-            test: qemu-external-vm
           - os: 22.04
             test: qemu-external-vm
           # skip track/os combinations that are too far appart
@@ -249,18 +241,6 @@ jobs:
             track: "5.0/candidate"
           - os: 24.04
             track: "5.0/edge"
-          - os: 20.04
-            track: "5.0/candidate"
-          - os: 20.04
-            track: "5.0/edge"
-          - os: 20.04
-            track: "5.21/candidate"
-          - os: 20.04
-            track: "5.21/edge"
-          - os: 20.04
-            track: "latest/candidate"
-          - os: 20.04
-            track: "latest/edge"
 
     steps:
       - name: Tune disk performance
