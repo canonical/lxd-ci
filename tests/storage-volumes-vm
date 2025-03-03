@@ -192,7 +192,7 @@ do
 	lxc storage volume detach "${poolName}" vol6 v1 || true  # optional ISO
 
 	# attach VM root volumes
-	if hasNeededAPIExtension instance_root_volume_attachment; then
+	if hasNeededAPIExtension vm_root_volume_attachment; then
 		echo "==> Instance root & snapshot volumes"
 
 		empty_vm_size=8KiB
