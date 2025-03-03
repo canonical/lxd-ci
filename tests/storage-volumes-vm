@@ -277,12 +277,14 @@ do
 		snap0_devname="$(basename "$(lxc exec v1 -- readlink ${snap0_path})")"
 		[ "$(lxc exec v1 -- cat "/sys/block/${snap0_devname}/ro")" = "1" ]
 
-		lxc storage volume detach "${poolName}" virtual-machine/v2/snap0 v1
-
 		# `lxc stop [-f]` won't fail if unmounting the device fails
 		# `detach` will fail if the unmount fails, so just detach/reattach
 		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
 		lxc storage volume attach "${poolName}" virtual-machine/v2 v1 v2-root
+
+		# This detach should come after detaching the parent volume to verify that
+		# LXD's lvm reference counts allow v2-root to be detached (above)
+		lxc storage volume detach "${poolName}" virtual-machine/v2/snap0 v1
 
 		# Snapshots attached via profile
 		lxc profile add v1 v2-snap0
