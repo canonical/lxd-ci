@@ -394,7 +394,7 @@ cleanup() {
             df -h
 
             # Report some more information for diagnostic purposes
-            snap list lxd
+            snap list --all
             uname -a
             if echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
                 lxc list
