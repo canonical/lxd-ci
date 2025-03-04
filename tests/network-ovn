@@ -2182,12 +2182,12 @@ ovn_vlan_uplink_tests() {
     lxc exec c1-lxdbr0 -- ip addr add 10.10.10.100/24 dev eth0
     lxc exec c1-lxdbr0 -- ip link set dev eth0 up
 
-    echo "==> Ensure OVN network can reach containers on the configured VLAN"
-    lxc exec c1-ovn -- ping -nc1 -4 -w5 10.10.10.100
-
     echo "==> Ensure containers on VLAN can reach OVN network"
     ovn_address=$(lxc network get ovn-virtual-network volatile.network.ipv4.address)
     lxc exec c1-lxdbr0 -- ping -nc1 -4 -w5 "${ovn_address}"
+
+    echo "==> Ensure OVN network can reach containers on the configured VLAN"
+    lxc exec c1-ovn -- ping -nc1 -4 -w5 10.10.10.100
 
     echo "==> Cleanup"
     lxc delete -f c1-lxdbr0 c1-ovn
