@@ -192,7 +192,9 @@ do
 	lxc storage volume detach "${poolName}" vol6 v1 || true  # optional ISO
 
 	# attach VM root volumes
-	if hasNeededAPIExtension instance_root_volume_attachment; then
+	if hasNeededAPIExtension vm_root_volume_attachment; then
+		echo "==> Instance root & snapshot volumes"
+
 		empty_vm_size=8KiB
 		if [ "${poolDriver}" = "powerflex" ]; then
 			empty_vm_size=8GiB
@@ -241,6 +243,16 @@ do
 
 		lxc config unset v2 security.protection.start
 
+		lxc snapshot v2
+
+		# Snapshots can be attached to profiles without security.shared because they
+		# will be mounted read-only
+		lxc profile create v2-snap0
+		lxc storage volume attach-profile "${poolName}" virtual-machine/v2/snap0 v2-snap0 v2-rs
+
+		# Deleting an attached snapshot should fail
+		! lxc delete v2/snap0 || false
+
 		# Detach so that we can double-check hotplug
 		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
 
@@ -252,13 +264,33 @@ do
 		# default name when it creates the /dev/disk/by-id/scsi* symlinks, so use
 		# a shorter name to prevent truncation.
 		lxc storage volume attach "${poolName}" virtual-machine/v2 v1 v2-root
+		lxc storage volume attach "${poolName}" virtual-machine/v2/snap0 v1 v2-rs
+
 		sleep 3
+
+		snap0_path=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_v2--rs
+
 		lxc exec v1 -- test -L /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_v2--root
+		lxc exec v1 -- test -L "${snap0_path}"
+
+		# Make sure snapshots are mounted read-only
+		snap0_devname="$(basename "$(lxc exec v1 -- readlink ${snap0_path})")"
+		[ "$(lxc exec v1 -- cat "/sys/block/${snap0_devname}/ro")" = "1" ]
+
+		lxc storage volume detach "${poolName}" virtual-machine/v2/snap0 v1
 
 		# `lxc stop [-f]` won't fail if unmounting the device fails
 		# `detach` will fail if the unmount fails, so just detach/reattach
 		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
 		lxc storage volume attach "${poolName}" virtual-machine/v2 v1 v2-root
+
+		# Snapshots attached via profile
+		lxc profile add v1 v2-snap0
+		sleep 2
+
+		lxc exec v1 -- test -L "${snap0_path}"
+		lxc profile remove v1 v2-snap0
+
 		lxc stop --force v1
 
 		# Can't unset security.shared when v1's root volume is attached elsewhere
@@ -272,6 +304,7 @@ do
 
 		lxc storage volume unset "${poolName}" virtual-machine/v2 security.shared
 
+		lxc profile delete v2-snap0
 		lxc delete v2 v3
 	else
 		echo "==> Skipping instance root attachment tests, not supported"
