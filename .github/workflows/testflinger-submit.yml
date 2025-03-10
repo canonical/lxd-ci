@@ -4,10 +4,14 @@ on:
 
 jobs:
   testflinger-submit:
-    runs-on: [self-hosted, testflinger]
+    runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Bypass aproxy for testflinger.canonical.com host
+        uses: ./.github/actions/set-aproxy-bypass-for-testflinger
+
       - name: Submit job
         uses: canonical/testflinger/.github/actions/submit@main
         with:
