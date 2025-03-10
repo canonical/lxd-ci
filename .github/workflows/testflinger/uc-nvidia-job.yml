@@ -1,0 +1,89 @@
+job_queue: $JOB_QUEUE
+global_timeout: 3600
+output_timeout: 1800
+provision_data:
+  distro: $DISTRO
+
+test_data:
+  test_cmds: |
+    #!/bin/bash
+
+    set -xeuo pipefail
+
+    # This is used, along with DEVICE_IP, by all scriptlets to access the device
+    export DEVICE_USER="ubuntu"
+
+    # retrieve the tools installer
+    curl -Ls -o install_tools.sh https://raw.githubusercontent.com/canonical/hwcert-jenkins-tools/main/install_tools.sh
+
+    # install the scriptlets and other tools on the agent and the device, as necessary
+    export TOOLS_PATH=tools
+    source install_tools.sh $TOOLS_PATH
+
+    # ensure device is available before continuing
+    wait_for_ssh --allow-degraded
+
+    # Wait for snapd to become available
+    retry -- _run "timeout 5 sudo snap wait system seed.loaded"
+    wait_for_snap_changes
+
+    # allow content on kernel snaps
+    _run sudo snap refresh snapd --no-wait
+    wait_for_snap_changes
+
+    # get device nodes on module load
+    _run sudo snap refresh core24 --no-wait
+    wait_for_snap_changes
+
+    # refresh to the new kernel
+    _run sudo snap refresh pc-kernel --channel 24/edge/nvidia-components-sdp --no-wait
+    wait_for_snap_changes
+
+    # install the module component
+    _run sudo snap install pc-kernel+nvidia-550-ko --no-wait
+    wait_for_snap_changes
+
+    # until kernel-module-load is autoconnected
+    _run sudo modprobe nvidia_drm modeset=1
+    _run sudo modprobe nvidia_uvm
+    _run ls /dev/nvidia*
+
+    # install the userspace component
+    _run sudo snap install pc-kernel+nvidia-550-user --no-wait
+    wait_for_snap_changes
+
+    # manual connection of the kernel-gpu-2404 interface
+    _run sudo snap install mesa-2404 --channel latest/edge --no-wait
+    wait_for_snap_changes
+    _run sudo snap connect mesa-2404:kernel-gpu-2404 pc-kernel --no-wait
+    wait_for_snap_changes
+
+    # content interface being populated
+    _run ls /var/snap/pc-kernel/common/kernel-gpu-2404/
+
+    # LXD working
+    _run sudo snap install lxd --channel=$SNAP_CHANNEL --no-wait
+    wait_for_snap_changes
+
+    _run sudo lxd init --auto
+    _run sudo usermod -G lxd ubuntu
+
+    _run lxc init ubuntu:noble c1 &
+    for i in $( seq 1 60 ); do
+      [ $i -lt 60 ]
+      _run lxc config device add c1 gpu0 gpu gputype=physical id=nvidia.com/gpu=0 && break || /bin/true
+      sleep 1
+    done
+
+    _run lxc start c1
+
+    # print out all mounts we have so we can compare it later if anything goes wrong
+    _run lxc exec c1 -- cat /proc/self/mountinfo
+
+    # check that nvidia-smi works
+    _run lxc exec c1 -- nvidia-smi
+
+    # check presence of a few different files to catch regressions
+    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "nvidia_icd.json"
+    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
+    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "libcuda.so"
