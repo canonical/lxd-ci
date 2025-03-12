@@ -200,7 +200,7 @@ do
 			empty_vm_size=8GiB
 		fi
 
-		lxc init --empty --vm v2 --storage "${poolName}" --device root,size="${empty_vm_size}"
+		lxc init "${IMAGE}" --vm v2 --storage "${poolName}"
 		lxc init --empty --vm v3 --storage "${poolName}" --device root,size="${empty_vm_size}"
 
 		# Requires either security.shared or security.protection.start
@@ -277,6 +277,11 @@ do
 		snap0_devname="$(basename "$(lxc exec v1 -- readlink ${snap0_path})")"
 		[ "$(lxc exec v1 -- cat "/sys/block/${snap0_devname}/ro")" = "1" ]
 
+		# Start v2 to ensure that reference counts are decremented correctly on
+		# device detach.
+		lxc start v2
+		waitInstanceReady v2
+
 		# `lxc stop [-f]` won't fail if unmounting the device fails
 		# `detach` will fail if the unmount fails, so just detach/reattach
 		lxc storage volume detach "${poolName}" virtual-machine/v2 v1
@@ -285,6 +290,8 @@ do
 		# This detach should come after detaching the parent volume to verify that
 		# LXD's lvm reference counts allow v2-root to be detached (above)
 		lxc storage volume detach "${poolName}" virtual-machine/v2/snap0 v1
+
+		lxc stop v2 --force
 
 		# Snapshots attached via profile
 		lxc profile add v1 v2-snap0
