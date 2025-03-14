@@ -1,0 +1,225 @@
+#!/bin/bash
+set -eux
+
+# Install dependencies.
+# Releases before 24.04 don't have a yq deb so use the snap instead.
+# shellcheck disable=SC1091
+. /etc/os-release
+if dpkg --compare-versions "${VERSION_ID}" ge 24.04; then
+    install_deps jq yq
+else
+    install_deps jq
+    waitSnapdSeed
+    snap install yq
+fi
+
+# Install LXD.
+install_lxd
+
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
+
+# Configure LXD.
+lxc network create lxdbr0
+lxc profile device add default eth0 nic network=lxdbr0
+
+poolDriver="zfs"
+poolName="vmpool-${poolDriver}"
+
+echo "==> Create storage pool using driver ${poolDriver}"
+lxc storage create "${poolName}" "${poolDriver}"
+lxc profile device add default root disk pool="${poolName}" path=/
+
+echo "==> Create VM with a LXD server using the original (old) backup format"
+lxc launch "${IMAGE}" v1 --vm -s "${poolName}" -c limits.cpu=4 -c limits.memory=4GiB -d root,size=20GiB
+waitInstanceReady v1
+# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
+lxc exec v1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+lxc exec v1 -- snap install lxd --channel="5.0/edge"
+lxc exec v1 -- /snap/bin/lxd init --auto --storage-backend=zfs --network-address="[::]" --network-port=8443
+
+# Omit the "LTS" in case it's a LTS version.
+host_lxd_version="$(lxd version | awk '{print $1}')"
+
+if dpkg --compare-versions "${host_lxd_version}" lt 5.21; then
+    echo "LXD version ${host_lxd_version} doesn't support the new backup format, skipping test"
+    exit 0
+fi
+
+echo "==> Add nested LXD as remote"
+token="$(lxc exec v1 -- lxc config trust add --name host --quiet)"
+lxc remote add v1 "${token}"
+
+tmpdir="$(mktemp -d)"
+
+# Check if old instance backups can be imported into newer version of LXD.
+for type in container vm; do
+    extra_args=""
+    if [ "${type}" = "vm" ]; then
+        extra_args="--vm"
+    fi
+
+    echo "==> Create a ${type} using the old backup format, snapshot and backup it"
+    lxc init "${IMAGE}" v1:i1 -d root,size=3584MiB ${extra_args} # Don't quote to omit empty extra args.
+    lxc snapshot v1:i1
+    # This implicitly creates a backup using format version 2.0.
+    lxc export v1:i1 "${tmpdir}/i1.tar.gz"
+    tar -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
+
+    echo "==> Check the backup index file"
+    [ "$(yq .config.container < "${tmpdir}/backup/index.yaml")" != "null" ]
+    [ "$(yq .config.pool < "${tmpdir}/backup/index.yaml")" != "null" ]
+    [ "$(yq .config.volume < "${tmpdir}/backup/index.yaml")" != "null" ]
+    [ "$(yq '.config.snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+    [ "$(yq '.config.volume_snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+    rm -rf "${tmpdir}/backup"
+
+    echo "==> Check the ${type} can be imported on a newer LXD"
+    lxc import "${tmpdir}/i1.tar.gz" i1
+    [ "$(lxc query "/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+
+    rm "${tmpdir}/i1.tar.gz"
+    lxc delete -f i1
+
+    echo "==> Check the ${type} can be migrated to a newer LXD"
+    lxc move v1:i1 i1
+    [ "$(lxc query "/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+
+    lxc delete -f i1
+done
+
+# Check newer instance backups import on older LXD.
+# Old LXD versions cannot import backups using the new format.
+# The backup has to be created by explicity requesting the old format version.
+for type in container vm; do
+    extra_args=""
+    if [ "${type}" = "vm" ]; then
+        extra_args="--vm"
+    fi
+
+    echo "==> Create a ${type} and snapshot it"
+    lxc init "${IMAGE}" i1 -d root,size=3584MiB ${extra_args} # Don't quote to omit empty extra args.
+    lxc snapshot i1
+
+    echo "==> Export the ${type} using the new format"
+    lxc export i1 "${tmpdir}/i1.tar.gz"
+    tar -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
+
+    echo "==> Check the backup index file"
+    [ "$(yq '.snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+    [ "$(yq .config.version < "${tmpdir}/backup/index.yaml")" != "null" ]
+    [ "$(yq '.config.volumes | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+    [ "$(yq '.config.volumes.[0].snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+
+    rm -rf "${tmpdir}/backup"
+
+    echo "==> Check the ${type} cannot be imported on an older LXD"
+    ! lxc import v1: "${tmpdir}/i1.tar.gz" i1 || false
+
+    echo "==> Export the ${type} using the old format 1.0"
+    lxc export i1 "${tmpdir}/i1.tar.gz" --version 1.0
+    tar -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
+
+    echo "==> Check the backup index file"
+    [ "$(yq .config.container < "${tmpdir}/backup/index.yaml")" != "null" ]
+    [ "$(yq .config.pool < "${tmpdir}/backup/index.yaml")" != "null" ]
+    [ "$(yq .config.volume < "${tmpdir}/backup/index.yaml")" != "null" ]
+    [ "$(yq '.config.snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+    [ "$(yq '.config.volume_snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+
+    rm -rf "${tmpdir}/backup"
+
+    echo "==> Check the ${type} can be imported on an older LXD"
+    lxc import v1: "${tmpdir}/i1.tar.gz" i1
+    [ "$(lxc query "v1:/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+
+    rm "${tmpdir}/i1.tar.gz"
+    lxc delete -f v1:i1
+
+    echo "==> Check the ${type} can be migrated to an older LXD"
+    lxc move i1 v1:i1
+    [ "$(lxc query "v1:/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+
+    lxc delete -f v1:i1
+done
+
+# Check if old custom storage volume backups can be imported into newer version of LXD.
+echo "==> Create a custom storage volume using the old backup format, snapshot and backup it"
+lxc storage volume create v1:default foo size=1GiB
+lxc storage volume snapshot v1:default foo
+lxc storage volume export v1:default foo "${tmpdir}/foo.tar.gz"
+tar -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
+
+echo "==> Check the backup index file"
+[ "$(yq '.snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+[ "$(yq .config.volume < "${tmpdir}/backup/index.yaml")" != "null" ]
+[ "$(yq '.config.volume_snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+rm -rf "${tmpdir}/backup"
+
+echo "==> Check the custom storage volume can be imported on a newer LXD"
+lxc storage volume import "${poolName}" "${tmpdir}/foo.tar.gz" foo
+[ "$(lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq length)" = "1" ]
+
+rm "${tmpdir}/foo.tar.gz"
+lxc storage volume delete "${poolName}" foo
+
+echo "==> Check the custom storage volume can be migrated to a newer LXD"
+lxc storage volume move v1:default/foo "${poolName}/foo"
+[ "$(lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq length)" = "1" ]
+
+lxc storage volume delete "${poolName}" foo
+
+# Check newer custom storage volume backups on older LXD.
+# Old LXD versions cannot import backups using the new format.
+# The backup has to be created by explicitly requesting the old format version.
+echo "==> Create a custom storage volume and snapshot it"
+lxc storage volume create "${poolName}" foo size=1GiB
+lxc storage volume snapshot "${poolName}" foo
+
+echo "==> Export the custom storage volume using the new format"
+lxc storage volume export "${poolName}" foo "${tmpdir}/foo.tar.gz"
+tar -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
+
+echo "==> Check the backup index file"
+[ "$(yq '.snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+[ "$(yq .config.version < "${tmpdir}/backup/index.yaml")" != "null" ]
+[ "$(yq '.config.volumes | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+[ "$(yq '.config.volumes.[0].snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+rm -rf "${tmpdir}/backup"
+
+echo "==> Check the custom storage volume cannot be imported on an older LXD"
+! lxc storage volume import v1:default "${tmpdir}/foo.tar.gz" foo || false
+
+echo "==> Export the custom storage volume using the old format 1.0"
+lxc storage volume export "${poolName}" foo "${tmpdir}/foo.tar.gz" --version 1.0
+tar -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
+
+echo "==> Check the backup index file"
+[ "$(yq '.snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+[ "$(yq .config.volume < "${tmpdir}/backup/index.yaml")" != "null" ]
+[ "$(yq '.config.volume_snapshots | length' < "${tmpdir}/backup/index.yaml")" = "1" ]
+rm -rf "${tmpdir}/backup"
+
+echo "==> Check the custom storage volume can be imported on an older LXD"
+lxc storage volume import v1:default "${tmpdir}/foo.tar.gz" foo
+[ "$(lxc query "v1:/1.0/storage-pools/default/volumes/custom/foo/snapshots" | jq length)" = "1" ]
+
+rm "${tmpdir}/foo.tar.gz"
+lxc storage volume delete v1:default foo
+
+echo "==> Check the custom storage volume can be migrated to an older LXD"
+lxc storage volume move "${poolName}/foo" v1:default/foo
+[ "$(lxc query "v1:/1.0/storage-pools/default/volumes/custom/foo/snapshots" | jq length)" = "1" ]
+
+lxc storage volume delete v1:default foo
+
+echo "==> Cleanup"
+rm -rf "${tmpdir}"
+lxc remote remove v1
+lxc delete -f v1
+lxc storage delete "${poolName}"
+lxc network delete lxdbr0
+lxc profile device remove default eth0
+lxc profile device remove default root
+
+# shellcheck disable=SC2034
+FAIL=0
