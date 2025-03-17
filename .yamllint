@@ -5,3 +5,5 @@ rules:
   document-start: disable
   line-length: disable
   truthy: disable
+  comments:
+    min-spaces-from-content: 1
