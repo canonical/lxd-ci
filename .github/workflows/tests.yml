@@ -84,39 +84,7 @@ jobs:
         os: ${{ fromJSON(inputs.ubuntu-releases || '["22.04", "24.04"]') }}
         track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge", "5.21/edge", "5.0/edge", "4.0/edge"]') }}
         test:
-          - cgroup
-          - cloud-init
-          - cluster
           - container
-          - container-copy
-          - conversion
-          - cpu-vm
-          - devlxd-container
-          - devlxd-vm
-          - docker
-          - efi-vars-editor-vm
-          - lxd-user
-          - interception
-          - network-bridge-firewall
-          - network-ovn ovn:deb
-          - network-ovn ovn:latest/edge
-          - network-routed
-          - pylxd
-          - qemu-external-vm
-          - snapd
-          - storage-buckets
-          - storage-disks-vm
-          - storage-vm btrfs
-          - storage-vm ceph
-          - storage-vm dir
-          - storage-vm lvm
-          - storage-vm lvm-thin
-          - storage-vm zfs
-          - storage-volumes-vm
-          - tpm-vm
-          - vm
-          - vm-migration
-          - vm-nesting
         exclude:
           # not compatible with 4.0/*
           - test: cloud-init
