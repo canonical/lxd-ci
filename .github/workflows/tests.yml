@@ -50,21 +50,24 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           # A non-shallow clone is needed for the Differential ShellCheck
           fetch-depth: 0
 
+      - name: Require GHA pinning
+        uses: canonical/lxd/.github/actions/require-gha-pinning@main
+
       - id: ShellCheck
         name: Differential ShellCheck
-        uses: redhat-plumbers-in-action/differential-shellcheck@v5
+        uses: redhat-plumbers-in-action/differential-shellcheck@dd551ce780d8af741f8cd8bab6982667b906b457 # v5.5.3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           strict-check-on-push: true
         if: github.event_name == 'pull_request'
 
       - name: Upload artifact with ShellCheck defects in SARIF format
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: Differential ShellCheck SARIF
           path: ${{ steps.ShellCheck.outputs.sarif }}
@@ -266,7 +269,7 @@ jobs:
           lsmod | grep -qw ^br_netfilter && sudo modprobe -r br_netfilter
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       # needed for cache key
       - name: Get Date
@@ -278,7 +281,7 @@ jobs:
 
       # for simplicity, just use one cache directory
       # and make it valid for one day
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         id: cache-restore
         if: ${{ matrix.test == 'qemu-external-vm' }}
         with:
@@ -324,7 +327,7 @@ jobs:
           gh cache delete "cache-${{ steps.get-date.outputs.date }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         if: ${{ matrix.test == 'qemu-external-vm' }}
         with:
           path: /home/runner/work/cache
@@ -336,5 +339,5 @@ jobs:
         timeout-minutes: ${{ fromJSON(inputs.tmate-timeout) }}
       - name: Tmate debugging session (gh-hosted)
         if: ${{ failure() && inputs.tmate-debug && !inputs.self-hosted-runner }}
-        uses: mxschmitt/action-tmate@v3
+        uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19
         timeout-minutes: ${{ fromJSON(inputs.tmate-timeout) }}
