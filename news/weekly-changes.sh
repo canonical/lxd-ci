@@ -54,10 +54,19 @@ echo -e "\n## Bug Fixes"
 echo "- Fixed ..."
 echo "- Fixed ..."
 
+echo -e "\n## LXD UI"
+echo -e "- Fixed ..."
+echo -e "- Fixed ..."
+
+echo -e "\n## LXD images"
+echo -e "Changes on \`images:\` simplestream remote:"
+echo -e "- Added <image> <release> (<arch>)"
+echo -e "- Removed <image> <release> (<arch>)"
+
 #
 # Generated, leave as is.
 #
-echo -e "\n## All changes"
+echo -e "\n# All changes"
 echo -e "\nThe items listed below is all of the work which happened over the past week and which will be included in the next release."
 
 echo -e "\n## LXD"
@@ -76,12 +85,6 @@ echo -e "\n## LXD Terraform provider"
 
 echo -e "\n## PyLXD"
 ./github-issues.py canonical/pylxd "${DATESTART}" "${DATEEND}"
-
-echo -e "\n# Distribution work"
-echo -e "\nThis section is used to track the work done in downstream Linux distributions to ship the latest LXD as well as work to get various software to work properly inside containers."
-
-echo -e "\n## Ubuntu"
-echo -e "* Nothing to report this week."
 
 echo -e "\n## LXD snap"
 ./github-issues.py canonical/lxd-pkg-snap "${DATESTART}" "${DATEEND}"
