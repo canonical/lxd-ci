@@ -18,6 +18,7 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
 echo "==> Create key pairs for tests"
 ssh-keygen -t ed25519 -f "./profile-key" -N ""
+ssh-keygen -t ed25519 -f "./ignored-key" -N ""
 ssh-keygen -t ed25519 -f "./additional-key" -N ""
 
 echo "==> Create configure profile for tests"
@@ -35,6 +36,8 @@ echo "==> Create test instance"
 lxc init "${IMAGE}" c1
 
 if hasNeededAPIExtension "cloud_init_ssh_keys"; then
+  lxc profile set default cloud-init.ssh-keys.ignored="root:$(cat ./ignored-key.pub)"
+  lxc config set c1 cloud-init.ssh-keys.ignored="none"
   lxc config set c1 cloud-init.ssh-keys.mykey="root:$(cat ./additional-key.pub)"
 fi
 
@@ -49,6 +52,7 @@ C_IPV4="$(lxc list c1 -c4 --format=csv | cut -d' ' -f1)"
 
 if hasNeededAPIExtension "cloud_init_ssh_keys"; then
   [ "$(ssh -o StrictHostKeyChecking=no -q -i ./additional-key "root@${C_IPV4}" whoami)" = "root" ]
+  ! ssh -o StrictHostKeyChecking=no -q -i ./ignored-key "root@${C_IPV4}" whoami || false
 fi
 
 # Cleanup
