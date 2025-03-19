@@ -143,6 +143,16 @@ for release in $RELEASES; do
 
     echo "==> nested container (${release})"
     lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
+
+    lxc exec n1 -- mkdir -p /etc/systemd/system/snapd.service.d
+(
+cat << EOF
+[Service]
+Environment=SNAPD_DEBUG_HTTP=7 SNAPD_DEBUG=1
+EOF
+) | lxc file push - "n1/etc/systemd/system/snapd.service.d/local.conf" --mode=755
+    lxc exec n1 -- systemctl restart snapd.service
+
     lxc exec n1 -- snap list || true
     isSystemdClean n1 || ignore_known_issues "n1" "nesting"
     lxc exec n1 -- ip a
@@ -150,7 +160,7 @@ for release in $RELEASES; do
     lxc exec n1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
     lxc exec n1 -- snap list || true
     sleep 5
-    lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+    lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" || lxc exec n1 -- journalctl --no-pager --unit=snapd.service
     lxc exec n1 -- lxd init --auto
     lxc exec n1 -- lxc launch "${IMAGE}" n11
     sleep 5
