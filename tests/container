@@ -143,6 +143,13 @@ for release in $RELEASES; do
 
     echo "==> nested container (${release})"
     lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
+    lxc exec n1 -- mkdir -p /etc/systemd/system/snapd.service.d
+    lxc file push - "n1/etc/systemd/system/snapd.service.d/local.conf" --mode=755 << EOF
+[Service]
+Environment=SNAPD_DEBUG_HTTP=7 SNAPD_DEBUG=1
+EOF
+    lxc exec n1 -- systemctl daemon-reload
+    lxc exec n1 -- systemctl restart snapd.service
     lxc exec n1 -- snap list || true
     isSystemdClean n1 || ignore_known_issues "n1" "nesting"
     lxc exec n1 -- ip a
@@ -150,7 +157,13 @@ for release in $RELEASES; do
     lxc exec n1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
     lxc exec n1 -- snap list || true
     sleep 5
-    lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+    if ! lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"; then
+      lxc exec n1 -- curl -H "Content-Type: application/json" -H "Snap-Device-Series: 16" -H "Snap-Device-Architecture: amd64" https://api.snapcraft.io/v2/snaps/refresh -d '{"fields": ["architectures", "base", "common-ids", "confinement", "contact", "created-at", "description", "download", "epoch", "gated-snap-ids", "license", "links", "media", "name", "prices", "private", "publisher", "resources", "revision", "snap-id", "snap-yaml", "summary", "title", "type", "version", "website"], "context": [], "actions": [{"action": "install", "instance-key": "checking-lxd-install", "name": "lxd", "channel": "latest/stable"}]}' > out
+      cat out
+      jq < out
+      lxc exec n1 -- journalctl --no-pager --unit=snapd.service
+      exit 1
+    fi
     lxc exec n1 -- lxd init --auto
     lxc exec n1 -- lxc launch "${IMAGE}" n11
     sleep 5
