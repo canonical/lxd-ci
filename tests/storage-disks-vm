@@ -242,12 +242,20 @@ lxc launch "${IMAGE}" v2 --vm
 waitInstanceReady v2
 lxc config device add v2 ${LONG_DEVICE_NAME} disk source="${testRoot}/allowed1/lxd-block-test"
 sleep 3
-BLOCK_SPECIAL_FILE="$(lxc exec v2 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_device-----with-)"
+
+QEMU_DEV_ID="lxd_device-----with--very--long--name--and--4--qemu--property--handling--test_"
+
+if echo "${LXD_SNAP_CHANNEL}" | grep -q '^[45]\.'; then
+echo "${LXD_SNAP_CHANNEL} detected, using a shorter device_id"
+  QEMU_DEV_ID="lxd_device-----with-"
+fi
+
+BLOCK_SPECIAL_FILE="$(lxc exec v2 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_${QEMU_DEV_ID})"
 lxc exec v2 -- test -b "$BLOCK_SPECIAL_FILE"
 lxc config device remove v2 ${LONG_DEVICE_NAME}
 sleep 3
 ! lxc exec v2 -- stat "$BLOCK_SPECIAL_FILE" || false
-! lxc exec v2 -- stat /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_device-----with- || false
+! lxc exec v2 -- stat "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_${QEMU_DEV_ID}" || false
 lxc stop -f v2
 
 # XXX: LXD releases 5.21 and earlier don't support long names (yet)
