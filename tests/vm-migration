@@ -47,7 +47,6 @@ lxc exec member1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
 # Install LXD in the first member.
-lxc exec member1 -- snap remove --purge lxd || true
 lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec member1 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
@@ -63,7 +62,6 @@ lxc exec member1 -- lxc cluster enable member1
 joinToken="$(lxc exec member1 -- lxc cluster add member2 --quiet)"
 
 # Install LXD on the second member.
-lxc exec member2 -- snap remove --purge lxd || true
 lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec member2 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
