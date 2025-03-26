@@ -143,13 +143,8 @@ for release in $RELEASES; do
 
     echo "==> nested container (${release})"
     lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
-    lxc exec n1 -- snap list || true
     isSystemdClean n1 || ignore_known_issues "n1" "nesting"
-    lxc exec n1 -- ip a
-    lxc exec n1 -- curl -I https://api.snapcraft.io
     lxc exec n1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
-    lxc exec n1 -- snap list || true
-    sleep 5
     lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
     lxc exec n1 -- lxd init --auto
     lxc exec n1 -- lxc launch "${IMAGE}" n11
