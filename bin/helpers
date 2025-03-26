@@ -298,7 +298,7 @@ install_lxd() (
 hasNeededAPIExtension() (
     needed_extension="${1}"
 
-    lxc info | sed -ne '/^api_extensions:/,/^[^-]/ s/^- //p' | grep -qxF "${needed_extension}"
+    lxc info | grep -qxFm1 -- "- ${needed_extension}"
 )
 
 # runsMinimumKernel: check if the running kernel is at least the minimum version.
