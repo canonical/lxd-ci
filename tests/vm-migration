@@ -46,8 +46,18 @@ lxc exec member1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 # shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
 lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
+for instance in member1 member2; do
+    lxc exec "${instance}" -- mkdir -p /etc/systemd/system/snapd.service.d
+    lxc file push - "${instance}"/etc/systemd/system/snapd.service.d/override.conf << EOF
+# Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+[Service]
+Environment=SNAPD_STANDBY_WAIT=1m
+EOF
+    lxc exec "${instance}" -- systemctl daemon-reload
+    lxc exec "${instance}" -- systemctl restart snapd.service
+done
+
 # Install LXD in the first member.
-lxc exec member1 -- snap remove --purge lxd || true
 lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec member1 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
@@ -63,7 +73,6 @@ lxc exec member1 -- lxc cluster enable member1
 joinToken="$(lxc exec member1 -- lxc cluster add member2 --quiet)"
 
 # Install LXD on the second member.
-lxc exec member2 -- snap remove --purge lxd || true
 lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec member2 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then

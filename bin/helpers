@@ -235,6 +235,10 @@ configure_ovn() {
 install_lxd() (
     local start_daemon="${1:-true}"
 
+    # Prevent lxd-installer from getting in the way
+    [ -x /usr/sbin/lxd ] && chmod -x /usr/sbin/lxd
+    [ -x /usr/sbin/lxc ] && chmod -x /usr/sbin/lxc
+
     # Wait for snapd seeding
     waitSnapdSeed
 
@@ -294,7 +298,7 @@ install_lxd() (
 hasNeededAPIExtension() (
     needed_extension="${1}"
 
-    lxc info | sed -ne '/^api_extensions:/,/^[^-]/ s/^- //p' | grep -qxF "${needed_extension}"
+    lxc info | grep -qxFm1 -- "- ${needed_extension}"
 )
 
 # runsMinimumKernel: check if the running kernel is at least the minimum version.
