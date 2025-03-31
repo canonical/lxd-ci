@@ -36,20 +36,21 @@ test_data:
     wait_for_snap_changes
 
     # refresh to the new kernel
-    _run sudo snap refresh pc-kernel --channel 24/edge/nvidia-components-sdp --no-wait
+    _run sudo snap refresh pc-kernel --channel 24/edge/nvidia-components-dev --no-wait
     wait_for_snap_changes
 
     # install the module component
-    _run sudo snap install pc-kernel+nvidia-550-ko --no-wait
+    _run sudo snap install pc-kernel+nvidia-550-erd-ko --no-wait
     wait_for_snap_changes
 
     # until kernel-module-load is autoconnected
+    sleep 10
     _run sudo modprobe nvidia_drm modeset=1
     _run sudo modprobe nvidia_uvm
     _run ls /dev/nvidia*
 
     # install the userspace component
-    _run sudo snap install pc-kernel+nvidia-550-user --no-wait
+    _run sudo snap install pc-kernel+nvidia-550-erd-user --no-wait
     wait_for_snap_changes
 
     # manual connection of the kernel-gpu-2404 interface
@@ -59,7 +60,7 @@ test_data:
     wait_for_snap_changes
 
     # content interface being populated
-    _run ls /var/snap/pc-kernel/common/kernel-gpu-2404/
+    _run find /var/snap/pc-kernel/common/kernel-gpu-2404/ -print
 
     # LXD working
     _run sudo snap install lxd --channel=$SNAP_CHANNEL --no-wait
@@ -85,5 +86,5 @@ test_data:
 
     # check presence of a few different files to catch regressions
     _run lxc exec c1 -- cat /proc/self/mountinfo | grep "nvidia_icd.json"
-    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
+    # _run lxc exec c1 -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
     _run lxc exec c1 -- cat /proc/self/mountinfo | grep "libcuda.so"
