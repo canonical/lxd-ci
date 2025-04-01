@@ -44,9 +44,8 @@ test_data:
     wait_for_snap_changes
 
     # until kernel-module-load is autoconnected
-    sleep 10
-    _run sudo modprobe nvidia_drm modeset=1
-    _run sudo modprobe nvidia_uvm
+    _run_retry sudo modprobe nvidia_drm modeset=1
+    _run_retry sudo modprobe nvidia_uvm
     _run ls /dev/nvidia*
 
     # install the userspace component
@@ -60,6 +59,7 @@ test_data:
     wait_for_snap_changes
 
     # content interface being populated
+    _run find /snap/mesa-2404/current/ -print
     _run find /var/snap/pc-kernel/common/kernel-gpu-2404/ -print
 
     # LXD working
@@ -86,5 +86,5 @@ test_data:
 
     # check presence of a few different files to catch regressions
     _run lxc exec c1 -- cat /proc/self/mountinfo | grep "nvidia_icd.json"
-    # _run lxc exec c1 -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
+    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
     _run lxc exec c1 -- cat /proc/self/mountinfo | grep "libcuda.so"
