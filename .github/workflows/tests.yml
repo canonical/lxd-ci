@@ -109,6 +109,7 @@ jobs:
           - snapd
           - storage-buckets
           - storage-disks-vm
+          - storage-metadata
           - storage-vm btrfs
           - storage-vm ceph
           - storage-vm dir
@@ -145,6 +146,8 @@ jobs:
           - test: storage-buckets
             track: "4.0/candidate"
           - test: storage-disks-vm
+            track: "4.0/candidate"
+          - test: storage-metadata
             track: "4.0/candidate"
           - test: storage-vm btrfs
             track: "4.0/candidate"
@@ -187,6 +190,8 @@ jobs:
           - test: storage-buckets
             track: "4.0/edge"
           - test: storage-disks-vm
+            track: "4.0/edge"
+          - test: storage-metadata
             track: "4.0/edge"
           - test: storage-vm btrfs
             track: "4.0/edge"
@@ -226,6 +231,10 @@ jobs:
           - test: vm-migration
             track: "5.0/candidate"
           - test: vm-migration
+            track: "5.0/edge"
+          - test: storage-metadata
+            track: "5.0/candidate"
+          - test: storage-metadata
             track: "5.0/edge"
           # not compatible with 5.21/*
           - test: qemu-external-vm
