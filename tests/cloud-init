@@ -58,6 +58,7 @@ fi
 # Cleanup
 rm ./profile-key ./profile-key.pub ./additional-key ./additional-key.pub
 lxc profile unset default cloud-init.user-data
+lxc profile unset default cloud-init.ssh-keys.ignored
 lxc delete -f c1
 
 echo "==> Use the NoCloud datasource by using a disk device with a \"cloud-init:config\" source"
