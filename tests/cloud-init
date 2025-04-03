@@ -62,6 +62,7 @@ lxc delete -f c1
 
 echo "==> Use the NoCloud datasource by using a disk device with a \"cloud-init:config\" source"
 lxc init "${IMAGE}" v1 --vm -c cloud-init.user-data="$(cat <<EOF
+## template: jinja
 #cloud-config
 users:
   - name: "{{ ds.meta_data.user_user }}"
