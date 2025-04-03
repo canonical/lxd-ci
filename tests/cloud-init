@@ -14,7 +14,7 @@ fi
 # Configure LXD
 lxd init --auto
 
-IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}" # Avoid running into this bug: https://github.com/canonical/lxd/issues/14605
 
 echo "==> Create key pairs for tests"
 ssh-keygen -t ed25519 -f "./profile-key" -N ""
