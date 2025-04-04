@@ -14,7 +14,7 @@ fi
 # Configure LXD
 lxd init --auto
 
-IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
+IMAGE="${TEST_IMG:-ubuntu-daily:24.04}" # Avoid running into this bug: https://github.com/canonical/lxd/issues/14605
 
 echo "==> Create key pairs for tests"
 ssh-keygen -t ed25519 -f "./profile-key" -N ""
@@ -58,13 +58,15 @@ fi
 # Cleanup
 rm ./profile-key ./profile-key.pub ./additional-key ./additional-key.pub
 lxc profile unset default cloud-init.user-data
+lxc profile unset default cloud-init.ssh-keys.ignored
 lxc delete -f c1
 
 echo "==> Use the NoCloud datasource by using a disk device with a \"cloud-init:config\" source"
 lxc init "${IMAGE}" v1 --vm -c cloud-init.user-data="$(cat <<EOF
+## template: jinja
 #cloud-config
 users:
-  - name: "{{ ds.meta_data.user_user }}"
+  - name: {{ ds.meta_data.user_user }}
 EOF
 )"
 
