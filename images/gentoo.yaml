@@ -300,7 +300,7 @@ source:
 targets:
   lxd:
     vm:
-      size: 6442450944
+      size: 8589934592
       filesystem: ext4
 
   lxc:
