@@ -131,8 +131,8 @@ EOF
         lxc init i1 -d root,size=1MiB --empty ${extra_args} # Don't quote to omit empty extra args.
         lxc snapshot i1
 
-        echo "==> Export the ${type} using the new format"
-        lxc export i1 "${tmpdir}/i1.tar.gz" --export-version 2
+        echo "==> Export the ${type} using the new format 2 implicitly by not specifying a version"
+        lxc export i1 "${tmpdir}/i1.tar.gz" # Running against a new LXD should always yield the new format.
         tar -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
 
         echo "==> Check the backup index file"
