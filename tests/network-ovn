@@ -855,7 +855,7 @@ EOF
     ip6VolatileIP=$(lxc network get ovn-virtual-network volatile.network.ipv6.address)
     ip4VolatileIP2=$(lxc network get ovn-virtual-network2 volatile.network.ipv4.address)
     ip6VolatileIP2=$(lxc network get ovn-virtual-network2 volatile.network.ipv6.address)
-    lxc network set lxdbr0 ipv4.routes="${ip4VolatileIP}/32,${ip4VolatileIP2}/32" ipv6.routes="${ip6VolatileIP}/128,${ip6VolatileIP2}/128" --project=default
+    lxc network set lxdbr0 ipv4.routes="${ip4VolatileIP}/32,${ip4VolatileIP2}/32,192.0.2.0/24" ipv6.routes="${ip6VolatileIP}/128,${ip6VolatileIP2}/128,2001:db8:1:2::/64" --project=default
 
     # Forward creation should fail using a different OVN network's volatile IP
     ! lxc network forward create ovn-virtual-network "${ip4VolatileIP2}" || false
