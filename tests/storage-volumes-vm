@@ -188,6 +188,7 @@ do
 	lxc config device add v1 volblro disk pool="${poolName}" source=volblro readonly=true
 
 	# shellcheck disable=SC2016
+	lxc exec v1 -- sh -c "for i in \$(seq 10); do test -e /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_volblro && break; echo \"Waiting for disk-by-id file to appear (\${i}s)\"; sleep 1; done"
 	DISK_DEV="$(basename "$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_volblro)")"
 	lxc exec v1 -- sh -c "for i in \$(seq 10); do test -e /sys/block/${DISK_DEV}/ro && break; echo \"Waiting for sys file to appear (\${i}s)\"; sleep 1; done"
 	[ "$(lxc exec v1 -- cat /sys/block/"${DISK_DEV}"/ro)" -eq 1 ]
