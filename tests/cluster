@@ -8,8 +8,6 @@ install_lxd
 lxd init --auto --storage-backend=btrfs
 
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
-
-PREFIX="cluster-$$"
 SIZE="$1"
 
 if [ -z "${1:-""}" ] || [ -z "${2:-""}" ] || [ -z "${3:-""}" ]; then
@@ -29,65 +27,65 @@ print_log() {
 }
 
 instance_connectivity_checks() {
-    U2_IPV4="$(lxc exec "${PREFIX}-1" -- lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
+    U2_IPV4="$(lxc exec m1 -- lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
     # XXX: replace ping (not on -minimal images) by a TCP probe on ssh port
-    lxc exec "${PREFIX}-1" -- lxc exec u1 -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
-    lxc exec "${PREFIX}-1" -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
+    lxc exec m1 -- lxc exec u1 -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
+    lxc exec m1 -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
 }
 
 wait_for_online_cluster() {
     for _ in $(seq 10); do
         sleep 30
-        ONLINE_MEMBERS="$(lxc exec "${PREFIX}-1" -- lxc cluster list | grep -cwF ONLINE)"
+        ONLINE_MEMBERS="$(lxc exec m1 -- lxc cluster list | grep -cwF ONLINE)"
         [ "${ONLINE_MEMBERS}" = "${SIZE}" ] && break
     done
     sleep 10
 }
 
 # Launch the container
-lxc launch "${IMAGE}" "${PREFIX}-1" -c security.nesting=true -c security.devlxd.images=true
+lxc launch "${IMAGE}" m1 -c security.nesting=true -c security.devlxd.images=true
 
-waitInstanceBooted "${PREFIX}-1"
+waitInstanceBooted m1
 
-lxc exec "${PREFIX}-1" -- snap install lxd --channel="$2" || lxc exec "${PREFIX}-1" -- snap refresh lxd --channel="$2"
+lxc exec m1 -- snap install lxd --channel="$2" || lxc exec m1 -- snap refresh lxd --channel="$2"
 
-lxc pause "${PREFIX}-1"
+lxc pause m1
 for i in $(seq 2 "${SIZE}"); do
-    lxc copy "${PREFIX}-1" "${PREFIX}-$i"
-    lxc start "${PREFIX}-$i"
-    waitInstanceBooted "${PREFIX}-$i"
+    lxc copy m1 "m${i}"
+    lxc start "m${i}"
+    waitInstanceBooted "m${i}"
 done
-lxc start "${PREFIX}-1"
+lxc start m1
 
 for i in $(seq "${SIZE}"); do
     sleep 10
 
     # Configure the cluster
     if [ "$i" = "1" ]; then
-        CLUSTER_IP=$(lxc exec "${PREFIX}-$i" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
-        lxc exec "${PREFIX}-$i" -- lxc config set core.https_address "${CLUSTER_IP}:8443"
-        lxc exec "${PREFIX}-$i" -- lxc config set cluster.https_address "${CLUSTER_IP}:8443"
-        lxc exec "${PREFIX}-$i" -- lxc cluster enable "${PREFIX}-$i"
-        lxc exec "${PREFIX}-$i" -- lxc network create lxdfan0 bridge.mode=fan
-        lxc exec "${PREFIX}-$i" -- lxc storage create default dir
-        lxc exec "${PREFIX}-$i" -- lxc profile device add default root disk path=/ pool=default
-        lxc exec "${PREFIX}-$i" -- lxc profile device add default eth0 nic name=eth0 network=lxdfan0
-        lxc exec "${PREFIX}-$i" -- lxc network show lxdfan0
-        CLUSTER_CRT=$(lxc file pull "${PREFIX}-$i"/var/snap/lxd/common/lxd/cluster.crt - | sed ':a;N;$!ba;s/\n/\n\n/g')
+        CLUSTER_IP=$(lxc exec "m${i}" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
+        lxc exec "m${i}" -- lxc config set core.https_address "${CLUSTER_IP}:8443"
+        lxc exec "m${i}" -- lxc config set cluster.https_address "${CLUSTER_IP}:8443"
+        lxc exec "m${i}" -- lxc cluster enable "m${i}"
+        lxc exec "m${i}" -- lxc network create lxdfan0 bridge.mode=fan
+        lxc exec "m${i}" -- lxc storage create default dir
+        lxc exec "m${i}" -- lxc profile device add default root disk path=/ pool=default
+        lxc exec "m${i}" -- lxc profile device add default eth0 nic name=eth0 network=lxdfan0
+        lxc exec "m${i}" -- lxc network show lxdfan0
+        CLUSTER_CRT=$(lxc file pull "m${i}"/var/snap/lxd/common/lxd/cluster.crt - | sed ':a;N;$!ba;s/\n/\n\n/g')
     else
-        MEMBER_IP=$(lxc exec "${PREFIX}-$i" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
+        MEMBER_IP=$(lxc exec "m${i}" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
 
         # Get a join token
         if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
             # 4.0 doesn't support --quiet
-            TOKEN="$(lxc exec "${PREFIX}-1" -- lxc cluster add "${PREFIX}-${i}" | tail -n1)"
+            TOKEN="$(lxc exec m1 -- lxc cluster add "m${i}" | tail -n1)"
         else
-            TOKEN="$(lxc exec "${PREFIX}-1" -- lxc cluster add --quiet "${PREFIX}-${i}")"
+            TOKEN="$(lxc exec m1 -- lxc cluster add --quiet "m${i}")"
         fi
 
-        lxc exec "${PREFIX}-$i" -- lxd init --preseed << EOF
+        lxc exec "m${i}" -- lxd init --preseed << EOF
 cluster:
-  server_name: "${PREFIX}-$i"
+  server_name: "m${i}"
   enabled: true
   member_config: []
   cluster_address: ${CLUSTER_IP}:8443
@@ -99,17 +97,17 @@ EOF
 done
 
 echo "==> Validating the cluster"
-lxc exec "${PREFIX}-1" -- lxc info
-lxc exec "${PREFIX}-1" -- lxc cluster list
+lxc exec m1 -- lxc info
+lxc exec m1 -- lxc cluster list
 
 # Test fan networking (intra fan from container and host, as well as external NAT comms)
 echo "==> Test fan networking"
-lxc exec "${PREFIX}-1" -- lxc launch "${IMAGE}" u1
-lxc exec "${PREFIX}-1" -- lxc launch "${IMAGE}" u2
+lxc exec m1 -- lxc launch "${IMAGE}" u1
+lxc exec m1 -- lxc launch "${IMAGE}" u2
 
 echo "==> Wait for addresses"
 sleep 10
-lxc exec "${PREFIX}-1" -- lxc list
+lxc exec m1 -- lxc list
 
 instance_connectivity_checks
 
@@ -163,13 +161,13 @@ fi
 
 echo "==> Upgrading the cluster"
 for i in $(seq "${SIZE}"); do
-    lxc exec "${PREFIX}-$i" -- snap wait system seed.loaded
-    lxc exec "${PREFIX}-$i" -- snap refresh
+    lxc exec "m${i}" -- snap wait system seed.loaded
+    lxc exec "m${i}" -- snap refresh
     # XXX: there should be no refresh ongoing but we've seen races before so let's collect evidences
-    lxc exec "${PREFIX}-$i" -- snap changes
-    lxc exec "${PREFIX}-$i" -- snap switch lxd --channel="$3" --cohort=+
+    lxc exec "m${i}" -- snap changes
+    lxc exec "m${i}" -- snap switch lxd --channel="$3" --cohort=+
     if [ "$i" = "${SIZE}" ]; then
-        lxc exec "${PREFIX}-$i" -- timeout 10m snap refresh lxd
+        lxc exec "m${i}" -- timeout 10m snap refresh lxd
     fi
 done
 
@@ -177,8 +175,8 @@ echo "==> Wait for all members to be ONLINE"
 wait_for_online_cluster
 
 echo "==> Validating the cluster"
-lxc exec "${PREFIX}-1" -- lxc info
-lxc exec "${PREFIX}-1" -- lxc cluster list
+lxc exec m1 -- lxc info
+lxc exec m1 -- lxc cluster list
 
 echo "==> Verify that instances are still functional after the cluster upgrade"
 instance_connectivity_checks
@@ -209,13 +207,13 @@ if [ "${TEST_RESTRICTED}" = "1" ]; then
 fi
 
 echo "==> Check container can be stopped after upgrade (checks for stop hook notification functionality)"
-lxc exec "${PREFIX}-1" -- lxc stop --force u1
-lxc exec "${PREFIX}-1" -- lxc stop --force u2
+lxc exec m1 -- lxc stop --force u1
+lxc exec m1 -- lxc stop --force u2
 
 echo "==> Deleting the cluster"
 for i in $(seq "${SIZE}"); do
-    print_log "${PREFIX}-$i"
-    lxc delete --force "${PREFIX}-$i"
+    print_log "m${i}"
+    lxc delete --force "m${i}"
 done
 
 rm -rf "${tmp_cert_dir}"
