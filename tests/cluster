@@ -34,12 +34,14 @@ instance_connectivity_checks() {
 }
 
 wait_for_online_cluster() {
-    for _ in $(seq 10); do
-        sleep 30
+    sleep 5
+    lxc exec m1 -- lxd waitready --timeout=300
+    for _ in $(seq 30); do
         ONLINE_MEMBERS="$(lxc exec m1 -- lxc cluster list | grep -cwF ONLINE)"
         [ "${ONLINE_MEMBERS}" = "${SIZE}" ] && break
+        sleep 5
     done
-    sleep 10
+    sleep 5
 }
 
 # Launch the container
