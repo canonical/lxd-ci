@@ -49,6 +49,7 @@ lxc launch "${IMAGE}" m1 -c security.nesting=true -c security.devlxd.images=true
 
 waitInstanceBooted m1
 
+# XXX: not using `--cohort=+` as this is an older LXD that will be upgraded later on
 lxc exec m1 -- snap install lxd --channel="$2" || lxc exec m1 -- snap refresh lxd --channel="$2"
 
 lxc pause m1
