@@ -35,6 +35,15 @@ instance_connectivity_checks() {
     lxc exec "${PREFIX}-1" -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
 }
 
+wait_for_online_cluster() {
+    for _ in $(seq 10); do
+        sleep 30
+        ONLINE_MEMBERS="$(lxc exec "${PREFIX}-1" -- lxc cluster list | grep -cwF ONLINE)"
+        [ "${ONLINE_MEMBERS}" = "${SIZE}" ] && break
+    done
+    sleep 10
+}
+
 # Launch the container
 lxc launch "${IMAGE}" "${PREFIX}-1" -c security.nesting=true -c security.devlxd.images=true
 
@@ -163,12 +172,7 @@ for i in $(seq "${SIZE}"); do
 done
 
 echo "==> Wait for all members to be ONLINE"
-for _ in $(seq 10); do
-    sleep 30
-    ONLINE_MEMBERS="$(lxc exec "${PREFIX}-1" -- lxc cluster list | grep -cwF ONLINE)"
-    [ "${ONLINE_MEMBERS}" = "${SIZE}" ] && break
-done
-sleep 10
+wait_for_online_cluster
 
 echo "==> Validating the cluster"
 lxc exec "${PREFIX}-1" -- lxc info
