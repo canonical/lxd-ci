@@ -28,6 +28,13 @@ print_log() {
     rm -f "${log_file}"
 }
 
+instance_connectivity_checks() {
+    U2_IPV4="$(lxc exec "${PREFIX}-1" -- lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
+    # XXX: replace ping (not on -minimal images) by a TCP probe on ssh port
+    lxc exec "${PREFIX}-1" -- lxc exec u1 -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
+    lxc exec "${PREFIX}-1" -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
+}
+
 # Launch the container
 lxc launch "${IMAGE}" "${PREFIX}-1" -c security.nesting=true -c security.devlxd.images=true
 
@@ -93,10 +100,7 @@ echo "==> Wait for addresses"
 sleep 10
 lxc exec "${PREFIX}-1" -- lxc list
 
-U2_IPV4="$(lxc exec "${PREFIX}-1" -- lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
-# XXX: replace ping (not on -minimal images) by a TCP probe on ssh port
-lxc exec "${PREFIX}-1" -- lxc exec u1 -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
-lxc exec "${PREFIX}-1" -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
+instance_connectivity_checks
 
 tmp_cert_dir="$(mktemp -d)"
 
