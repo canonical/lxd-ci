@@ -51,11 +51,13 @@ waitInstanceBooted "${PREFIX}-1"
 
 lxc exec "${PREFIX}-1" -- snap install lxd --channel="$2" || lxc exec "${PREFIX}-1" -- snap refresh lxd --channel="$2"
 
+lxc pause "${PREFIX}-1"
 for i in $(seq 2 "${SIZE}"); do
     lxc copy "${PREFIX}-1" "${PREFIX}-$i"
     lxc start "${PREFIX}-$i"
     waitInstanceBooted "${PREFIX}-$i"
 done
+lxc start "${PREFIX}-1"
 
 for i in $(seq "${SIZE}"); do
     sleep 10
