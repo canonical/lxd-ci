@@ -174,6 +174,9 @@ echo "==> Validating the cluster"
 lxc exec "${PREFIX}-1" -- lxc info
 lxc exec "${PREFIX}-1" -- lxc cluster list
 
+echo "==> Verify that instances are still functional after the cluster upgrade"
+instance_connectivity_checks
+
 echo "==> Check the certificates for its permissions after cluster upgrade"
 lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -er '.restricted == false'
 lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -er '.type == "client"'
