@@ -124,6 +124,12 @@ install_deps() (
     missing=""
     PKGS_LIST="$(dpkg --get-selections | awk '{print $1}')"
     for pkg in ${PKGS}; do
+        # Many commands are already available on CI runners (like `jq` and
+        # `yq`) and are sometimes not installed using deb packages (like `yq`).
+        # As such check if a binary of the same name as the package needing to
+        # be installed is present
+        command -v "${pkg}" > /dev/null && continue
+
         grep -qxF "${pkg}" <<< "${PKGS_LIST}" && continue
         missing="${missing} ${pkg}"
         break
