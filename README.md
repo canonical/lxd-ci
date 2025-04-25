@@ -40,14 +40,8 @@ config:
     package_update: true
     package_upgrade: true
     packages:
-    - debootstrap
-    - git
-    - gpg
     - jq
     - make
-    - qemu-utils
-    - rsync
-    - squashfs-tools
   limits.cpu: "4"
   limits.memory: 16GiB
   security.devlxd.images: "true"
