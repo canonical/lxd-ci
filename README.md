@@ -32,6 +32,8 @@ config:
 
     runcmd:
     - echo "PURGE_LXD=1" >> /etc/environment
+    # Disable lxd-installer
+    - chmod -x /usr/sbin/lxc /usr/sbin/lxd
     # Remove sources of noise
     - systemctl stop unattended-upgrades.service
     - apt-get autopurge -y cron needrestart networkd-dispatcher unattended-upgrades
