@@ -127,8 +127,12 @@ install_deps() (
         # Many commands are already available on CI runners (like `jq` and
         # `yq`) and are sometimes not installed using deb packages (like `yq`).
         # As such check if a binary of the same name as the package needing to
-        # be installed is present
-        command -v "${pkg}" > /dev/null && continue
+        # be installed is present.
+        # XXX: iptables, nftables and ebtables need special handling due to
+        #      using alternative mechanism
+        if ! [[ "${pkg}" =~ .*tables ]]; then
+            command -v "${pkg}" > /dev/null && continue
+        fi
 
         grep -qxF "${pkg}" <<< "${PKGS_LIST}" && continue
         missing="${missing} ${pkg}"
