@@ -65,8 +65,10 @@ if dpkg --compare-versions "${VERSION_ID}" ge 24.04; then
     install_deps jq yq
 else
     install_deps jq
-    waitSnapdSeed
-    snap install yq
+    if ! command -v yq > /dev/null; then
+        waitSnapdSeed
+        snap install yq
+    fi
 fi
 
 # Install LXD.
