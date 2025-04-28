@@ -32,6 +32,8 @@ config:
 
     runcmd:
     - echo "PURGE_LXD=1" >> /etc/environment
+    # Disable lxd-installer
+    - chmod -x /usr/sbin/lxc /usr/sbin/lxd
     # Remove sources of noise
     - systemctl stop unattended-upgrades.service
     - apt-get autopurge -y cron needrestart networkd-dispatcher unattended-upgrades
@@ -40,14 +42,8 @@ config:
     package_update: true
     package_upgrade: true
     packages:
-    - debootstrap
-    - git
-    - gpg
     - jq
     - make
-    - qemu-utils
-    - rsync
-    - squashfs-tools
   limits.cpu: "4"
   limits.memory: 16GiB
   security.devlxd.images: "true"
