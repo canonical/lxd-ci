@@ -48,3 +48,14 @@ runs:
 
         echo "==> FAIL: ${TEST_ID}"
         exit 1
+
+    - name: Upload as CI artifacts images that failed QA (manual || retries)
+      if: failure() && (github.run_attempt != 1 || github.event_name == 'workflow_dispatch')
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: broken-images-${{ inputs.distro }}-${{ inputs.release }}-${{ inputs.variant }}
+        path: ~/build/
+        retention-days: 1
+        if-no-files-found: ignore
+        compression-level: 0
+        overwrite: true
