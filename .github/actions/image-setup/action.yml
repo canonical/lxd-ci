@@ -25,6 +25,7 @@ runs:
             gdisk \
             git \
             gpg \
+            gpg-agent \
             jq \
             make \
             qemu-utils \
