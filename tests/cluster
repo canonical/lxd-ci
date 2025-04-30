@@ -113,10 +113,6 @@ echo "==> Test fan networking"
 lxc exec m1 -- lxc launch "${IMAGE}" u1
 lxc exec m1 -- lxc launch "${IMAGE}" u2
 
-echo "==> Wait for addresses"
-sleep 10
-lxc exec m1 -- lxc list
-
 instance_connectivity_checks
 
 tmp_cert_dir="$(mktemp -d)"
