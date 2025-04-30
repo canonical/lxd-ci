@@ -26,7 +26,9 @@ print_log() {
     rm -f "${log_file}"
 }
 
+# wait for u1 and u2 to be booted and have u1 and m1 probe u2's IPv4
 instance_connectivity_checks() {
+    lxc exec m1 -- sh -c "$(declare -f waitInstanceReady waitInstanceBooted); waitInstanceBooted u1; waitInstanceBooted u2"
     U2_IPV4="$(lxc exec m1 -- lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
     # XXX: replace ping (not on -minimal images) by a TCP probe on ssh port
     lxc exec m1 -- lxc exec u1 -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
