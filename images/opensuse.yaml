@@ -244,6 +244,8 @@ packages:
 
   - packages:
     - hardlink
+    - dracut
+    - net-tools
     action: install
     releases:
     - tumbleweed
@@ -261,12 +263,6 @@ packages:
     - aarch64
     - x86_64
     - i686
-
-  - packages:
-    - net-tools
-    releases:
-    - tumbleweed
-    action: install
 
   - packages:
     - cloud-init
@@ -344,7 +340,7 @@ actions:
 
     sed -ri "s#(DISPLAYMANAGER_AUTOLOGIN)=.*#\1=${USERNAME}#" /etc/sysconfig/displaymanager
 
-    systemctl enable sddm
+    systemctl enable sddm || true
 
     # When calling `lxc stop` KDE will show a dialog for 30 seconds which defaults to logging out.
     # This decreases the timeout to 10 seconds, and performs a shutdown per default.
