@@ -1,4 +1,4 @@
-name: Build Ubuntu Images
+name: Ubuntu
 
 on:
   schedule:

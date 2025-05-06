@@ -1,4 +1,4 @@
-name: LXD Nvidia GPU Tests on Ubuntu Core
+name: NVIDIA GPU on Ubuntu Core
 
 on:
   pull_request:

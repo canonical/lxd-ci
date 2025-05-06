@@ -1,4 +1,4 @@
-name: Build Kali Images
+name: Kali
 
 on:
   schedule:

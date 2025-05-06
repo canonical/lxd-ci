@@ -1,4 +1,4 @@
-name: Build ALT Linux Images
+name: ALT Linux
 
 on:
   schedule:

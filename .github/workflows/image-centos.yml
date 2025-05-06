@@ -1,4 +1,4 @@
-name: Build CentOS Images
+name: CentOS
 
 on:
   schedule:

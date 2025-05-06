@@ -1,4 +1,4 @@
-name: Build openEuler Images
+name: openEuler
 
 on:
   schedule:

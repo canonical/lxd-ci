@@ -1,4 +1,4 @@
-name: Build OpenSUSE Images
+name: OpenSUSE
 
 on:
   schedule:
