@@ -1,8 +1,8 @@
 # CI status
 
-Tests  | Lint
-:---: | :---:
-[![Tests](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml) | [![Lint](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml)
+Tests | NVIDIA | Lint
+:---: | :---: | :---:
+[![Tests](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml) | [![NVIDIA](https://github.com/canonical/lxd-ci/actions/workflows/nvidia-test.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/nvidia-test.yml) | [![Lint](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml)
 
 ## Images
 
