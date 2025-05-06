@@ -1,58 +1,22 @@
 # CI status
 
-## Code
-
-[![Lint](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml)
-
-[![Tests](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml)
+Tests  | Lint
+:---: | :---:
+[![Tests](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml) | [![Lint](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml)
 
 ## Images
 
-[![almalinux](https://github.com/canonical/lxd-ci/actions/workflows/image-almalinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-almalinux.yml)
-
-[![alpine](https://github.com/canonical/lxd-ci/actions/workflows/image-alpine.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-alpine.yml)
-
-[![alt](https://github.com/canonical/lxd-ci/actions/workflows/image-alt.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-alt.yml)
-
-[![amazonlinux](https://github.com/canonical/lxd-ci/actions/workflows/image-amazonlinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-amazonlinux.yml)
-
-[![archlinux](https://github.com/canonical/lxd-ci/actions/workflows/image-archlinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-archlinux.yml)
-
-[![busybox](https://github.com/canonical/lxd-ci/actions/workflows/image-busybox.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-busybox.yml)
-
-[![centos](https://github.com/canonical/lxd-ci/actions/workflows/image-centos.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-centos.yml)
-
-[![debian](https://github.com/canonical/lxd-ci/actions/workflows/image-debian.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-debian.yml)
-
-[![devuan](https://github.com/canonical/lxd-ci/actions/workflows/image-devuan.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-devuan.yml)
-
-[![fedora](https://github.com/canonical/lxd-ci/actions/workflows/image-fedora.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-fedora.yml)
-
-[![funtoo](https://github.com/canonical/lxd-ci/actions/workflows/image-funtoo.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-funtoo.yml)
-
-[![gentoo](https://github.com/canonical/lxd-ci/actions/workflows/image-gentoo.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-gentoo.yml)
-
-[![kali](https://github.com/canonical/lxd-ci/actions/workflows/image-kali.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-kali.yml)
-
-[![mint](https://github.com/canonical/lxd-ci/actions/workflows/image-mint.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-mint.yml)
-
-[![nixos](https://github.com/canonical/lxd-ci/actions/workflows/image-nixos.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-nixos.yml)
-
-[![openeuler](https://github.com/canonical/lxd-ci/actions/workflows/image-openeuler.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-openeuler.yml)
-
-[![opensuse](https://github.com/canonical/lxd-ci/actions/workflows/image-opensuse.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-opensuse.yml)
-
-[![openwrt](https://github.com/canonical/lxd-ci/actions/workflows/image-openwrt.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-openwrt.yml)
-
-[![oracle](https://github.com/canonical/lxd-ci/actions/workflows/image-oracle.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-oracle.yml)
-
-[![rockylinux](https://github.com/canonical/lxd-ci/actions/workflows/image-rockylinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-rockylinux.yml)
-
-[![slackware](https://github.com/canonical/lxd-ci/actions/workflows/image-slackware.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-slackware.yml)
-
-[![ubuntu](https://github.com/canonical/lxd-ci/actions/workflows/image-ubuntu.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-ubuntu.yml)
-
-[![voidlinux](https://github.com/canonical/lxd-ci/actions/workflows/image-voidlinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-voidlinux.yml)
+RH-based | Debian-based | Others
+:---:  | :---:  | :---:
+[![almalinux](https://github.com/canonical/lxd-ci/actions/workflows/image-almalinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-almalinux.yml) | [![debian](https://github.com/canonical/lxd-ci/actions/workflows/image-debian.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-debian.yml) | [![alpine](https://github.com/canonical/lxd-ci/actions/workflows/image-alpine.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-alpine.yml) | [![archlinux](https://github.com/canonical/lxd-ci/actions/workflows/image-archlinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-archlinux.yml)
+[![alt](https://github.com/canonical/lxd-ci/actions/workflows/image-alt.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-alt.yml) | [![devuan](https://github.com/canonical/lxd-ci/actions/workflows/image-devuan.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-devuan.yml) | [![busybox](https://github.com/canonical/lxd-ci/actions/workflows/image-busybox.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-busybox.yml)
+[![amazonlinux](https://github.com/canonical/lxd-ci/actions/workflows/image-amazonlinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-amazonlinux.yml) | [![kali](https://github.com/canonical/lxd-ci/actions/workflows/image-kali.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-kali.yml) | [![funtoo](https://github.com/canonical/lxd-ci/actions/workflows/image-funtoo.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-funtoo.yml)
+[![centos](https://github.com/canonical/lxd-ci/actions/workflows/image-centos.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-centos.yml) | [![mint](https://github.com/canonical/lxd-ci/actions/workflows/image-mint.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-mint.yml) | [![gentoo](https://github.com/canonical/lxd-ci/actions/workflows/image-gentoo.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-gentoo.yml)
+[![fedora](https://github.com/canonical/lxd-ci/actions/workflows/image-fedora.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-fedora.yml) | [![ubuntu](https://github.com/canonical/lxd-ci/actions/workflows/image-ubuntu.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-ubuntu.yml) | [![nixos](https://github.com/canonical/lxd-ci/actions/workflows/image-nixos.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-nixos.yml)
+[![openeuler](https://github.com/canonical/lxd-ci/actions/workflows/image-openeuler.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-openeuler.yml) | | [![opensuse](https://github.com/canonical/lxd-ci/actions/workflows/image-opensuse.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-opensuse.yml)
+[![oracle](https://github.com/canonical/lxd-ci/actions/workflows/image-oracle.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-oracle.yml) | | [![openwrt](https://github.com/canonical/lxd-ci/actions/workflows/image-openwrt.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-openwrt.yml)
+[![rockylinux](https://github.com/canonical/lxd-ci/actions/workflows/image-rockylinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-rockylinux.yml) | | [![slackware](https://github.com/canonical/lxd-ci/actions/workflows/image-slackware.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-slackware.yml)
+ | |  | [![voidlinux](https://github.com/canonical/lxd-ci/actions/workflows/image-voidlinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-voidlinux.yml)
 
 # Prepare VM to run tests locally
 
