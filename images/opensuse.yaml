@@ -245,6 +245,7 @@ packages:
   - packages:
     - hardlink
     - dracut
+    - net-tools
     action: install
     releases:
     - tumbleweed
@@ -262,12 +263,6 @@ packages:
     - aarch64
     - x86_64
     - i686
-
-  - packages:
-    - net-tools
-    releases:
-    - tumbleweed
-    action: install
 
   - packages:
     - cloud-init
