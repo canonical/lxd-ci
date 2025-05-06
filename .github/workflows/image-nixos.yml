@@ -1,4 +1,4 @@
-name: Build NixOS Images
+name: NixOS
 
 on:
   schedule:

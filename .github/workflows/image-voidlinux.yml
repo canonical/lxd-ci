@@ -1,4 +1,4 @@
-name: Build VoidLinux Images
+name: VoidLinux
 
 on:
   schedule:

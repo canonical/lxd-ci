@@ -1,4 +1,4 @@
-name: Build Linux Mint Images
+name: Linux Mint
 
 on:
   schedule:

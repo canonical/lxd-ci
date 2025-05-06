@@ -1,4 +1,4 @@
-name: Build BusyBox Images
+name: BusyBox
 
 on:
   schedule:

@@ -1,4 +1,4 @@
-name: Build Oracle Images
+name: Oracle
 
 on:
   schedule:

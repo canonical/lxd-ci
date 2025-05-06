@@ -1,4 +1,4 @@
-name: Build AmazonLinux Images
+name: AmazonLinux
 
 on:
   schedule:

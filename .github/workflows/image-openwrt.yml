@@ -1,4 +1,4 @@
-name: Build OpenWrt Images
+name: OpenWrt
 
 on:
   schedule:

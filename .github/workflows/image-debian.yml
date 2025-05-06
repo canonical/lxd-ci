@@ -1,4 +1,4 @@
-name: Build Debian Images
+name: Debian
 
 on:
   schedule:

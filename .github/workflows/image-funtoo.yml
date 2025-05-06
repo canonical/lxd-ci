@@ -1,4 +1,4 @@
-name: Build Funtoo Images
+name: Funtoo
 
 on:
   schedule:
