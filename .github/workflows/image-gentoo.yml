@@ -32,6 +32,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Reclaim disk space
+        uses: canonical/lxd/.github/actions/reclaim-disk-space@main
+
       - name: Setup environment
         uses: ./.github/actions/image-setup
 
