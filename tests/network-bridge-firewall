@@ -45,7 +45,9 @@ ebtables --version 2>&1 | grep legacy
 
 # Check if br_netfilter module is already loaded.
 BR_NETFILTER_LOADED=false
-lsmod | grep -qw ^br_netfilter && BR_NETFILTER_LOADED=true
+if lsmod | grep -qw ^br_netfilter; then
+    BR_NETFILTER_LOADED=true
+fi
 
 # Setup bridge filter and unmanaged bridges
 modprobe br_netfilter
