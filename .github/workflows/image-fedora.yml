@@ -25,6 +25,7 @@ jobs:
         release:
           - 40
           - 41
+          - 42
         variant:
           - default
           - cloud
