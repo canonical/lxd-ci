@@ -244,6 +244,7 @@ packages:
 
   - packages:
     - hardlink
+    - dracut
     action: install
     releases:
     - tumbleweed
