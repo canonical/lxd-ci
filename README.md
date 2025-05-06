@@ -60,7 +60,7 @@ To run the tests locally, it's ideal to run them in a shortlived VM. The simples
 
 ## lxd-ci profile
 
-```
+```yaml
 name: lxd-ci
 description: ""
 config:
@@ -129,11 +129,11 @@ used_by: []
 
 Then it's easy to create a shortlived VM:
 
-```
+```sh
 lxc launch ubuntu-minimal-daily:24.04 v1 --vm -p lxd-ci
 ```
 
-```
+```sh
 $ lxc shell v1
 root@v1:~# cd lxd-ci/
 root@v1:~/lxd-ci# ./bin/local-run tests/snapd latest/edge
@@ -143,20 +143,20 @@ root@v1:~/lxd-ci# ./bin/local-run tests/snapd latest/edge
 
 To run a test locally (directly where you invoke it), use the `bin/local-run` helper:
 
-```
+```sh
 ./bin/local-run tests/interception latest/edge
 ```
 
 For faster repeated runs, you might want to tell `snap` that it can purge the LXD snap
 without taking any snapshot:
 
-```
+```sh
 PURGE_LXD=1 ./bin/local-run tests/interception latest/edge
 ```
 
 To test a with the exising/already installed LXD snap, you can set the `KEEP_LXD` environment variable.
 
-```
+```sh
 KEEP_LXD=1 ./bin/local-run tests/interception latest/edge
 ```
 
@@ -165,19 +165,19 @@ Note: if you need to run tests on temporary machines, [Testflinger reservations]
 To test a custom build of LXD, you can set the `LXD_SIDELOAD_PATH` environment variable.
 This will be copied to `/var/snap/lxd/common/lxd.debug` and the daemon will be reloaded before the test run.
 
-```
+```sh
 LXD_SIDELOAD_PATH=/tmp/lxd ./bin/local-run tests/interception latest/edge
 ```
 
 To test a custom snap of LXD, you can set the `LXD_SNAP_PATH` environment variable.
 
-```
+```sh
 LXD_SNAP_PATH=/tmp/lxd_0+git.89550582_amd64.snap ./bin/local-run tests/interception latest/edge
 ```
 
 To run `tests/network-ovn` against various OVN implementation:
 
-```
+```sh
 # Using the deb package from the base Os
 OVN_SOURCE=deb PURGE_LXD=1 ./bin/local-run tests/network-ovn latest/edge
 
@@ -193,19 +193,19 @@ PURGE_LXD=1 ./bin/local-run tests/network-ovn latest/edge
 
 The tests need to be run from PS6's LXD bastion `lxd-bastion-ps6.internal`. Once connected, the proper environment can be loaded with:
 
-```
+```sh
 pe
 ```
 
 Then to run all the tests on OpenStack VMs:
 
-```
+```sh
 ./tests/main-openstack
 ```
 
 Or to run individual tests (`tests/pylxd` against `latest/edge`):
 
-```
+```sh
 # bin/openstack-run: <serie> <kernel> <test> <args>
 ./bin/openstack-run jammy default tests/pylxd latest/edge
 ```
