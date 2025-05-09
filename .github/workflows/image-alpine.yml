@@ -23,7 +23,6 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - "3.18"
           - "3.19"
           - "3.20"
           - "3.21"
