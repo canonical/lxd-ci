@@ -2,7 +2,7 @@ name: AmazonLinux
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Build amd64 (Daily at 00:00 UTC).
+    - cron: '0 0 * * 1-5'  # Build amd64 (Daily on Mon-Fri at 00:00 UTC).
     - cron: '0 0 * * 1'  # Build arm64 (Weekly on Monday at 00:00 UTC).
   workflow_dispatch:
     inputs:
