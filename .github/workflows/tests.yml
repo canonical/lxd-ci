@@ -98,6 +98,7 @@ jobs:
           - devlxd-vm
           - docker
           - efi-vars-editor-vm
+          - lxd-installer
           - lxd-user
           - interception
           - network-bridge-firewall
@@ -134,6 +135,8 @@ jobs:
           - test: devlxd-vm
             track: "4.0/candidate"
           - test: efi-vars-editor-vm
+            track: "4.0/candidate"
+          - test: lxd-installer
             track: "4.0/candidate"
           - test: lxd-user
             track: "4.0/candidate"
@@ -178,6 +181,8 @@ jobs:
           - test: devlxd-vm
             track: "4.0/edge"
           - test: efi-vars-editor-vm
+            track: "4.0/edge"
+          - test: lxd-installer
             track: "4.0/edge"
           - test: lxd-user
             track: "4.0/edge"
@@ -220,6 +225,10 @@ jobs:
             track: "5.0/candidate"
           - test: efi-vars-editor-vm
             track: "5.0/edge"
+          - test: lxd-installer
+            track: "5.0/candidate"
+          - test: lxd-installer
+            track: "5.0/edge"
           - test: network-ovn ovn:latest/edge
             track: "5.0/candidate"
           - test: network-ovn ovn:latest/edge
@@ -233,11 +242,17 @@ jobs:
           - test: vm-migration
             track: "5.0/edge"
           # not compatible with 5.21/*
+          - test: lxd-installer
+            track: "5.21/candidate"
+          - test: lxd-installer
+            track: "5.21/edge"
           - test: qemu-external-vm
             track: "5.21/candidate"
           - test: qemu-external-vm
             track: "5.21/edge"
           # some tests are not worth testing on specific OSes
+          - os: 22.04
+            test: lxd-installer
           - os: 22.04
             test: qemu-external-vm
           # skip track/os combinations that are too far appart
