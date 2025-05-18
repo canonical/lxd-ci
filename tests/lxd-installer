@@ -61,6 +61,22 @@ EOF
     [ "${SNAP_CHANNEL}" = "${LXD_EXPECTED_VERSION}/stable/ubuntu-${release}" ]
 }
 
+test_lxd() {
+    local instance="${1}"
+    local release="${2}"
+
+    echo "==> ${instance} (${release})"
+
+    # check that ZFS is functional
+    lxc exec "${instance}" -- lxd init --auto --storage-backend "zfs"
+    lxc exec "${instance}" -- lxc storage show default | grep -xF 'driver: zfs'
+    lxc exec "${instance}" -- cat /sys/module/zfs/version
+
+    # use -minimal for a lighter nested instance
+    lxc exec "${instance}" -- lxc launch "ubuntu-minimal-daily:${release}" n1
+    lxc exec "${instance}" -- lxc delete -f n1
+}
+
 # Silence GH warnings in isSystemdClean
 export WARNING_PREFIX="false"
 for remote in ubuntu-minimal-daily ubuntu-daily; do
@@ -74,9 +90,10 @@ for remote in ubuntu-minimal-daily ubuntu-daily; do
         lxc delete -f c1
 
         echo "==> VM (${IMAGE})"
-        lxc launch "${IMAGE}" v1 --vm
+        lxc launch "${IMAGE}" v1 --vm -c security.devlxd.images=true
         isSystemdClean v1  # for VM: require systemd --fail to be empty
         test_lxd_installer v1 "${release}"
+        test_lxd v1 "${release}"
         lxc delete -f v1
     done
 done
