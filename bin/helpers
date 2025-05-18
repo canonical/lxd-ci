@@ -40,7 +40,10 @@ waitInstanceReady() (
 # waitInstanceBooted: waits for the instance to be ready and fully booted.
 waitInstanceBooted() (
   { set +x; } 2>/dev/null
-  prefix="${WARNING_PREFIX:-::warning::}"
+  prefix="::warning::"
+  if [ "${WARNING_PREFIX:-}" = "false" ]; then
+    prefix=""
+  fi
   maxWait=90
   instName="$1"
   instProj="${2:-}"
