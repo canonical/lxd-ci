@@ -1,0 +1,103 @@
+#!/bin/bash
+set -eu
+
+if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
+  echo "Skipping test on 4.0 branch"
+  # shellcheck disable=SC2034
+  FAIL=0
+  exit 0
+fi
+
+# Install LXD
+install_lxd
+
+# Configure LXD
+lxd init --auto --storage-backend zfs --storage-create-loop 24
+
+# Test
+set -x
+
+# XXX: only testing 24.04 onward because prior versions either had LXD snap
+# pre-seeded or had an lxd-installer always installing from the default channel.
+RELEASES="${RELEASES:-"24.04 25.04 25.10"}"
+
+test_lxd_installer() {
+    local instance="${1}"
+    local release="${2}"
+
+    echo "==> ${instance} (${release})"
+
+    # workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+    lxc exec "${instance}" -- mkdir -p /etc/systemd/system/snapd.service.d
+    lxc file push - "${instance}"/etc/systemd/system/snapd.service.d/override.conf << EOF
+# Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+[Service]
+Environment=SNAPD_STANDBY_WAIT=1m
+EOF
+    lxc exec "${instance}" -- systemctl daemon-reload
+    lxc exec "${instance}" -- systemctl restart snapd.service
+
+    # report on lxd-installer version
+    lxc exec "${instance}" -- dpkg -l | grep -wF lxd-installer
+
+    # list snaps (should be empty)
+    lxc exec "${instance}" -- snap list
+    [ "$(lxc exec "${instance}" -- snap list lxd 2>/dev/null)" = "" ]
+
+    # trigger lxd-installer (without prompting)
+    lxc exec "${instance}" -- lxc list < /dev/null
+
+    # list snaps (should not be empty)
+    lxc exec "${instance}" -- snap list
+    [ "$(lxc exec "${instance}" -- snap list lxd)" != "" ]
+
+    # check the LXD version matches what we expect
+    LXD_VERSION="$(lxc exec "${instance}" -- lxd --version)"
+    LXD_EXPECTED_VERSION="5.21"
+    [[ "${LXD_VERSION}" =~ ${LXD_EXPECTED_VERSION}.* ]]
+
+    # check the LXD channel matches what we expect
+    SNAP_CHANNEL="$(lxc exec "${instance}" -- snap info lxd | awk '/^tracking:/ {print $2}')"
+    [ "${SNAP_CHANNEL}" = "${LXD_EXPECTED_VERSION}/stable/ubuntu-${release}" ]
+}
+
+test_lxd() {
+    local instance="${1}"
+    local release="${2}"
+
+    echo "==> ${instance} (${release})"
+
+    # check that ZFS is functional
+    lxc exec "${instance}" -- lxd init --auto --storage-backend "zfs"
+    lxc exec "${instance}" -- lxc storage show default | grep -xF 'driver: zfs'
+    lxc exec "${instance}" -- cat /sys/module/zfs/version
+
+    # use -minimal for a lighter nested instance
+    lxc exec "${instance}" -- lxc launch "ubuntu-minimal-daily:${release}" n1
+    lxc exec "${instance}" -- lxc delete -f n1
+}
+
+# Silence GH warnings in isSystemdClean
+export WARNING_PREFIX="false"
+for remote in ubuntu-minimal-daily ubuntu-daily; do
+    for release in $RELEASES; do
+        IMAGE="${remote}:${release}"
+
+        echo "==> container (${IMAGE})"
+        lxc launch "${IMAGE}" c1
+        waitInstanceBooted c1
+        test_lxd_installer c1 "${release}"
+        lxc delete -f c1
+
+        echo "==> VM (${IMAGE})"
+        lxc launch "${IMAGE}" v1 --vm -c security.devlxd.images=true
+        isSystemdClean v1  # for VM: require systemd --fail to be empty
+        test_lxd_installer v1 "${release}"
+        test_lxd v1 "${release}"
+        lxc delete -f v1
+    done
+done
+unset WARNING_PREFIX
+
+# shellcheck disable=SC2034
+FAIL=0
