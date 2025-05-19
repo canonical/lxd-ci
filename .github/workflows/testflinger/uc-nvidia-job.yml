@@ -36,7 +36,7 @@ test_data:
     wait_for_snap_changes
 
     # refresh to the new kernel
-    _run sudo snap refresh pc-kernel --channel 24/edge/nvidia-components-dev --no-wait
+    _run sudo snap refresh pc-kernel --channel 24/stable --no-wait
     wait_for_snap_changes
 
     # install the module component
