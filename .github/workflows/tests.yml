@@ -124,146 +124,47 @@ jobs:
           - vm-nesting
         exclude:
           # not compatible with 4.0/*
-          - test: cloud-init
-            track: "4.0/candidate"
-          - test: container-copy
-            track: "4.0/candidate"
-          - test: conversion
-            track: "4.0/candidate"
-          - test: cpu-vm
-            track: "4.0/candidate"
-          - test: devlxd-vm
-            track: "4.0/candidate"
-          - test: efi-vars-editor-vm
-            track: "4.0/candidate"
-          - test: lxd-installer
-            track: "4.0/candidate"
-          - test: lxd-user
-            track: "4.0/candidate"
-          - test: network-ovn ovn:deb
-            track: "4.0/candidate"
-          - test: network-ovn ovn:latest/edge
-            track: "4.0/candidate"
-          - test: qemu-external-vm
-            track: "4.0/candidate"
-          - test: storage-buckets
-            track: "4.0/candidate"
-          - test: storage-disks-vm
-            track: "4.0/candidate"
-          - test: storage-metadata
-            track: "4.0/candidate"
-          - test: storage-vm btrfs
-            track: "4.0/candidate"
-          - test: storage-vm ceph
-            track: "4.0/candidate"
-          - test: storage-vm dir
-            track: "4.0/candidate"
-          - test: storage-vm lvm
-            track: "4.0/candidate"
-          - test: storage-vm lvm-thin
-            track: "4.0/candidate"
-          - test: storage-vm zfs
-            track: "4.0/candidate"
-          - test: storage-volumes-vm
-            track: "4.0/candidate"
-          - test: tpm-vm
-            track: "4.0/candidate"
-          - test: vm-migration
-            track: "4.0/candidate"
-          - test: cloud-init
-            track: "4.0/edge"
-          - test: container-copy
-            track: "4.0/edge"
-          - test: conversion
-            track: "4.0/edge"
-          - test: cpu-vm
-            track: "4.0/edge"
-          - test: devlxd-vm
-            track: "4.0/edge"
-          - test: efi-vars-editor-vm
-            track: "4.0/edge"
-          - test: lxd-installer
-            track: "4.0/edge"
-          - test: lxd-user
-            track: "4.0/edge"
-          - test: network-ovn ovn:deb
-            track: "4.0/edge"
-          - test: network-ovn ovn:latest/edge
-            track: "4.0/edge"
-          - test: qemu-external-vm
-            track: "4.0/edge"
-          - test: storage-buckets
-            track: "4.0/edge"
-          - test: storage-disks-vm
-            track: "4.0/edge"
-          - test: storage-metadata
-            track: "4.0/edge"
-          - test: storage-vm btrfs
-            track: "4.0/edge"
-          - test: storage-vm ceph
-            track: "4.0/edge"
-          - test: storage-vm dir
-            track: "4.0/edge"
-          - test: storage-vm lvm
-            track: "4.0/edge"
-          - test: storage-vm lvm-thin
-            track: "4.0/edge"
-          - test: storage-vm zfs
-            track: "4.0/edge"
-          - test: storage-volumes-vm
-            track: "4.0/edge"
-          - test: tpm-vm
-            track: "4.0/edge"
-          - test: vm-migration
-            track: "4.0/edge"
+          - test: ${{ startsWith(track, '4.0/') && cloud-init }}
+          - test: ${{ startsWith(track, '4.0/') && container-copy }}
+          - test: ${{ startsWith(track, '4.0/') && conversion }}
+          - test: ${{ startsWith(track, '4.0/') && cpu-vm }}
+          - test: ${{ startsWith(track, '4.0/') && devlxd-vm }}
+          - test: ${{ startsWith(track, '4.0/') && efi-vars-editor-vm }}
+          - test: ${{ startsWith(track, '4.0/') && lxd-installer }}
+          - test: ${{ startsWith(track, '4.0/') && lxd-user }}
+          - test: ${{ startsWith(track, '4.0/') && network-ovn ovn:deb }}
+          - test: ${{ startsWith(track, '4.0/') && network-ovn ovn:latest/edge }}
+          - test: ${{ startsWith(track, '4.0/') && qemu-external-vm }}
+          - test: ${{ startsWith(track, '4.0/') && storage-buckets }}
+          - test: ${{ startsWith(track, '4.0/') && storage-disks-vm }}
+          - test: ${{ startsWith(track, '4.0/') && storage-metadata }}
+          - test: ${{ startsWith(track, '4.0/') && storage-vm btrfs }}
+          - test: ${{ startsWith(track, '4.0/') && storage-vm ceph }}
+          - test: ${{ startsWith(track, '4.0/') && storage-vm dir }}
+          - test: ${{ startsWith(track, '4.0/') && storage-vm lvm }}
+          - test: ${{ startsWith(track, '4.0/') && storage-vm lvm-thin }}
+          - test: ${{ startsWith(track, '4.0/') && storage-vm zfs }}
+          - test: ${{ startsWith(track, '4.0/') && storage-volumes-vm }}
+          - test: ${{ startsWith(track, '4.0/') && tpm-vm }}
+          - test: ${{ startsWith(track, '4.0/') && vm-migration }}
           # not compatible with 5.0/*
-          - test: cloud-init
-            track: "5.0/candidate"
-          - test: cloud-init
-            track: "5.0/edge"
-          - test: efi-vars-editor-vm
-            track: "5.0/candidate"
-          - test: efi-vars-editor-vm
-            track: "5.0/edge"
-          - test: lxd-installer
-            track: "5.0/candidate"
-          - test: lxd-installer
-            track: "5.0/edge"
-          - test: network-ovn ovn:latest/edge
-            track: "5.0/candidate"
-          - test: network-ovn ovn:latest/edge
-            track: "5.0/edge"
-          - test: qemu-external-vm
-            track: "5.0/candidate"
-          - test: qemu-external-vm
-            track: "5.0/edge"
-          - test: vm-migration
-            track: "5.0/candidate"
-          - test: vm-migration
-            track: "5.0/edge"
+          - test: ${{ startsWith(track, '5.0/') && cloud-init }}
+          - test: ${{ startsWith(track, '5.0/') && efi-vars-editor-vm }}
+          - test: ${{ startsWith(track, '5.0/') && lxd-installer }}
+          - test: ${{ startsWith(track, '5.0/') && network-ovn ovn:latest/edge }}
+          - test: ${{ startsWith(track, '5.0/') && qemu-external-vm }}
+          - test: ${{ startsWith(track, '5.0/') && vm-migration }}
           # not compatible with 5.21/*
-          - test: lxd-installer
-            track: "5.21/candidate"
-          - test: lxd-installer
-            track: "5.21/edge"
-          - test: qemu-external-vm
-            track: "5.21/candidate"
-          - test: qemu-external-vm
-            track: "5.21/edge"
+          - test: ${{ startsWith(track, '5.21/') && lxd-installer }}
+          - test: ${{ startsWith(track, '5.21/') && qemu-external-vm }}
           # some tests are not worth testing on specific OSes
           - os: 22.04
             test: lxd-installer
           - os: 22.04
             test: qemu-external-vm
           # skip track/os combinations that are too far appart
-          - os: 24.04
-            track: "4.0/candidate"
-          - os: 24.04
-            track: "4.0/edge"
-          - os: 24.04
-            track: "5.0/candidate"
-          - os: 24.04
-            track: "5.0/edge"
+          - os: ${{ startsWith(matrix.track, '4.0/') && 24.04 }}
+          - os: ${{ startsWith(matrix.track, '5.0/') && 24.04 }}
 
     steps:
       - name: Tune disk performance
