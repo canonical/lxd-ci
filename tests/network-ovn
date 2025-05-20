@@ -1714,25 +1714,35 @@ ovn_acl_tests() {
     lxc network set ovn0 security.acls=lxdbr0-ping
     sleep 2
 
-    lxc exec c1 -- dig @10.10.11.3 +tcp +timeout=1 lxdbr0.test | grep "refused"
-    lxc exec c1 -- dig @fd42:4242:4242:1010::2 +tcp +timeout=1 lxdbr0.test | grep "refused"
-    lxc exec c1 -- ping -nc1 -w5 -4 10.10.11.3 | grep "Host Unreachable"
-    lxc exec c1 -- ping -nc1 -w5 -6 fd42:4242:4242:1010::2 | grep "Administratively prohibited"
+    OUTPUT="$(! lxc exec c1 -- dig @10.10.11.3 +tcp +timeout=1 lxdbr0.test || false)"
+    echo "${OUTPUT}" | grep -wF "refused"
+    OUTPUT="$(! lxc exec c1 -- dig @fd42:4242:4242:1010::2 +tcp +timeout=1 lxdbr0.test || false)"
+    echo "${OUTPUT}" | grep -wF "refused"
+    OUTPUT="$(! lxc exec c1 -- ping -nc1 -w5 -4 10.10.11.3 || false)"
+    echo "${OUTPUT}" | grep -F "Host Unreachable"
+    OUTPUT="$(! lxc exec c1 -- ping -nc1 -w5 -6 fd42:4242:4242:1010::2 || false)"
+    echo "${OUTPUT}" | grep -F "Administratively prohibited"
 
     echo "==> Check setting default rule action to drop takes effect"
     lxc network set ovn0 security.acls.default.egress.action=drop
-    lxc exec c1 -- dig @10.10.11.3 +tcp +timeout=1 lxdbr0.test | grep  "timed out"
-    lxc exec c1 -- dig @fd42:4242:4242:1010::2 +tcp +timeout=1 lxdbr0.test | grep "timed out"
+    OUTPUT="$(! lxc exec c1 -- dig @10.10.11.3 +tcp +timeout=1 lxdbr0.test || false)"
+    echo "${OUTPUT}" | grep -F "timed out"
+    OUTPUT="$(! lxc exec c1 -- dig @fd42:4242:4242:1010::2 +tcp +timeout=1 lxdbr0.test || false)"
+    echo "${OUTPUT}" | grep -F "timed out"
     ! lxc exec c1 -- ping -nc1 -w5 -4 10.10.11.3 || false
     ! lxc exec c1 -- ping -nc1 -w5 -6 fd42:4242:4242:1010::2 || false
 
     # Check setting default rule action to reject takes effect. Same as if unspecified.
     lxc network set ovn0 security.acls.default.egress.action=reject
     sleep 2
-    lxc exec c1 -- dig @10.10.11.3 +tcp +timeout=1 -p 5053 lxdbr0.test | grep "refused"
-    lxc exec c1 -- dig @fd42:4242:4242:1010::2 +tcp +timeout=1 -p 5053 lxdbr0.test | grep  "refused"
-    lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd | grep "Host Unreachable"
-    lxc exec c1 -- ping -nc1 -w5 -6 c2.lxd| grep "Administratively prohibited"
+    OUTPUT="$(! lxc exec c1 -- dig @10.10.11.3 +tcp +timeout=1 -p 5053 lxdbr0.test || false)"
+    echo "${OUTPUT}" | grep -wF "refused"
+    OUTPUT="$(! lxc exec c1 -- dig @fd42:4242:4242:1010::2 +tcp +timeout=1 -p 5053 lxdbr0.test || false)"
+    echo "${OUTPUT}" | grep -wF "refused"
+    OUTPUT="$(! lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd || false)"
+    echo "${OUTPUT}" | grep -F "Host Unreachable"
+    OUTPUT="$(! lxc exec c1 -- ping -nc1 -w5 -6 c2.lxd || false)"
+    echo "${OUTPUT}" | grep -F "Administratively prohibited"
 
     echo "==> Test assigning same ACL to NIC directly and unassigning from network"
     lxc config device set c1 eth0 security.acls=lxdbr0-ping
@@ -1784,15 +1794,21 @@ ovn_acl_tests() {
 
     echo "==> Test c1's default ingress rule defaults to reject by querying from c2 (which now has no ACLs applied)"
     lxc exec c2 -- apt-get install --no-install-recommends --yes bind9-dnsutils
-    lxc exec c2 -- dig @c1.lxd -4 +tcp +timeout=1 -p 5053 lxdbr0.test | grep "refused"
-    lxc exec c2 -- dig @c1.lxd -6 +tcp +timeout=1 -p 5053 lxdbr0.test | grep "refused"
-    lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd | grep "Host Unreachable"
-    lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd | grep "Administratively prohibited"
+    OUTPUT="$(! lxc exec c2 -- dig @c1.lxd -4 +tcp +timeout=1 -p 5053 lxdbr0.test || false)"
+    echo "${OUTPUT}" | grep -wF "refused"
+    OUTPUT="$(! lxc exec c2 -- dig @c1.lxd -6 +tcp +timeout=1 -p 5053 lxdbr0.test || false)"
+    echo "${OUTPUT}" | grep -wF "refused"
+    OUTPUT="$(! lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd || false)"
+    echo "${OUTPUT}" | grep -F "Host Unreachable"
+    OUTPUT="$(! lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd || false)"
+    echo  "${OUTPUT}" | grep -F "Administratively prohibited"
 
     echo "==> Test c1's default ingress rule drop by querying from c2 (which now has no ACLs applied)"
     lxc config device set c1 eth0 security.acls.default.ingress.action=drop
-    lxc exec c2 -- dig @c1.lxd -4 +tcp +timeout=1 -p 5053 lxdbr0.test | grep "timed out"
-    lxc exec c2 -- dig @c1.lxd -6 +tcp +timeout=1 -p 5053 lxdbr0.test | grep "timed out"
+    OUTPUT="$(! lxc exec c2 -- dig @c1.lxd -4 +tcp +timeout=1 -p 5053 lxdbr0.test || false)"
+    echo "${OUTPUT}" | grep -F "timed out"
+    OUTPUT="$(! lxc exec c2 -- dig @c1.lxd -6 +tcp +timeout=1 -p 5053 lxdbr0.test || false)"
+    echo "${OUTPUT}" | grep -F "timed out"
     ! lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd || false
     ! lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd || false
 
