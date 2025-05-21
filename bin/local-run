@@ -9,4 +9,4 @@ _script="$(mktemp -t "${test_name}.XXXX")"
 
 echo "==> Running the job ${test_name} against ${lxd_snap_channel}" >&2
 sed "1 r bin/helpers" "${script}" | sed "s|@@LXD_SNAP_CHANNEL@@$|LXD_SNAP_CHANNEL=${lxd_snap_channel}|" > "${_script}"
-exec bash "${_script}" "${@}"
+exec bash -euo pipefail "${_script}" "${@}"
