@@ -331,7 +331,7 @@ lxc config set v1 raw.idmap="both 1000 1000"
 
 # Check single entry raw.idmap has taken effect on disk share.
 lxc config device set v1 d1 source="${testRoot}/allowed1" path=/mnt
-lxc start v1 || (lxc info --show-log c1 ; false)
+lxc start v1 || { lxc info --show-log v1; false; }
 waitInstanceReady v1
 [ "$(lxc exec v1  -- stat /mnt/foo1 -c '%u:%g')" = "1000:1000" ] || false
 [ "$(lxc exec v1  -- stat /mnt/foo2 -c '%u:%g')" = "65534:65534" ] || false
