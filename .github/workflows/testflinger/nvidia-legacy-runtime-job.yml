@@ -1,0 +1,87 @@
+job_queue: $JOB_QUEUE
+global_timeout: 3600
+output_timeout: 1800
+provision_data:
+  distro: $DISTRO
+
+test_data:
+  test_cmds: |
+    #!/bin/bash
+
+    set -xeuo pipefail
+
+    # This is used, along with DEVICE_IP, by all scriptlets to access the device
+    export DEVICE_USER="ubuntu"
+
+    # retrieve the tools installer
+    curl -Ls -o install_tools.sh https://raw.githubusercontent.com/canonical/hwcert-jenkins-tools/main/install_tools.sh
+
+    # install the scriptlets and other tools on the agent and the device, as necessary
+    export TOOLS_PATH=tools
+    source install_tools.sh $TOOLS_PATH
+
+    # ensure device is available before continuing
+    wait_for_ssh --allow-degraded
+
+    # Wait for snapd to become available
+    retry -- _run "timeout 5 sudo snap wait system seed.loaded"
+    wait_for_snap_changes
+
+    # install NVIDIA drivers and user space utilities
+    _run install_packages ubuntu-drivers-common
+    _run sudo ubuntu-drivers install --gpgpu nvidia:570-server-open
+
+    # Let's try to be as close as we can to Ubuntu Core's
+    # mesa-2404:kernel-gpu-2404 components in terms of which packages
+    # we want to have. We need this because it allows us to expect
+    # the same libraries, configuration files, etc available in the container
+    # independently if it's a classic Ubuntu or Ubuntu Core installation.
+    # Please, refer to
+    # https://git.launchpad.net/~canonical-kernel-snaps/canonical-kernel-snaps/+git/kernel-snaps-u24.04/tree/snapcraft.yaml?h=pc-components#n162
+    _run install_packages libnvidia-egl-wayland1 \
+                          libnvidia-cfg1-570-server \
+                          libnvidia-common-570-server \
+                          libnvidia-compute-570-server \
+                          libnvidia-decode-570-server \
+                          libnvidia-encode-570-server \
+                          libnvidia-extra-570-server \
+                          libnvidia-gl-570-server \
+                          libnvidia-fbc1-570-server \
+                          nvidia-utils-570-server
+
+    # reboot and wait for machine to get back
+    _run sudo reboot
+    wait_for_ssh --allow-degraded
+
+    # verify that our drivers and tools work properly
+    _run lspci -k
+    _run ls /dev/nvidia*
+    _run nvidia-smi
+
+    # LXD working
+    _run sudo snap install lxd --channel=$SNAP_CHANNEL --no-wait
+    wait_for_snap_changes
+
+    _run sudo lxd init --auto
+    _run sudo usermod -G lxd ubuntu
+
+    _run lxc init ubuntu:noble c1 &
+    for i in $( seq 1 60 ); do
+      [ $i -lt 60 ]
+      _run lxc config device add c1 gpu0 gpu && break || /bin/true
+      sleep 1
+    done
+
+    _run lxc config set c1 nvidia.runtime=true
+    _run lxc start c1
+
+    # print out all mounts we have so we can compare it later if anything goes wrong
+    _run lxc exec c1 -- cat /proc/self/mountinfo
+
+    # check that nvidia-smi works
+    _run lxc exec c1 -- nvidia-smi
+
+    # check presence of a few different files to catch regressions
+    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "nvidia_icd.json"
+    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
+    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "libcuda.so"
