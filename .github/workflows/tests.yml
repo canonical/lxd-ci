@@ -10,13 +10,32 @@ on:
   workflow_dispatch:
     inputs:
       ubuntu-releases:
-        description: List of Ubuntu releases to run the tests against. In JSON format, i.e. '["22.04", "24.04"]'.
-        type: string
+        description: Ubuntu releases to run the tests against. In JSON format, i.e. '["22.04", "24.04"]'.
+        type: choice
         default: '["22.04", "24.04"]'
-      snap-tracks:
-        description: List of snap tracks to run the tests. In JSON format, i.e. '["latest/stable", "5.0/candidate"]'.
-        type: string
+        options:
+          - '["22.04", "24.04"]'
+          - '["22.04"]'
+          - '["24.04"]'
+      snap-track:
+        description: Snap track to run the tests i.e. '["latest/edge", "5.0/candidate"]'.
+        type: choice
         default: '["latest/edge"]'
+        options:
+          - '["latest/edge"]'
+          - '["latest/candidate"]'
+          - '["latest/stable"]'
+          - '["6/edge"]'
+          - '["6/candidate"]'
+          - '["6/stable"]'
+          - '["5.21/edge"]'
+          - '["5.21/candidate"]'
+          - '["5.0/edge"]'
+          - '["5.0/candidate"]'
+          - '["5.0/stable"]'
+          - '["4.0/edge"]'
+          - '["4.0/candidate"]'
+          - '["4.0/stable"]'
       self-hosted-runner:
         type: boolean
         description: Whether to use self-hosted runners to run the jobs.
@@ -34,7 +53,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.ubuntu-releases }}-${{ inputs.snap-tracks }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.ubuntu-releases }}-${{ inputs.snap-track }}
   # XXX: scheduled runs should not cancel manually triggered ones
   cancel-in-progress: ${{ !contains(github.event_name, 'schedule')}}
 
@@ -85,7 +104,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJSON(inputs.ubuntu-releases || '["22.04", "24.04"]') }}
-        track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge", "5.21/edge", "5.0/edge", "4.0/edge"]') }}
+        track: ${{ fromJSON(inputs.snap-track || '["latest/edge", "5.21/edge", "5.0/edge", "4.0/edge"]') }}
         test:
           - cgroup
           - cloud-init
