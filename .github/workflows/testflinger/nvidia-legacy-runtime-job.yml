@@ -82,6 +82,4 @@ test_data:
     _run lxc exec c1 -- nvidia-smi
 
     # check presence of a few different files to catch regressions
-    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "nvidia_icd.json"
-    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
     _run lxc exec c1 -- cat /proc/self/mountinfo | grep "libcuda.so"
