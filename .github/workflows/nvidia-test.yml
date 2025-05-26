@@ -1,4 +1,4 @@
-name: NVIDIA GPU passthrough
+name: NVIDIA GPU passthrough (containers)
 
 on:
   pull_request:
@@ -9,19 +9,48 @@ on:
     - cron: '38 6 */5 * *'
   workflow_dispatch:
     inputs:
-      snap-tracks:
-        description: List of snap tracks to run the tests. In JSON format, i.e. '["latest/stable", "5.0/candidate"]'.
-        type: string
+      ubuntu-releases:
+        description: Ubuntu releases to run the tests against. In JSON format, i.e. '["jammy", "noble"]'.
+        type: choice
+        default: '["noble"]'
+        options:
+          - '["jammy", "noble"]'
+          - '["jammy"]'
+          - '["noble"]'
+      snap-track:
+        description: Snap track to run the tests i.e. '["latest/edge", "5.0/candidate"]'.
+        type: choice
         default: '["latest/edge"]'
+        options:
+          - '["latest/edge"]'
+          - '["latest/candidate"]'
+          - '["latest/stable"]'
+          - '["6/edge"]'
+          - '["6/candidate"]'
+          - '["6/stable"]'
+          - '["5.21/edge"]'
+          - '["5.21/candidate"]'
+          - '["5.0/edge"]'
+          - '["5.0/candidate"]'
+          - '["5.0/stable"]'
+          - '["4.0/edge"]'
+          - '["4.0/candidate"]'
+          - '["4.0/stable"]'
 
 jobs:
-  uc-cdi-test:
+  uc24-cdi-test:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
-        track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge"]') }}
-        distro:
+        track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
+        os:
           - core24-latest
+        exclude:
+          # skip tracks without CDI support
+          - track: "4.0/candidate"
+          - track: "4.0/edge"
+          - track: "5.0/candidate"
+          - track: "5.0/edge"
     env:
       TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
@@ -35,7 +64,7 @@ jobs:
       - name: Create Testflinger job
         env:
           JOB_QUEUE: lxd-nvidia
-          DISTRO: ${{ matrix.distro }}
+          DISTRO: ${{ matrix.os }}
         run: |
           # Prepare job
           envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' \
@@ -53,9 +82,23 @@ jobs:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
-        track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge"]') }}
-        distro:
-          - noble
+        track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
+        os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
+        exclude:
+          # skip tracks without CDI support
+          - track: "4.0/candidate"
+          - track: "4.0/edge"
+          - track: "5.0/candidate"
+          - track: "5.0/edge"
+          # skip track/os combinations that are too far appart
+          - os: noble
+            track: "4.0/candidate"
+          - os: noble
+            track: "4.0/edge"
+          - os: noble
+            track: "5.0/candidate"
+          - os: noble
+            track: "5.0/edge"
     env:
       TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
@@ -69,7 +112,7 @@ jobs:
       - name: Create Testflinger job
         env:
           JOB_QUEUE: lxd-nvidia
-          DISTRO: ${{ matrix.distro }}
+          DISTRO: ${{ matrix.os }}
         run: |
           # Prepare job
           envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' \
@@ -87,9 +130,18 @@ jobs:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
-        track: ${{ fromJSON(inputs.snap-tracks || '["latest/edge"]') }}
-        distro:
-          - noble
+        track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
+        os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
+        exclude:
+          # skip track/os combinations that are too far appart
+          - os: noble
+            track: "4.0/candidate"
+          - os: noble
+            track: "4.0/edge"
+          - os: noble
+            track: "5.0/candidate"
+          - os: noble
+            track: "5.0/edge"
     env:
       TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
@@ -103,7 +155,7 @@ jobs:
       - name: Create Testflinger job
         env:
           JOB_QUEUE: lxd-nvidia
-          DISTRO: ${{ matrix.distro }}
+          DISTRO: ${{ matrix.os }}
         run: |
           # Prepare job
           envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' \
