@@ -1,6 +1,13 @@
 #!/bin/bash
 set -ux
 
+# wait for cloud-init to be done setting up the local env
+if command -v cloud-init > /dev/null; then
+    echo "Waiting for cloud-init"
+    cloud-init status --wait --long
+    echo "Done"
+fi
+
 script="${1}"
 lxd_snap_channel="${2}"
 shift 2
