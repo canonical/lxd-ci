@@ -185,6 +185,14 @@ actions:
     # Disable loginuid in PAM stack
     sed -i '/^session.*pam_loginuid.so/s/^session/# session/' /etc/pam.d/*
 
+# Remove security.selinux xattr on container images.
+- trigger: post-unpack
+  action: |-
+    #!/bin/sh
+    find / -xdev -exec setfattr -x security.selinux {} 2>/dev/null \;
+  types:
+  - container
+
 # Strip security.ima from all files that have it set.
 - trigger: post-files
   action: |-
