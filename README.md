@@ -64,6 +64,7 @@ config:
     packages:
     - jq
     - make
+    - yq
   limits.cpu: "4"
   limits.memory: 16GiB
   security.devlxd.images: "true"
