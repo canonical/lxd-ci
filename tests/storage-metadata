@@ -235,6 +235,11 @@ EOF
         lxc move c1:i1 i1
         [ "$(lxc query "/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
 
+        echo "==> Check the migrated ${type} can be started"
+        lxc start i1
+        waitInstanceReady i1
+        lxc stop -f i1
+
         echo "==> Check the ${type} can be migrated from LXD ${LXD_SNAP_CHANNEL} to ${versStr}"
         lxc move i1 c1:i1
         [ "$(lxc query "c1:/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
