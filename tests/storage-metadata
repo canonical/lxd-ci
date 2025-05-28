@@ -144,8 +144,14 @@ EOF
             extra_args="--vm"
         fi
 
+        vol_size="3584MiB"
+        if [ "${type}" = "container" ]; then
+            # Overwrite the root volume's size for containers to speed up the export/import.
+            vol_size="512MiB"
+        fi
+
         echo "==> Create a ${type} and snapshot it"
-        lxc init c1:i1 -d root,size=1MiB --empty ${extra_args} # Don't quote to omit empty extra args.
+        lxc init "${IMAGE}" c1:i1 -d root,size="${vol_size}" ${extra_args} # Don't quote to omit empty extra args.
         lxc snapshot c1:i1
 
         echo "==> Export using the default backup format implicitly by not specifying a version"
