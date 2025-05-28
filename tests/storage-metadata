@@ -107,7 +107,7 @@ for vers in "latest" "5.21" "5.0"; do
     fi
 
     echo "==> Create container with a ${versStr} LXD"
-    lxc launch "${IMAGE}" c1 -s "${poolName}" -c limits.cpu=4 -c limits.memory=4GiB -d root,size=20GiB
+    lxc launch "${IMAGE}" c1 -s "${poolName}" -c security.devlxd.images=true -c limits.cpu=4 -c limits.memory=4GiB -d root,size=20GiB
     waitInstanceReady c1
 
     echo "==> Add required devices for creating empty VMs inside of the container"
@@ -144,8 +144,14 @@ EOF
             extra_args="--vm"
         fi
 
+        vol_size="3584MiB"
+        if [ "${type}" = "container" ]; then
+            # Overwrite the root volume's size for containers to speed up the export/import.
+            vol_size="512MiB"
+        fi
+
         echo "==> Create a ${type} and snapshot it"
-        lxc init c1:i1 -d root,size=1MiB --empty ${extra_args} # Don't quote to omit empty extra args.
+        lxc init "${IMAGE}" c1:i1 -d root,size="${vol_size}" ${extra_args} # Don't quote to omit empty extra args.
         lxc snapshot c1:i1
 
         echo "==> Export using the default backup format implicitly by not specifying a version"
@@ -228,6 +234,17 @@ EOF
         echo "==> Check the ${type} can be migrated from LXD ${versStr} to ${LXD_SNAP_CHANNEL}"
         lxc move c1:i1 i1
         [ "$(lxc query "/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+
+        echo "==> Check the migrated ${type} can be started"
+        lxc start i1
+        waitInstanceReady i1
+        lxc stop -f i1
+
+        # Only try resetting the config keys if the local version of LXD (${LXD_SNAP_CHANNEL}) isn't 5.0.
+        if [ "${vers}" = "5.0" ] && [ "$(echo "${LXD_SNAP_CHANNEL}" | cut -d/ -f1)" != "5.0" ]; then
+            echo "==> Reset config keys not available in 5.0 to enable migration"
+            lxc config unset i1 volatile.last_state.ready
+        fi
 
         echo "==> Check the ${type} can be migrated from LXD ${LXD_SNAP_CHANNEL} to ${versStr}"
         lxc move i1 c1:i1
