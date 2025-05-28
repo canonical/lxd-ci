@@ -23,9 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 40
-          - 41
-          - 42
+          - 41 # EOL: 2025-11-19
+          - 42 # EOL: 2026-05-13
         variant:
           - default
           - cloud
