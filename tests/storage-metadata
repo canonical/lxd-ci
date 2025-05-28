@@ -240,6 +240,12 @@ EOF
         waitInstanceReady i1
         lxc stop -f i1
 
+        # Only try resetting the config keys if the local version of LXD (${LXD_SNAP_CHANNEL}) isn't 5.0.
+        if [ "${vers}" = "5.0" ] && [ "$(echo "${LXD_SNAP_CHANNEL}" | cut -d/ -f1)" != "5.0" ]; then
+            echo "==> Reset config keys not available in 5.0 to enable migration"
+            lxc config unset i1 volatile.last_state.ready
+        fi
+
         echo "==> Check the ${type} can be migrated from LXD ${LXD_SNAP_CHANNEL} to ${versStr}"
         lxc move i1 c1:i1
         [ "$(lxc query "c1:/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
