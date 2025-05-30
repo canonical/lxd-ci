@@ -152,7 +152,7 @@ EOF
         # 5.0/5.21 always use the old format.
         # > 5.21 uses the new format.
         lxc export c1:i1 "${tmpdir}/i1.tar.gz"
-        tar -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
+        tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
 
         echo "==> Check the backup index file"
         cat "${tmpdir}/backup/index.yaml"
@@ -188,7 +188,7 @@ EOF
         if lxc exec c1 -- sh -c "$(declare -f hasNeededAPIExtension); hasNeededAPIExtension backup_metadata_version" && hasNeededAPIExtension backup_metadata_version; then
             echo "==> Export using the old backup format 1 explicitly"
             lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 1
-            tar -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
+            tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
 
             echo "==> Check the backup index file"
             cat "${tmpdir}/backup/index.yaml"
@@ -205,7 +205,7 @@ EOF
 
             echo "==> Export using the new backup format 2 explicitly"
             lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 2
-            tar -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
+            tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
 
             echo "==> Check the backup index file"
             cat "${tmpdir}/backup/index.yaml"
@@ -245,7 +245,7 @@ EOF
     # 5.0/5.21 always use the old format.
     # > 5.21 uses the new format.
     lxc storage volume export c1:default foo "${tmpdir}/foo.tar.gz"
-    tar -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
+    tar --occurrence=1 -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
 
     echo "==> Check the backup index file"
     cat "${tmpdir}/backup/index.yaml"
@@ -281,7 +281,7 @@ EOF
     if lxc exec c1 -- sh -c "$(declare -f hasNeededAPIExtension); hasNeededAPIExtension backup_metadata_version" && hasNeededAPIExtension backup_metadata_version; then
         echo "==> Export using the old backup format 1 explicitly"
         lxc storage volume export c1:default foo "${tmpdir}/foo.tar.gz" --export-version 1
-        tar -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
+        tar --occurrence=1 -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
 
         echo "==> Check the backup index file"
         cat "${tmpdir}/backup/index.yaml"
@@ -298,7 +298,7 @@ EOF
 
         echo "==> Export using the new backup format 2 explicitly"
         lxc storage volume export c1:default foo "${tmpdir}/foo.tar.gz" --export-version 2
-        tar -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
+        tar --occurrence=1 -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
 
         echo "==> Check the backup index file"
         cat "${tmpdir}/backup/index.yaml"
