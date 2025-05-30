@@ -18,7 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - focal
           - jammy
           - noble
         variant:
