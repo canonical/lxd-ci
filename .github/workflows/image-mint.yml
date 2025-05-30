@@ -38,7 +38,7 @@ jobs:
 
       - name: Build image
         run: |
-          TIMEOUT=1800
+          TIMEOUT=3600
           YAML="images/${{ env.distro }}.yaml"
           ARCH="${{ matrix.architecture }}"
           TYPE="${{ env.type }}"
