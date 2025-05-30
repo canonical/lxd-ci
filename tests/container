@@ -10,7 +10,7 @@ lxd init --auto --storage-backend btrfs
 # Test
 set -x
 
-RELEASES="${RELEASES:-"20.04 22.04 24.04"}"
+RELEASES="${RELEASES:-"22.04 24.04"}"
 
 known_systemd_remount_fs_issue() {
     ctn_name="${1}"
@@ -36,7 +36,7 @@ ignore_known_issues() {
     esac
 
     if [ "${use_case}" = "nested" ]; then
-        # XXX: 20.04, 22.04 and 24.04 fail with:
+        # XXX: 22.04 and 24.04 fail with:
         # ● apparmor.service      loaded failed failed Load AppArmor profiles
         # ● snapd.failure.service loaded failed failed Failure handling of the snapd snap
         # ● snapd.service         loaded failed failed Snap Daemon
@@ -61,39 +61,37 @@ ignore_known_issues() {
         return 0
     fi
 
-    if [ "${release}" != "20.04" ]; then
-        if [ "${use_case}" = "privileged" ]; then
-            # XXX: 22.04 fail with:
-            # ● systemd-sysusers.service loaded failed failed Create System Users
+    if [ "${use_case}" = "privileged" ]; then
+        # XXX: 22.04 fail with:
+        # ● systemd-sysusers.service loaded failed failed Create System Users
 
+        # XXX: 24.04 fail with:
+        # ● apparmor.service                         loaded failed failed Load AppArmor profiles
+        # ● systemd-logind.service                   loaded failed failed User Login Management
+        # ● systemd-networkd.service                 loaded failed failed Network Configuration
+        # ● systemd-resolved.service                 loaded failed failed Network Name Resolution
+        # ● systemd-sysctl.service                   loaded failed failed Apply Kernel Variables
+        # ● systemd-sysusers.service                 loaded failed failed Create System Users
+        # ● systemd-timedated.service                loaded failed failed Time & Date Service
+        # ● systemd-tmpfiles-setup-dev-early.service loaded failed failed Create Static Device Nodes in /dev gracefully
+        # ● systemd-tmpfiles-setup-dev.service       loaded failed failed Create Static Device Nodes in /dev
+        # ● systemd-tmpfiles-setup.service           loaded failed failed Create Volatile Files and Directories
+        # ● systemd-networkd.socket                  loaded failed failed Network Service Netlink Socket
+        known_issue=1
+    elif [ "${release}" = "24.04" ]; then
+        if [ "${use_case}" = "escapable" ]; then
+            # https://github.com/canonical/lxd/issues/13607
             # XXX: 24.04 fail with:
-            # ● apparmor.service                         loaded failed failed Load AppArmor profiles
-            # ● systemd-logind.service                   loaded failed failed User Login Management
-            # ● systemd-networkd.service                 loaded failed failed Network Configuration
-            # ● systemd-resolved.service                 loaded failed failed Network Name Resolution
-            # ● systemd-sysctl.service                   loaded failed failed Apply Kernel Variables
-            # ● systemd-sysusers.service                 loaded failed failed Create System Users
-            # ● systemd-timedated.service                loaded failed failed Time & Date Service
-            # ● systemd-tmpfiles-setup-dev-early.service loaded failed failed Create Static Device Nodes in /dev gracefully
-            # ● systemd-tmpfiles-setup-dev.service       loaded failed failed Create Static Device Nodes in /dev
-            # ● systemd-tmpfiles-setup.service           loaded failed failed Create Volatile Files and Directories
-            # ● systemd-networkd.socket                  loaded failed failed Network Service Netlink Socket
+            # ● systemd-binfmt.service loaded failed failed Set Up Additional Binary Formats
             known_issue=1
-        elif [ "${release}" = "24.04" ]; then
-            if [ "${use_case}" = "escapable" ]; then
-                # https://github.com/canonical/lxd/issues/13607
-                # XXX: 24.04 fail with:
-                # ● systemd-binfmt.service loaded failed failed Set Up Additional Binary Formats
-                known_issue=1
-            elif [ "${use_case}" = "isolated" ]; then
-                # XXX: 24.04 fail with:
-                # ● apparmor.service loaded failed failed Load AppArmor profiles
-                known_issue=1
-            elif [ "${use_case}" = "nesting" ]; then
-                # XXX: 24.04 fail with:
-                # ● apparmor.service loaded failed failed Load AppArmor profiles
-                known_issue=1
-            fi
+        elif [ "${use_case}" = "isolated" ]; then
+            # XXX: 24.04 fail with:
+            # ● apparmor.service loaded failed failed Load AppArmor profiles
+            known_issue=1
+        elif [ "${use_case}" = "nesting" ]; then
+            # XXX: 24.04 fail with:
+            # ● apparmor.service loaded failed failed Load AppArmor profiles
+            known_issue=1
         fi
     fi
 
