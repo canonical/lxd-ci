@@ -108,11 +108,19 @@ echo "==> Validating the cluster"
 lxc exec m1 -- lxc info
 lxc exec m1 -- lxc cluster list
 
+echo "==> Create test instances"
+for i in 1 2; do
+  lxc exec m1 -- lxc launch "${IMAGE}" u"${i}"
+  lxc exec m1 -- sh -c "$(declare -f waitInstanceReady); waitInstanceReady u${i}"
+  # Apparmor fails to start (`/sbin/apparmor_parser: Access denied. You need
+  # policy admin privileges to manage profiles.`) in nested containers which
+  # cascades to snapd as it requires Apparmor to be functional
+  lxc exec m1 -- lxc exec u"${i}" -- systemctl mask --now apparmor.service snapd.seeded.service snapd.service snapd.socket
+  lxc exec m1 -- lxc exec u"${i}" -- systemctl reset-failed apparmor.service snapd.seeded.service snapd.service snapd.socket
+done
+
 # Test fan networking (intra fan from container and host, as well as external NAT comms)
 echo "==> Test fan networking"
-lxc exec m1 -- lxc launch "${IMAGE}" u1
-lxc exec m1 -- lxc launch "${IMAGE}" u2
-
 instance_connectivity_checks
 
 tmp_cert_dir="$(mktemp -d)"
