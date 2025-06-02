@@ -58,7 +58,7 @@ EOF
 done
 
 # Install LXD in the first member.
-lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
 lxc exec member1 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member1/var/snap/lxd/common/lxd.debug
@@ -73,7 +73,7 @@ lxc exec member1 -- lxc cluster enable member1
 joinToken="$(lxc exec member1 -- lxc cluster add member2 --quiet)"
 
 # Install LXD on the second member.
-lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
 lxc exec member2 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member2/var/snap/lxd/common/lxd.debug
