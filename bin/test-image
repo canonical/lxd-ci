@@ -271,6 +271,7 @@ if has_cloud_init; then
     echo "==> Performing post cloud-init reboot test"
     for name in ${INSTANCES}; do
         lxc exec "${name}" -- cloud-init status --wait --long
+        [ "$(lxc exec "${name}" -- cloud-init status)" = "status: done" ]
 
         # If systemd is available, use it to wait for any other job to complete before the restart
         if lxc exec "${name}" -- test -d /run/systemd/system/; then
