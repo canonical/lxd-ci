@@ -38,10 +38,7 @@ lxd init --auto --network-address "[::]" --network-port "8443"
 checkIPAddresses() {
     instName=$1
 
-    address=$(lxc query "/1.0/instances/${instName}/state" | jq -r ".network.eth0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
-    if [ -z "${address}" ]; then
-        address=$(lxc query "/1.0/instances/${instName}/state" | jq -r ".network.enp5s0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
-    fi
+    address="$(lxc query "/1.0/instances/${instName}/state" | jq -r '.network | .[].addresses | .[] | select(.scope == "global") | .address')"
 
     if [ -z "${address}" ]; then
         echo "===> FAIL: No network interface: ${instName}"
