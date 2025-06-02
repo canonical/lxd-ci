@@ -112,7 +112,7 @@ lxc exec c1 -- systemctl restart snapd.service
 # We need snapd to be ready before the next tests. Finagle the waitSnapdSeed function definition into the container and run it.
 # shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
 lxc exec c1 -- snap wait system seed.loaded
-lxc exec c1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+lxc exec c1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
 lxc exec c1 -- /snap/bin/lxd init --auto
 
 lxc monitor --type lifecycle --format json > monitor.json 2>&1 &
