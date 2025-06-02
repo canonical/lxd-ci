@@ -387,7 +387,7 @@ if hasNeededAPIExtension instance_import_conversion; then
         # Create new instance.
         lxc launch images:centos/9-Stream v1 --vm --device root,size=4GiB
         waitInstanceBooted v1
-        sleep 10
+        sleep 1
 
         # Remove LXD dracut configuration to allow removing the virtio_scsi module.
         # Afterwards, rebuild the initramfs image and stop the instance.
