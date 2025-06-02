@@ -98,10 +98,13 @@ testImportedInstance() {
     echo "Starting instance ${instName}..."
     lxc start "${instName}"
 
-    # Wait for the instance to be ready and ensure it has global ip address.
+    # Wait for the instance to be ready and ensure it has global IP addresses.
     echo "Waiting instance ${instName} to start..."
     waitInstanceReady "${instName}"
-    sleep 10
+    for _ in $(seq 10); do
+        sleep 1
+        [ "$(lxc query "/1.0/instances/${instName}/state" | jq -r '.network | .[].addresses | .[] | select(.scope == "global") | .address' | wc -l)" -ge 2 ] && break
+    done
 
     # Print the instances.
     lxc list
