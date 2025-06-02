@@ -382,7 +382,7 @@ if hasNeededAPIExtension instance_import_conversion; then
         echo "===> SKIP: The virt-v2v-in-place is not installed"
     else
         # Create new instance.
-        lxc launch images:centos/9-Stream v1 --vm
+        lxc launch images:centos/9-Stream v1 --vm --device root,size=4GiB
         waitInstanceBooted v1
         sleep 10
 
