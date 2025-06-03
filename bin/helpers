@@ -307,6 +307,25 @@ install_lxd() (
     touch ~/snap/lxd/common/config/config.yml
 )
 
+# install_snapd: install snapd from a specific channel or the default if none is provided.
+install_snapd() (
+    local SNAPD_SNAP_CHANNEL="${1:-}"
+    local action="install"
+    # Wait for snapd seeding
+    waitSnapdSeed
+
+    # check if snapd is already installed
+    if snap list snapd 2>/dev/null; then
+        action="refresh"
+    fi
+
+    if [ -n "${SNAPD_SNAP_CHANNEL:-}" ]; then
+        snap "${action}" snapd --channel "${SNAPD_SNAP_CHANNEL}" --cohort=+
+    else
+        snap "${action}" snapd
+    fi
+)
+
 # hasNeededAPIExtension: check if LXD supports the needed extension.
 hasNeededAPIExtension() (
     needed_extension="${1}"
