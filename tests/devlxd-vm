@@ -108,7 +108,7 @@ lxc exec v1 -- systemctl daemon-reload
 lxc exec v1 -- systemctl restart snapd.service
 
 # Test nested VM functionality.
-lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
 lxc exec v1 -- /snap/bin/lxd init --auto
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" v1/var/snap/lxd/common/lxd.debug

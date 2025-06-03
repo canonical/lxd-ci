@@ -154,7 +154,7 @@ EOF
     lxc exec n1 -- systemctl restart snapd.service
     isSystemdClean n1 || ignore_known_issues "n1" "nesting"
     lxc exec n1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
-    lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+    lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
     lxc exec n1 -- lxd init --auto
     lxc exec n1 -- lxc launch "${IMAGE}" n11
     sleep 5

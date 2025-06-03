@@ -128,7 +128,7 @@ EOF
 
     # shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
     lxc exec c1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
-    lxc exec c1 -- snap install lxd --channel="${versStr}"
+    lxc exec c1 -- snap install lxd --channel="${versStr}" --cohort=+
     lxc exec c1 -- lxd init --auto --storage-backend=dir --network-address="[::]" --network-port=8443
 
     echo "==> Add nested LXD as remote"
