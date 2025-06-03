@@ -27,6 +27,7 @@ RELEASES="${RELEASES:-"24.04 25.04 25.10"}"
 test_lxd_installer() {
     local instance="${1}"
     local release="${2}"
+    local snapd_channel="${3:-}"
 
     echo "==> ${instance} (${release})"
 
@@ -39,6 +40,11 @@ Environment=SNAPD_STANDBY_WAIT=1m
 EOF
     lxc exec "${instance}" -- systemctl daemon-reload
     lxc exec "${instance}" -- systemctl restart snapd.service
+
+    if [ -n "${snapd_channel}" ]; then
+        echo "==> Installing snapd from ${snapd_channel}"
+        install_snapd "${snapd_channel}"
+    fi
 
     # report on lxd-installer version
     lxc exec "${instance}" -- dpkg -l | grep -wF lxd-installer
