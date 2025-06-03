@@ -38,10 +38,7 @@ lxd init --auto --network-address "[::]" --network-port "8443"
 checkIPAddresses() {
     instName=$1
 
-    address=$(lxc query "/1.0/instances/${instName}/state" | jq -r ".network.eth0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
-    if [ -z "${address}" ]; then
-        address=$(lxc query "/1.0/instances/${instName}/state" | jq -r ".network.enp5s0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
-    fi
+    address="$(lxc query "/1.0/instances/${instName}/state" | jq -r '.network | .[].addresses | .[] | select(.scope == "global") | .address')"
 
     if [ -z "${address}" ]; then
         echo "===> FAIL: No network interface: ${instName}"
@@ -98,10 +95,13 @@ testImportedInstance() {
     echo "Starting instance ${instName}..."
     lxc start "${instName}"
 
-    # Wait for the instance to be ready and ensure it has global ip address.
+    # Wait for the instance to be ready and ensure it has global IP addresses.
     echo "Waiting instance ${instName} to start..."
     waitInstanceReady "${instName}"
-    sleep 10
+    for _ in $(seq 10); do
+        sleep 1
+        [ "$(lxc query "/1.0/instances/${instName}/state" | jq -r '.network | .[].addresses | .[] | select(.scope == "global") | .address' | wc -l)" -ge 2 ] && break
+    done
 
     # Print the instances.
     lxc list
@@ -239,7 +239,7 @@ conversion() {
 # Test container migration using conversion mode. If server does not
 # support conversion API extension, lxd-migrate must fallback to
 # migration mode and successfully transfer the rootfs.
-lxc launch ubuntu-minimal-daily:24.04 c1
+lxc launch ubuntu-minimal-daily:24.04 c1 --device root,size=4GiB
 conversion_container "c1"
 lxc delete -f c1
 
@@ -382,9 +382,9 @@ if hasNeededAPIExtension instance_import_conversion; then
         echo "===> SKIP: The virt-v2v-in-place is not installed"
     else
         # Create new instance.
-        lxc launch images:centos/9-Stream v1 --vm
+        lxc launch images:centos/9-Stream v1 --vm --config limits.cpu=2 --config limits.memory=2GiB --device root,size=4GiB
         waitInstanceBooted v1
-        sleep 10
+        sleep 1
 
         # Remove LXD dracut configuration to allow removing the virtio_scsi module.
         # Afterwards, rebuild the initramfs image and stop the instance.
