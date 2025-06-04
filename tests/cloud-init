@@ -61,6 +61,32 @@ lxc profile unset default cloud-init.user-data
 lxc profile unset default cloud-init.ssh-keys.ignored
 lxc delete -f c1
 
+echo "==> Create test instance"
+lxc init "${IMAGE}" c1 -c cloud-init.user-data="$(cat <<EOF
+## template: jinja
+#cloud-config
+runcmd:
+  - echo {{c1.local_hostname}} > /var/tmp/runcmd_output
+EOF
+)"
+
+if hasNeededAPIExtension "cloud_init_ssh_keys"; then
+  lxc config set c1 cloud-init.ssh-keys.mykey=root:lp:someuser
+fi
+
+lxc start c1
+waitInstanceReady c1
+
+echo "==> Test the cloud-init template is in effect in container"
+USERDATA=$(lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/config/cloud-init.user-data)
+echo "${USERDATA}" | grep "## template"
+if hasNeededAPIExtension "cloud_init_ssh_keys"; then
+  echo "${USERDATA}" | grep "lp:someuser"
+fi
+
+# Cleanup
+lxc delete -f c1
+
 echo "==> Use the NoCloud datasource by using a disk device with a \"cloud-init:config\" source"
 lxc init "${IMAGE}" v1 --vm -c cloud-init.user-data="$(cat <<EOF
 ## template: jinja
