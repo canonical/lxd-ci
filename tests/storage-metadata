@@ -107,7 +107,7 @@ for vers in "latest" "5.21" "5.0"; do
     fi
 
     echo "==> Create container with a ${versStr} LXD"
-    lxc launch "${IMAGE}" c1 -s "${poolName}" -c security.devlxd.images=true -c limits.cpu=4 -c limits.memory=4GiB -d root,size=20GiB
+    lxc launch "${IMAGE}" c1 -s "${poolName}" -c security.devlxd.images=true -c security.nesting=true -c limits.cpu=4 -c limits.memory=4GiB -d root,size=20GiB
     waitInstanceReady c1
 
     echo "==> Add required devices for creating empty VMs inside of the container"
