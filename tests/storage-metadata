@@ -250,6 +250,14 @@ EOF
         lxc move i1 c1:i1
         [ "$(lxc query "c1:/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
 
+        # When migrating the instance from 5.0 to latest and back to 5.0, the VM's
+        # state directory contains an invalid version of the firmware.
+        # Reset the file (and symlink) which causes LXD to pick up the 5.0 firmware.
+        if [ "${type}" = "vm" ] && [ "${vers}" = "5.0" ] && [ "$(echo "${LXD_SNAP_CHANNEL}" | cut -d/ -f1)" != "5.0" ]; then
+            echo "==> Ensure LXD picks up the right firmware"
+            lxc exec c1 -- nsenter --mount=/run/snapd/ns/lxd.mnt rm /var/snap/lxd/common/lxd/virtual-machines/i1/qemu.nvram
+        fi
+
         lxc delete -f c1:i1
     done
 
