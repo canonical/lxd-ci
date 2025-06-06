@@ -258,6 +258,9 @@ EOF
             lxc exec c1 -- nsenter --mount=/run/snapd/ns/lxd.mnt rm /var/snap/lxd/common/lxd/virtual-machines/i1/qemu.nvram
         fi
 
+        echo "==> Check the migrated ${type} can be started back on its origin"
+        lxc start c1:i1
+        waitInstanceReady c1:i1
         lxc delete -f c1:i1
     done
 
