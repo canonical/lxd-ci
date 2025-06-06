@@ -23,11 +23,11 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - "3.19"
-          - "3.20"
-          - "3.21"
+          - "3.19"  # EOL: 2025-11-01
+          - "3.20"  # EOL: 2026-04-01
+          - "3.21"  # EOL: 2026-11-01
           - "3.22"  # EOL: 2027-05-01
-          - "edge"
+          - "edge"  # EOL: never
         variant:
           - default
           - cloud
