@@ -107,7 +107,7 @@ for vers in "latest" "5.21" "5.0"; do
     fi
 
     echo "==> Create container with a ${versStr} LXD"
-    lxc launch "${IMAGE}" c1 -s "${poolName}" -c limits.cpu=4 -c limits.memory=4GiB -d root,size=20GiB
+    lxc launch "${IMAGE}" c1 -s "${poolName}" -c security.devlxd.images=true -c security.nesting=true -c limits.cpu=4 -c limits.memory=4GiB -d root,size=20GiB
     waitInstanceReady c1
 
     echo "==> Add required devices for creating empty VMs inside of the container"
@@ -144,8 +144,14 @@ EOF
             extra_args="--vm"
         fi
 
+        vol_size="3584MiB"
+        if [ "${type}" = "container" ]; then
+            # Overwrite the root volume's size for containers to speed up the export/import.
+            vol_size="512MiB"
+        fi
+
         echo "==> Create a ${type} and snapshot it"
-        lxc init c1:i1 -d root,size=1MiB --empty ${extra_args} # Don't quote to omit empty extra args.
+        lxc init "${IMAGE}" c1:i1 -d root,size="${vol_size}" ${extra_args} # Don't quote to omit empty extra args.
         lxc snapshot c1:i1
 
         echo "==> Export using the default backup format implicitly by not specifying a version"
@@ -229,10 +235,32 @@ EOF
         lxc move c1:i1 i1
         [ "$(lxc query "/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
 
+        echo "==> Check the migrated ${type} can be started"
+        lxc start i1
+        waitInstanceReady i1
+        lxc stop -f i1
+
+        # Only try resetting the config keys if the local version of LXD (${LXD_SNAP_CHANNEL}) isn't 5.0.
+        if [ "${vers}" = "5.0" ] && [ "$(echo "${LXD_SNAP_CHANNEL}" | cut -d/ -f1)" != "5.0" ]; then
+            echo "==> Reset config keys not available in 5.0 to enable migration"
+            lxc config unset i1 volatile.last_state.ready
+        fi
+
         echo "==> Check the ${type} can be migrated from LXD ${LXD_SNAP_CHANNEL} to ${versStr}"
         lxc move i1 c1:i1
         [ "$(lxc query "c1:/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
 
+        # When migrating the instance from 5.0 to latest and back to 5.0, the VM's
+        # state directory contains an invalid version of the firmware.
+        # Reset the file (and symlink) which causes LXD to pick up the 5.0 firmware.
+        if [ "${type}" = "vm" ] && [ "${vers}" = "5.0" ] && [ "$(echo "${LXD_SNAP_CHANNEL}" | cut -d/ -f1)" != "5.0" ]; then
+            echo "==> Ensure LXD picks up the right firmware"
+            lxc exec c1 -- nsenter --mount=/run/snapd/ns/lxd.mnt rm /var/snap/lxd/common/lxd/virtual-machines/i1/qemu.nvram
+        fi
+
+        echo "==> Check the migrated ${type} can be started back on its origin"
+        lxc start c1:i1
+        waitInstanceReady c1:i1
         lxc delete -f c1:i1
     done
 
