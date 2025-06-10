@@ -27,23 +27,35 @@ ip link set dummy0 up
 ip addr add 192.0.2.1/32 dev dummy0
 ip addr add 2001:db8::1/128 dev dummy0
 
-# Create VM and add routed NIC.
-lxc init "${IMAGE}" v1 --vm -s default -c limits.memory=512MiB
-lxc config device add v1 eth0 nic \
-    nictype=routed \
-    parent=dummy0 \
-    ipv4.address=192.0.2.2,192.0.2.3 \
-    ipv6.address=2001:db8::2,2001:db8::3
-
 NET_CONFIG_KEY="cloud-init.network-config"
 if ! hasNeededAPIExtension cloud_init; then
     NET_CONFIG_KEY="user.network-config"
 fi
-lxc config set v1 "${NET_CONFIG_KEY}" - << EOF
+
+for type in container vm; do
+    instName="c1"
+    iface="eth0"
+    extra_args=""
+    if [ "${type}" = "vm" ]; then
+      instName="v1"
+      extra_args="--vm"
+      iface="enp5s0"
+    fi
+
+    # Create instance and add routed NIC.
+    lxc init "${IMAGE}" "${instName}" -s default -c limits.memory=512MiB ${extra_args} # Don't quote to omit empty extra args.
+    lxc config device add "${instName}" eth0 nic \
+        nictype=routed \
+        parent=dummy0 \
+        ipv4.address=192.0.2.2,192.0.2.3 \
+        ipv6.address=2001:db8::2,2001:db8::3
+
+    # Set up the network configuration for the instance.
+    lxc config set "${instName}" "${NET_CONFIG_KEY}" - << EOF
 network:
   version: 2
   ethernets:
-    enp5s0:
+    ${iface}:
       routes:
       - to: default
         via: 169.254.0.1
@@ -58,22 +70,24 @@ network:
       - 2001:db8::3/128
 EOF
 
-lxc start v1
+    lxc start "${instName}"
 
-# Wait for VM to start.
-waitInstanceReady v1
-sleep 10
+    # Wait for VM to start.
+    waitInstanceReady "${instName}"
+    sleep 10
 
-# Test ping to/from VM NIC.
-ping -c1 -4 -W5 192.0.2.2
-ping -c1 -6 -W5 2001:db8::2
-lxc exec v1 -- ping -c1 -4 -W5 192.0.2.1
-lxc exec v1 -- ping -c1 -6 -W5 2001:db8::2
-lxc exec v1 -- ping -c1 -4 -W5 169.254.0.1
-lxc exec v1 -- ping -c1 -6 -W5 -I enp5s0 fe80::1
+    # Test ping to/from instance NIC.
+    ping -c1 -4 -W5 192.0.2.2
+    ping -c1 -6 -W5 2001:db8::2
+    lxc exec "${instName}" -- ping -c1 -4 -W5 192.0.2.1
+    lxc exec "${instName}" -- ping -c1 -6 -W5 2001:db8::2
+    lxc exec "${instName}" -- ping -c1 -4 -W5 169.254.0.1
+    lxc exec "${instName}" -- ping -c1 -6 -W5 "fe80::1%${iface}"
+
+    lxc delete -f "${instName}"
+done
 
 # Cleanup.
-lxc delete -f v1
 ip link delete dummy0
 lxc storage delete default
 
