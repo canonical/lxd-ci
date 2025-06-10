@@ -58,6 +58,11 @@ waitInstanceBooted m1
 # XXX: not using `--cohort=+` as this is an older LXD that will be upgraded later on
 lxc exec m1 -- snap install lxd --channel="$2" || lxc exec m1 -- snap refresh lxd --channel="$2"
 
+# The test runs a `snap refresh` on each cluster member and expects LXD not to be refreshed at this point
+# but it can happen if the channel has a new revision phasing in due to intentionally not using `--cohort=+`.
+# Holding the LXD snap prevents the `snap refresh` from triggering a cluster-wide LXD snap refresh too early.
+lxc exec m1 -- snap refresh --hold lxd
+
 lxc pause m1
 for i in $(seq 2 "${SIZE}"); do
     lxc copy m1 "m${i}"
