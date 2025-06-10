@@ -82,12 +82,12 @@ EOF
     lxc exec "${instName}" -- ip -6 route
 
     # Test ping to/from instance NIC.
-    ping -c1 -4 -W5 192.0.2.2
-    ping -c1 -6 -W5 2001:db8::2
-    lxc exec "${instName}" -- ping -c1 -4 -W5 192.0.2.1
-    lxc exec "${instName}" -- ping -c1 -6 -W5 2001:db8::2
-    lxc exec "${instName}" -- ping -c1 -4 -W5 169.254.0.1
-    lxc exec "${instName}" -- ping -c1 -6 -W5 "fe80::1%${iface}"
+    ping -nc1 -4 -W5 192.0.2.2
+    ping -nc1 -6 -W5 2001:db8::2
+    lxc exec "${instName}" -- ping -nc1 -4 -W5 192.0.2.1
+    lxc exec "${instName}" -- ping -nc1 -6 -W5 2001:db8::2
+    lxc exec "${instName}" -- ping -nc1 -4 -W5 169.254.0.1
+    lxc exec "${instName}" -- ping -nc1 -6 -W5 "fe80::1%${iface}"
 
     lxc delete -f "${instName}"
 done
