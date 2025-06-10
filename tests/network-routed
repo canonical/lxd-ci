@@ -76,6 +76,11 @@ EOF
     waitInstanceReady "${instName}"
     sleep 10
 
+    # Show useful debugging information.
+    lxc exec "${instName}" -- ip a
+    lxc exec "${instName}" -- ip route
+    lxc exec "${instName}" -- ip -6 route
+
     # Test ping to/from instance NIC.
     ping -c1 -4 -W5 192.0.2.2
     ping -c1 -6 -W5 2001:db8::2
