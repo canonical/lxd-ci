@@ -1,6 +1,9 @@
 #!/bin/bash
 set -eux
 
+# Install dependencies
+install_deps iputils-ping
+
 # Install LXD
 install_lxd
 
