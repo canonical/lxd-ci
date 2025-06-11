@@ -79,6 +79,19 @@ META_DATA="$(lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.so
 grep -xE 'instance-id: [^ ]{36}' <<< "${META_DATA}"
 grep -xF 'local-hostname: v1' <<< "${META_DATA}"
 
+# Test cloud-init user-data.
+# Ensure the header is preserved and the outputed value is not escaped.
+cloudInitUserData="#cloud-config
+package_update: false
+package_upgrade: false
+runcmd:
+- echo test"
+
+lxc config set v1 cloud-init.user-data "${cloudInitUserData}"
+out=$(lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock lxd/1.0/config/cloud-init.user-data)
+[ "${out}" = "${cloudInitUserData}" ]
+lxc config unset v1 cloud-init.user-data
+
 if hasNeededAPIExtension instance_ready_state; then
   # test instance Ready state
   lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Ready"}' http://custom.socket/1.0
