@@ -73,8 +73,11 @@ lxc config set v1 security.devlxd true
 lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0 | jq
 lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/devices | jq
 lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
-lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'instance-id:'
-lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'local-hostname:'
+
+# Ensure that the outputed metadata is in correct format.
+META_DATA="$(lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data)"
+grep -xE 'instance-id: [^ ]{36}' <<< "${META_DATA}"
+grep -xF 'local-hostname: v1' <<< "${META_DATA}"
 
 if hasNeededAPIExtension instance_ready_state; then
   # test instance Ready state
