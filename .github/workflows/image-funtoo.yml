@@ -55,6 +55,8 @@ jobs:
 
       - name: Test container image
         uses: ./.github/actions/image-test
+        # avoid runaway test burning 6 hours of CI
+        timeout-minutes: 20
         if: contains(env.type, 'container')
         with:
           type: container
@@ -65,6 +67,8 @@ jobs:
 
       - name: Test VM image
         uses: ./.github/actions/image-test
+        # avoid runaway test burning 6 hours of CI
+        timeout-minutes: 40
         if: contains(env.type, 'vm')
         with:
           type: vm
