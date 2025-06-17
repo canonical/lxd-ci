@@ -309,7 +309,7 @@ lxc config device set v1 d1 source="${testRoot}/allowed1/not-allowed2"
 lxc config device set v1 d1 source="${testRoot}/allowed1/foolink" path=/mnt/foolink
 lxc start v1
 waitInstanceReady v1
-[ "$(lxc exec v1  -- stat /mnt/foolink -c '%u:%g')" = "65534:65534" ] || false
+[ "$(lxc exec v1  -- stat /mnt/foolink -c '%u:%g')" = "65534:65534" ]
 lxc stop -f v1
 
 # Check usage of raw.idmap is restricted.
@@ -333,8 +333,8 @@ lxc config set v1 raw.idmap="both 1000 1000"
 lxc config device set v1 d1 source="${testRoot}/allowed1" path=/mnt
 lxc start v1 || { lxc info --show-log v1; false; }
 waitInstanceReady v1
-[ "$(lxc exec v1  -- stat /mnt/foo1 -c '%u:%g')" = "1000:1000" ] || false
-[ "$(lxc exec v1  -- stat /mnt/foo2 -c '%u:%g')" = "65534:65534" ] || false
+[ "$(lxc exec v1  -- stat /mnt/foo1 -c '%u:%g')" = "1000:1000" ]
+[ "$(lxc exec v1  -- stat /mnt/foo2 -c '%u:%g')" = "65534:65534" ]
 
 # Check security.secureboot setting is applied to running VM at next start up.
 if lxc exec v1 -- mount | grep -qwF /boot/efi; then
