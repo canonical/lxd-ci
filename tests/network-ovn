@@ -716,14 +716,14 @@ ovn_forward_tests() {
     echo "==> Check a forward on the uplink bridge network cannot conflict with an existing OVN network forward"
     ! lxc network forward create lxdbr0 192.0.2.1 --project default || false
     ! lxc network forward create lxdbr0 2001:db8:1:2::1 --project default || false
-    lxc network forward create lxdbr0 192.0.2.3 --project default || false
-    lxc network forward create lxdbr0 2001:db8:1:2::3 --project default || false
+    lxc network forward create lxdbr0 192.0.2.3 --project default
+    lxc network forward create lxdbr0 2001:db8:1:2::3 --project default
     ! lxc network forward create ovn-virtual-network2 192.0.2.3 target_address="${ip4AddressPrefix2}.2" || false
     ! lxc network forward create ovn-virtual-network2 2001:db8:1:2::3 target_address="${ip6AddressPrefix2}::2" || false
     lxc network forward delete lxdbr0 192.0.2.3 --project default
     lxc network forward delete lxdbr0 2001:db8:1:2::3 --project default
-    lxc network forward create ovn-virtual-network2 192.0.2.3 target_address="${ip4AddressPrefix2}.2" || false
-    lxc network forward create ovn-virtual-network2 2001:db8:1:2::3 target_address="${ip6AddressPrefix2}::2" || false
+    lxc network forward create ovn-virtual-network2 192.0.2.3 target_address="${ip4AddressPrefix2}.2"
+    lxc network forward create ovn-virtual-network2 2001:db8:1:2::3 target_address="${ip6AddressPrefix2}::2"
     lxc network forward delete ovn-virtual-network2 192.0.2.3
     lxc network forward delete ovn-virtual-network2 2001:db8:1:2::3
 
