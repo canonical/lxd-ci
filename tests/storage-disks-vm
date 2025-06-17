@@ -345,6 +345,20 @@ if lxc exec v1 -- mount | grep -qwF /boot/efi; then
   lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot disabled"
 fi
 
+# Check io.threads is working and allowed only when restricted.virtual-machines.lowlevel is allow.
+if hasNeededAPIExtension disk_io_threads_virtiofsd; then
+  ! lxc config device set v1 d1 io.threads=4 || false
+  lxc project set restricted restricted.virtual-machines.lowlevel=allow
+  lxc exec v1 -- umount /mnt
+  lxc config device set v1 d1 io.threads=4
+  sleep 1
+  pgrep -f "virtiofsd --fd=3 --shared-dir /var/snap/lxd/common/lxd/devices/restricted_v1/disk.d1.mnt --cache auto --allow-direct-io --thread-pool-size 4 --xattr"
+  [ "$(lxc exec v1  -- stat /mnt/foo1 -c '%u:%g')" = "1000:1000" ]
+  ! lxc project unset restricted restricted.virtual-machines.lowlevel || false
+else
+  echo 'Skipping disk_io_threads_virtiofsd tests due to missing extension: "disk_io_threads_virtiofsd"'
+fi
+
 if hasNeededAPIExtension disk_io_bus; then
   # Remove disk device restrictions and add disks
   lxc stop -f v1
