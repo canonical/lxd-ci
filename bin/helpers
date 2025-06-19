@@ -328,6 +328,8 @@ install_snapd() (
 
 # hasNeededAPIExtension: check if LXD supports the needed extension.
 hasNeededAPIExtension() (
+    { set +x; } 2>/dev/null
+
     needed_extension="${1}"
 
     lxc info | grep -qxFm1 -- "- ${needed_extension}"
