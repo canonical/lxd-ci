@@ -30,6 +30,7 @@ on:
           - '["6/stable"]'
           - '["5.21/edge"]'
           - '["5.21/candidate"]'
+          - '["5.21/stable"]'
           - '["5.0/edge"]'
           - '["5.0/candidate"]'
           - '["5.0/stable"]'
@@ -261,9 +262,13 @@ jobs:
             track: "5.0/edge"
           # not compatible with 5.21/*
           - test: lxd-installer
+            track: "5.21/stable"
+          - test: lxd-installer
             track: "5.21/candidate"
           - test: lxd-installer
             track: "5.21/edge"
+          - test: qemu-external-vm
+            track: "5.21/stable"
           - test: qemu-external-vm
             track: "5.21/candidate"
           - test: qemu-external-vm
