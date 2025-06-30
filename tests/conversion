@@ -11,6 +11,7 @@ set -eu
 . /etc/os-release
 if dpkg --compare-versions "${VERSION_ID}" ge 24.04; then
       install_deps jq unzip virt-v2v
+      apt-get remove passt
 else
       install_deps jq unzip
 fi
