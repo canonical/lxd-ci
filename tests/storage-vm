@@ -33,7 +33,7 @@ if echo "${poolDriverList}" | grep -qwF "zfs" && grep -qwFm1 zfs_external /snap/
     echo "==> Creating ZFS storage without external tools should fail"
     ! lxc storage create zexternal zfs || false
 
-    apt-get install --no-install-recommends -y zfsutils-linux
+    install_deps zfsutils-linux
 
     echo "==> Creating ZFS storage with external tools should work"
     lxc storage create zexternal zfs
