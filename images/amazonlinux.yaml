@@ -3,9 +3,6 @@ image:
 
 simplestream:
   distro_name: Amazon Linux
-  requirements:
-  - requirements:
-      cgroup: v1
 
 source:
   downloader: rootfs-http
