@@ -7,12 +7,16 @@ install_lxd
 # Test
 set -x
 
-export DEBIAN_FRONTEND=noninteractive
-export HOME=/root
+# Get the code
+if [ ! -d pylxd ]; then
+    command -v git || install_deps git
+    git clone --depth=1 https://github.com/canonical/pylxd
+fi
 
 # Run the pylxd tests
-[ -d pylxd ] || git clone --depth=1 https://github.com/canonical/pylxd
 cd pylxd
+export DEBIAN_FRONTEND=noninteractive
+export HOME=/root
 integration/run-integration-tests
 
 # shellcheck disable=SC2034
