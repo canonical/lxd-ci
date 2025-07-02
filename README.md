@@ -24,73 +24,15 @@ To run the tests locally, it's ideal to run them in a shortlived VM. The simples
 
 ## lxd-ci profile
 
-```yaml
-name: lxd-ci
-description: ""
-config:
-  cloud-init.user-data: |-
-    #cloud-config
-    ssh_import_id: [lp:sdeziel]
-    apt:
-      # Speed things up by not pulling from backports/security and avoid restricted/multiverse pockets.
-      # In general, backported packages or those from restricted/multiverse shouldn't be relied on because
-      # they don't come with the same level of support as those from main for example.
-      # The security repo doesn't make much sense when pulling from a Canonical maintained archive mirror.
-      disable_suites:
-      - backports
-      - security
-      conf: |
-        # Faster downloads
-        Acquire::Languages "none";
-        APT::Get::Show-Versions "true";
+For convenience, a special profile (`lxd-ci`) can be used to run tests in local VMs. To define that profile:
 
-    # Faster dpkg installs
-    write_files:
-    - content: "force-unsafe-io\n"
-      path: /etc/dpkg/dpkg.cfg
-      append: true
-
-    runcmd:
-    - echo "PURGE_LXD=1" >> /etc/environment
-    # Disable lxd-installer
-    - chmod -x /usr/sbin/lxc /usr/sbin/lxd
-    # Remove sources of noise
-    - systemctl stop unattended-upgrades.service
-    - apt-get autopurge -y cron needrestart networkd-dispatcher unattended-upgrades
-    - cd /etc/systemd/system/timers.target.wants/ && systemctl disable --now *.timer
-
-    package_update: true
-    package_upgrade: true
-    packages:
-    - jq
-    - make
-    - yq
-  limits.cpu: "4"
-  limits.memory: 16GiB
-  security.devlxd.images: "true"
-devices:
-  eth0:
-    name: eth0
-    network: lxdbr0
-    type: nic
-  lxd:
-    path: /root/lxd
-    source: /home/sdeziel/git/lxd
-    type: disk
-  lxd-ci:
-    path: /root/lxd-ci
-    source: /home/sdeziel/git/lxd-ci
-    type: disk
-  root:
-    path: /
-    pool: default
-    size: 40GiB
-    type: disk
-used_by: []
+```sh
+# this needs to be run from inside the git repostory
+GIT_ROOT="$(git rev-parse --show-toplevel)"
+# create or edit the profile based on the provided template
+lxc profile list | grep -qwF lxd-ci || lxc profile create lxd-ci
+sed "s|@@PATH_TO_LXD_CI_GIT@@|${GIT_ROOT}|" "${GIT_ROOT}/lxd-ci.yaml" | lxc profile edit lxd-ci
 ```
-
-> [!NOTE]
-> The above profile includes source paths that needs updating to reflect your local environment. Hint: use `$HOME`.
 
 Then it's easy to create a shortlived VM:
 
