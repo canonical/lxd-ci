@@ -52,7 +52,7 @@ devices:
     type: disk
   lxd-ci:
     path: /root/lxd-ci
-    source: /home/sdeziel/git/lxd-ci
+    source: @@PATH_TO_LXD_CI_GIT@@
     type: disk
   root:
     path: /
