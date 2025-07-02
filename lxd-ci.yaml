@@ -39,7 +39,6 @@ config:
     package_upgrade: true
     packages:
     - jq
-    - make
     - yq
   limits.cpu: "4"
   limits.memory: 16GiB
