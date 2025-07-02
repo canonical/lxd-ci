@@ -1,5 +1,5 @@
 name: lxd-ci
-description: ""
+description: "Profile to run lxd-ci tests in VM"
 config:
   cloud-init.user-data: |-
     #cloud-config
