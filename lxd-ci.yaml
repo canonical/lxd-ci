@@ -3,7 +3,6 @@ description: "Profile to run lxd-ci tests in VM"
 config:
   cloud-init.user-data: |-
     #cloud-config
-    ssh_import_id: [lp:sdeziel]
     apt:
       # Speed things up by not pulling from backports/security and avoid restricted/multiverse pockets.
       # In general, backported packages or those from restricted/multiverse shouldn't be relied on because
