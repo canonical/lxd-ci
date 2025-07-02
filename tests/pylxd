@@ -11,7 +11,7 @@ export DEBIAN_FRONTEND=noninteractive
 export HOME=/root
 
 # Run the pylxd tests
-[ -d pylxd ] || git clone https://github.com/canonical/pylxd
+[ -d pylxd ] || git clone --depth=1 https://github.com/canonical/pylxd
 cd pylxd
 integration/run-integration-tests
 
