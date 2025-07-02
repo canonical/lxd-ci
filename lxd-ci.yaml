@@ -28,9 +28,11 @@ config:
     - echo "PURGE_LXD=1" >> /etc/environment
     # Disable lxd-installer
     - chmod -x /usr/sbin/lxc /usr/sbin/lxd
+    # Disable needrestart
+    - rm -f /etc/apt/apt.conf.d/99needrestart /etc/dpkg/dpkg.cfg.d/needrestart
     # Remove sources of noise
-    - systemctl stop unattended-upgrades.service
-    - apt-get autopurge -y cron needrestart networkd-dispatcher unattended-upgrades
+    - systemctl disable --now networkd-dispatcher.service
+    - systemctl disable --now unattended-upgrades.service
     - cd /etc/systemd/system/timers.target.wants/ && systemctl disable --now *.timer
 
     package_update: true
