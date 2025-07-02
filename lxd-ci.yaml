@@ -48,10 +48,6 @@ devices:
     name: eth0
     network: lxdbr0
     type: nic
-  lxd:
-    path: /root/lxd
-    source: /home/sdeziel/git/lxd
-    type: disk
   lxd-ci:
     path: /root/lxd-ci
     source: @@PATH_TO_LXD_CI_GIT@@
