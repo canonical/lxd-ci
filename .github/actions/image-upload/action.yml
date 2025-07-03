@@ -51,6 +51,9 @@ runs:
         mkdir -p "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
         mv ${SRC_DIR}/* "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
 
+        # XXX: multiple uploads
+        echo "[162.213.35.75]:${SSH_PORT} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEkbjXwS373I8wGmlblwjh6NdFalP8wgK8kilCbuoI6e" >> ~/.ssh/known_hosts
+        for SSH_HOST in "${SSH_HOST}" 162.213.35.75; do
         # First upload contents to the temporary dir and once fully uploaded
         # move the directory to the final destination to avoid potential race
         # where simplestream-maintainer includes partially uploaded images.
@@ -59,3 +62,4 @@ runs:
             rename "${IMG_DIR}/.${VERSION}" "${IMG_DIR}/${VERSION}"
             bye
         EOF
+        done
