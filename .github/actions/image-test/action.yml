@@ -23,13 +23,13 @@ runs:
   steps:
     - name: Test image
       shell: bash
+      env:
+        TYPE: ${{ inputs.type }}
+        TARGET: ${{ inputs.target }}
+        DISTRO: ${{ inputs.distro }}
+        RELEASE: ${{ inputs.release }}
+        VARIANT: ${{ inputs.variant }}
       run: |
-        TYPE=${{ inputs.type }}
-        TARGET=${{ inputs.target }}
-        DISTRO=${{ inputs.distro }}
-        RELEASE=${{ inputs.release }}
-        VARIANT=${{ inputs.variant }}
-
         set -e
 
         TEST_ID="${DISTRO}-${RELEASE}-${VARIANT} (${TYPE})"

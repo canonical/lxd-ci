@@ -15,20 +15,17 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Print artifacts
-      shell: bash
-      run: ls -lah "${{ inputs.target }}"
-
     - name: Configure private key and known host
       shell: bash
       env:
         SSH_HOST: images.lxd.canonical.com
         SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        SSH_PRIVATE_KEY: ${{ inputs.ssh_private_key }}
       run: |
         # Store image server private key.
         mkdir -p -m 0700 ~/.ssh
         ssh-agent -a "${SSH_AUTH_SOCK}" > /dev/null
-        ssh-add - <<< "${{ inputs.ssh_private_key }}"
+        ssh-add - <<< "${SSH_PRIVATE_KEY}"
         ssh-add -L > ~/.ssh/id_ed25519.pub
 
         # Configure known host.
@@ -41,16 +38,22 @@ runs:
         SSH_USER: imageserver
         SSH_PORT: 922
         SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        SRC_DIR: ${{ inputs.target }}
+        IMG_DIR: ${{ inputs.image_dir }}
       run: |
+        # Print artifacts
+        ls -lah "${SRC_DIR}"
+
         # Ensure path of the source directory is expanded.
-        SRC_DIR=$(echo ${{ inputs.target }})
-        IMG_DIR=${{ inputs.image_dir }}
         VERSION=$(cat "${SRC_DIR}/serial")
 
         # Create directory structure that will be mirrored on the target server.
         mkdir -p "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
         mv ${SRC_DIR}/* "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
 
+        # XXX: multiple uploads
+        echo "[162.213.35.75]:${SSH_PORT} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEkbjXwS373I8wGmlblwjh6NdFalP8wgK8kilCbuoI6e" >> ~/.ssh/known_hosts
+        for SSH_HOST in "${SSH_HOST}" 162.213.35.75; do
         # First upload contents to the temporary dir and once fully uploaded
         # move the directory to the final destination to avoid potential race
         # where simplestream-maintainer includes partially uploaded images.
@@ -59,3 +62,4 @@ runs:
             rename "${IMG_DIR}/.${VERSION}" "${IMG_DIR}/${VERSION}"
             bye
         EOF
+        done
