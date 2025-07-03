@@ -1,0 +1,60 @@
+name: lxd-ci
+description: "Profile to run lxd-ci tests in VM"
+config:
+  cloud-init.user-data: |-
+    #cloud-config
+    apt:
+      # Speed things up by not pulling from backports/security and avoid restricted/multiverse pockets.
+      # In general, backported packages or those from restricted/multiverse shouldn't be relied on because
+      # they don't come with the same level of support as those from main for example.
+      # The security repo is not necessary when packages are coming from the primary archive (maintained by Canonical).
+      disable_suites:
+      - backports
+      - security
+      conf: |
+        # Faster downloads
+        Acquire::Languages "none";
+        APT::Get::Show-Versions "true";
+        # Install just what's in the packages list below
+        APT::Install-Recommends "false";
+
+    # Faster dpkg installs
+    write_files:
+    - content: "force-unsafe-io\n"
+      path: /etc/dpkg/dpkg.cfg
+      append: true
+
+    runcmd:
+    - echo "PURGE_LXD=1" >> /etc/environment
+    # Disable lxd-installer
+    - chmod -x /usr/sbin/lxc /usr/sbin/lxd
+    # Disable needrestart
+    - rm -f /etc/apt/apt.conf.d/99needrestart /etc/dpkg/dpkg.cfg.d/needrestart
+    # Remove sources of noise
+    - systemctl disable --now networkd-dispatcher.service
+    - systemctl disable --now unattended-upgrades.service
+    - cd /etc/systemd/system/timers.target.wants/ && systemctl disable --now *.timer
+
+    package_update: true
+    package_upgrade: true
+    packages:
+    - jq
+    - yq
+  limits.cpu: "4"
+  limits.memory: 16GiB
+  security.devlxd.images: "true"
+devices:
+  eth0:
+    name: eth0
+    network: lxdbr0
+    type: nic
+  lxd-ci:
+    path: /root/lxd-ci
+    source: @@PATH_TO_LXD_CI_GIT@@
+    type: disk
+  root:
+    path: /
+    pool: default
+    size: 40GiB
+    type: disk
+used_by: []
