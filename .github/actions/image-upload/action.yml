@@ -20,11 +20,12 @@ runs:
       env:
         SSH_HOST: images.lxd.canonical.com
         SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        SSH_PRIVATE_KEY: ${{ inputs.ssh_private_key }}
       run: |
         # Store image server private key.
         mkdir -p -m 0700 ~/.ssh
         ssh-agent -a "${SSH_AUTH_SOCK}" > /dev/null
-        ssh-add - <<< "${{ inputs.ssh_private_key }}"
+        ssh-add - <<< "${SSH_PRIVATE_KEY}"
         ssh-add -L > ~/.ssh/id_ed25519.pub
 
         # Configure known host.
