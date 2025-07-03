@@ -15,10 +15,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Print artifacts
-      shell: bash
-      run: ls -lah "${{ inputs.target }}"
-
     - name: Configure private key and known host
       shell: bash
       env:
@@ -41,10 +37,13 @@ runs:
         SSH_USER: imageserver
         SSH_PORT: 922
         SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        SRC_DIR: ${{ inputs.target }}
+        IMG_DIR: ${{ inputs.image_dir }}
       run: |
+        # Print artifacts
+        ls -lah "${SRC_DIR}"
+
         # Ensure path of the source directory is expanded.
-        SRC_DIR=$(echo ${{ inputs.target }})
-        IMG_DIR=${{ inputs.image_dir }}
         VERSION=$(cat "${SRC_DIR}/serial")
 
         # Create directory structure that will be mirrored on the target server.
