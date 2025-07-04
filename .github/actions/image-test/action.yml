@@ -30,7 +30,7 @@ runs:
         RELEASE=${{ inputs.release }}
         VARIANT=${{ inputs.variant }}
 
-        set -e
+        set -eux
 
         TEST_ID="${DISTRO}-${RELEASE}-${VARIANT} (${TYPE})"
         echo "==> TEST: ${TEST_ID}"
