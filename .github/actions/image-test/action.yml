@@ -23,14 +23,14 @@ runs:
   steps:
     - name: Test image
       shell: bash
-      env:
-        TYPE: ${{ inputs.type }}
-        TARGET: ${{ inputs.target }}
-        DISTRO: ${{ inputs.distro }}
-        RELEASE: ${{ inputs.release }}
-        VARIANT: ${{ inputs.variant }}
       run: |
-        set -e
+        TYPE=${{ inputs.type }}
+        TARGET=${{ inputs.target }}
+        DISTRO=${{ inputs.distro }}
+        RELEASE=${{ inputs.release }}
+        VARIANT=${{ inputs.variant }}
+
+        set -eux
 
         TEST_ID="${DISTRO}-${RELEASE}-${VARIANT} (${TYPE})"
         echo "==> TEST: ${TEST_ID}"
