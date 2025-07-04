@@ -41,15 +41,20 @@ runs:
         SRC_DIR: ${{ inputs.target }}
         IMG_DIR: ${{ inputs.image_dir }}
       run: |
+        set -eux
+
+        # FIXME: needed to expand despite the single quotes: '${HOME}/build'
+        SRC_DIR="$(eval echo "${SRC_DIR}")"
+
         # Print artifacts
         ls -lah "${SRC_DIR}"
 
         # Ensure path of the source directory is expanded.
-        VERSION=$(cat "${SRC_DIR}/serial")
+        VERSION="$(cat "${SRC_DIR}/serial")"
 
         # Create directory structure that will be mirrored on the target server.
         mkdir -p "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
-        mv ${SRC_DIR}/* "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
+        mv "${SRC_DIR}"/* "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
 
         # XXX: multiple uploads
         echo "[162.213.35.75]:${SSH_PORT} ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEkbjXwS373I8wGmlblwjh6NdFalP8wgK8kilCbuoI6e" >> ~/.ssh/known_hosts
@@ -58,7 +63,7 @@ runs:
         # move the directory to the final destination to avoid potential race
         # where simplestream-maintainer includes partially uploaded images.
         sftp -oHostKeyAlgorithms=ssh-ed25519 -P ${SSH_PORT} -b - "${SSH_USER}@${SSH_HOST}" <<EOF
-            put -R ${SRC_DIR}-upload/*
+            put -R "${SRC_DIR}"-upload/*
             rename "${IMG_DIR}/.${VERSION}" "${IMG_DIR}/${VERSION}"
             bye
         EOF
