@@ -41,6 +41,9 @@ runs:
         SRC_DIR: ${{ inputs.target }}
         IMG_DIR: ${{ inputs.image_dir }}
       run: |
+        # FIXME: needed to expand despite the single quotes: '${HOME}/build'
+        SRC_DIR="$(eval echo "${SRC_DIR}")"
+
         # Print artifacts
         ls -lah "${SRC_DIR}"
 
