@@ -69,19 +69,19 @@ echo "==> Testing with no GPU"
 echo "==> Testing with one GPU"
 lxc config device add c1 gpu0 gpu id=0
 sleep 1
-[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ]
 
 # Validate with all remove
 echo "==> Testing with no GPU"
 lxc config device remove c1 gpu0
 sleep 1
-[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "0" ] || false
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "0" ]
 
 # Validate with all GPUs
 echo "==> Testing with all NVIDIA GPUs"
 lxc config device add c1 gpus gpu
 sleep 1
-[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_gpu}" ] || false
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_gpu}" ]
 
 # Test nvidia runtime
 echo "==> Testing nvidia runtime"
@@ -97,7 +97,7 @@ echo "==> Testing PCI address selection"
 lxc config device remove c1 gpus
 lxc config device add c1 gpu1 gpu pci="${first_card_pci_slot}"
 sleep 1
-[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ]
 lxc exec c1 -- nvidia-smi
 
 # Test with vendor
@@ -105,7 +105,7 @@ echo "==> Testing PCI vendor selection"
 lxc config device remove c1 gpu1
 lxc config device add c1 gpus gpu vendorid=10de
 sleep 1
-[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_nvidia_gpu}" ] || false
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_nvidia_gpu}" ]
 lxc exec c1 -- nvidia-smi
 
 # Test with vendor and product
@@ -113,7 +113,7 @@ echo "==> Testing PCI vendor and product selection"
 lxc config device remove c1 gpus
 lxc config device add c1 gpus gpu vendorid=10de productid="${first_card_product_id}"
 sleep 1
-[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_nvidia_gpu_with_product_id}" ] || false
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_nvidia_gpu_with_product_id}" ]
 lxc exec c1 -- nvidia-smi
 
 # Test with fully-qualified CDI name
@@ -123,7 +123,7 @@ lxc stop --force c1
 lxc config device remove c1 gpus
 lxc config device add c1 gpu0 gpu id="nvidia.com/gpu=0"
 lxc start c1
-[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ] || false
+[ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ]
 lxc exec c1 -- nvidia-smi
 
 echo "==> Cleaning up"
