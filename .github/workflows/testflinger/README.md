@@ -9,6 +9,11 @@ Running the tests locally is only possible if your machine has access to the Tes
 Tested distros:
 - `core24-latest`
 
+Ensure `testflinger` is installed:
+```
+sudo snap install testflinger-cli
+```
+
 Set the input variables and execute the script from the same directory:
 ```bash
 JOB_QUEUE=lxd-nvidia SNAP_CHANNEL=latest/edge DISTRO=core24-latest ./run.sh
