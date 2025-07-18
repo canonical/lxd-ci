@@ -347,6 +347,9 @@ fi
 
 # Check io.threads is working and allowed only when restricted.virtual-machines.lowlevel is allow.
 if hasNeededAPIExtension disk_io_threads_virtiofsd; then
+  # Important to wait for guest to boot before changing io.threads as that will trigger device removal and re-add.
+  # And we need to ensure udev inside the guest picks up the new device.
+  waitInstanceBooted v1
   ! lxc config device set v1 d1 io.threads=4 || false
   lxc project set restricted restricted.virtual-machines.lowlevel=allow
   lxc exec v1 -- umount /mnt
