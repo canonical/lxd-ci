@@ -25,37 +25,59 @@ lxc info c1
 echo "==> Checking devlxd is working"
 
 # devlxd is enabled by default and should work
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0 | jq
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0 | jq
 if hasNeededAPIExtension cloud_init; then
-  lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/devices | jq
+  lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/devices | jq
 fi
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'instance-id:'
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'local-hostname:'
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -Fq 'instance-id:'
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -Fq 'local-hostname: c1'
+
+# Check devlxd instance name validation works (5.21 onwards).
+if ! echo "${LXD_SNAP_CHANNEL}" | grep -qE "^[45]\.0/"; then
+  lxc launch "${TEST_IMG:-ubuntu:24.04}" c2 -s "${poolName}"
+
+  # First check first discovery method (where curl process isn't under the lxc monitor process tree).
+  # Explanation of command:
+  # Running `bash -c "exec -a '[lxc monitor]' sleep 100"` results in a process name of "[lxc monitor] 100".
+  # LXD looks for the project name and instance name at the end of the process name in the format " <project_name>_<instance_name>".
+  # So use the curl `--proxy` option to allow adding " <project_name>_<instance_name>" to the end of the process name.
+  # This works because `--proxy` is not used in combination with `--unix-socket`.
+  lxc exec c1 -- bash -c "exec -a '[lxc monitor]' curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data --proxy ' default_c2'" | grep -Fq 'local-hostname: c1'
+  lxc exec c1 -- bash -c "exec -a '[lxc monitor]' curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data --proxy ' default_missing'" | grep -Fq 'local-hostname: c1'
+  lxc exec c1 -- bash -c "exec -a '[lxc monitor]' curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data --proxy ' missing_missing'" | grep -Fq 'local-hostname: c1'
+
+  # Next check the second discovery method (where the curl process is under the lxc monitor process tree).
+  lxc exec c1 -- systemd-run --pipe --wait --quiet bash -c "exec -a '[lxc monitor]' curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data --proxy ' default_c2'" | grep -Fq 'local-hostname: c1'
+  lxc exec c1 -- systemd-run --pipe --wait --quiet bash -c "exec -a '[lxc monitor]' curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data --proxy ' default_missing'" | grep -Fq 'local-hostname: c1'
+  lxc exec c1 -- systemd-run --pipe --wait --quiet bash -c "exec -a '[lxc monitor]' curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data --proxy ' missing_missing'" | grep -Fq 'local-hostname: c1'
+
+  lxc delete -f c2
+fi
 
 # Restart the container
 lxc restart -f c1
 
 # devlxd should be running after restart
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0 | jq
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0 | jq
 if hasNeededAPIExtension cloud_init; then
-  lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/devices | jq
+  lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/devices | jq
 fi
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'instance-id:'
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'local-hostname:'
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -Fq 'instance-id:'
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -Fq 'local-hostname: c1'
 
 # Disable devlxd
 lxc config set c1 security.devlxd false
 
 echo "==> Checking devlxd is not working"
 
-! lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0 || false
+! lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0 || false
 
 lxc restart -f c1
 
 # devlxd should not be running after restart
-! lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0 || false
+! lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0 || false
 
 echo "==> Checking devlxd can be enabled live"
 
@@ -64,23 +86,23 @@ lxc config set c1 security.devlxd true
 lxc config set c1 security.devlxd.images true
 
 # devlxd should be running after the config is enabled
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0 | jq
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0 | jq
 if hasNeededAPIExtension cloud_init; then
-  lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/devices | jq
+  lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/devices | jq
 fi
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'instance-id:'
-lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'local-hostname:'
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/config | jq
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -Fq 'instance-id:'
+lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -Fq 'local-hostname: c1'
 
 if hasNeededAPIExtension instance_ready_state; then
   # test instance Ready state
-  lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Ready"}' http://custom.socket/1.0
+  lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Ready"}' http://custom.socket/1.0
   [ "$(lxc config get c1 volatile.last_state.ready)" = "true" ]
 
-  lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Started"}' http://custom.socket/1.0
+  lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Started"}' http://custom.socket/1.0
   [ "$(lxc config get c1 volatile.last_state.ready)" = "false" ]
 
-  lxc exec c1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Ready"}' http://custom.socket/1.0
+  lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Ready"}' http://custom.socket/1.0
   [ "$(lxc config get c1 volatile.last_state.ready)" = "true" ]
   lxc stop -f c1
   sleep 5
