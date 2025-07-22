@@ -138,6 +138,8 @@ jobs:
           - storage-vm zfs
           - storage-volumes-vm
           - tpm-vm
+          - ui chromium
+          - ui firefox
           - vm
           - vm-migration
           - vm-nesting
@@ -187,6 +189,10 @@ jobs:
             track: "4.0/candidate"
           - test: tpm-vm
             track: "4.0/candidate"
+          - test: ui chromium
+            track: "4.0/candidate"
+          - test: ui firefox
+            track: "4.0/candidate"
           - test: vm-migration
             track: "4.0/candidate"
           - test: cloud-init
@@ -232,6 +238,10 @@ jobs:
           - test: storage-volumes-vm
             track: "4.0/edge"
           - test: tpm-vm
+            track: "4.0/edge"
+          - test: ui chromium
+            track: "4.0/edge"
+          - test: ui firefox
             track: "4.0/edge"
           - test: vm-migration
             track: "4.0/edge"
@@ -372,6 +382,20 @@ jobs:
           gh cache delete "cache-${{ steps.get-date.outputs.date }}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set lxd channel env variable
+        if: always()
+        id: lxd-env
+        run: |
+          # need to change / to - in lxd channel string for report naming
+          LXD_CHANNEL=$(echo '${{ matrix.track }}' | sed 's#/#-#g')
+          echo "LXD_CHANNEL=$LXD_CHANNEL" >> $GITHUB_OUTPUT
+      - name: Upload ${{ matrix.test }}-${{ matrix.track }} test reports
+        if: ${{ always() && startsWith(matrix.test, 'ui ') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-report-${{ matrix.test }}-lxd-${{ steps.lxd-env.outputs.LXD_CHANNEL }}-os-${{ matrix.os }}
+          path: lxd-ui/test-results
+          retention-days: 1
       - uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         if: ${{ matrix.test == 'qemu-external-vm' }}
         with:
