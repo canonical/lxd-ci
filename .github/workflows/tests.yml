@@ -112,6 +112,7 @@ jobs:
           - cluster
           - container
           - container-copy
+          - container-nesting
           - conversion
           - cpu-vm
           - devlxd-container
@@ -146,6 +147,8 @@ jobs:
           - test: cloud-init
             track: "4.0/candidate"
           - test: container-copy
+            track: "4.0/candidate"
+          - test: container-nesting
             track: "4.0/candidate"
           - test: conversion
             track: "4.0/candidate"
@@ -192,6 +195,8 @@ jobs:
           - test: cloud-init
             track: "4.0/edge"
           - test: container-copy
+            track: "4.0/edge"
+          - test: container-nesting
             track: "4.0/edge"
           - test: conversion
             track: "4.0/edge"
@@ -236,6 +241,8 @@ jobs:
           - test: vm-migration
             track: "4.0/edge"
           # not compatible with 5.0/*
+          - test: container-nesting
+            track: "5.0/edge"
           - test: cloud-init
             track: "5.0/candidate"
           - test: cloud-init
