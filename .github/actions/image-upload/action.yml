@@ -59,7 +59,7 @@ runs:
         # First upload contents to the temporary dir and once fully uploaded
         # move the directory to the final destination to avoid potential race
         # where simplestream-maintainer includes partially uploaded images.
-        sftp -oHostKeyAlgorithms=ssh-ed25519 -P ${SSH_PORT} -b - "${SSH_USER}@${SSH_HOST}" <<EOF
+        sftp -oHostKeyAlgorithms=ssh-ed25519 -P ${SSH_PORT} -oConnectionAttempts=3 -b - "${SSH_USER}@${SSH_HOST}" <<EOF
             put -R "${SRC_DIR}"-upload/*
             rename "${IMG_DIR}/.${VERSION}" "${IMG_DIR}/${VERSION}"
             bye
