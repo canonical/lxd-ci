@@ -1,0 +1,115 @@
+#!/bin/bash
+set -eux
+
+# Install and setup LXD.
+install_lxd
+lxd init --auto
+
+# Install dependencies
+install_deps jq
+
+poolDriverList="${1:- btrfs dir lvm zfs}"
+
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
+
+# checkNestedInstanceDNS checks if the nested instance can resolve DNS names.
+checkNestedInstanceDNS() {
+    local instName=$1
+    local nestedInstName=$2
+
+    # Test DNS resolution.
+    for _ in $(seq 1 5); do
+        if lxc exec "${instName}" -- lxc exec "${nestedInstName}" -- getent hosts canonical.com; then
+            echo "===> PASS: DNS resolution: ${nestedInstName} (on instance ${instName})"
+            return 0
+        fi
+        sleep 1
+    done
+
+    echo "===> FAIL: DNS resolution: ${nestedInstName} (on instance ${instName})"
+    return 1
+}
+
+cat << EOF | lxc profile create container-nesting
+config:
+  security.nesting: "true"
+EOF
+
+if hasNeededAPIExtension devlxd_images_vm; then
+    lxc profile set container-nesting security.devlxd.images=true
+fi
+
+for poolDriver in ${poolDriverList}; do
+    poolName="pool-${poolDriver}"
+    instName="c1"
+
+    # Create storage pool.
+    lxc storage create "${poolName}" "${poolDriver}"
+
+    # Configure the list of storage drivers to be tested in the nested container.
+    # Storage driver "dir" is always supported.
+    nestedPoolDriverList="dir"
+
+    if [ "${poolDriver}" = "btrfs" ]; then
+        # BTRFS can be used within a nested container on top of BTRFS storage
+        # pool, if the source is a directory.
+        nestedPoolDriverList+=" btrfs"
+    fi
+
+    # Launch a new container and install LXD.
+    lxc launch "${IMAGE}" "${instName}" --profile default --profile container-nesting --storage "${poolName}"
+    waitInstanceReady "${instName}"
+
+    # Ensure snapd is ready.
+    # workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+    lxc exec "${instName}" -- mkdir -p /etc/systemd/system/snapd.service.d
+    lxc file push - "${instName}"/etc/systemd/system/snapd.service.d/override.conf << EOF
+# Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+[Service]
+Environment=SNAPD_STANDBY_WAIT=1m
+EOF
+    lxc exec "${instName}" -- systemctl daemon-reload
+    lxc exec "${instName}" -- systemctl restart snapd.service
+    lxc exec "${instName}" -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+
+    # Install LXD in the container.
+    lxc exec "${instName}" -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
+    lxc exec "${instName}" -- lxd init --auto
+
+    # Test each storage driver in nested container.
+    for nestedPoolDriver in ${nestedPoolDriverList}; do
+        nestedPoolName="pool-nested-${nestedPoolDriver}"
+        nestedInstName="nested-c1"
+
+        # Create nested storage pool.
+        if [ "${nestedPoolDriver}" = "btrfs" ]; then
+            # BTRFS pool must use a directory as a source.
+            lxc exec "${instName}" -- lxc storage create "${nestedPoolName}" "${nestedPoolDriver}" source="$(mktemp -d)"
+        elif [ "${nestedPoolDriver}" = "zfs" ]; then
+            lxc exec "${instName}" -- lxc storage create "${nestedPoolName}" "${nestedPoolDriver}" size=5GiB
+        else
+            lxc exec "${instName}" -- lxc storage create "${nestedPoolName}" "${nestedPoolDriver}"
+        fi
+
+        # Launch nested container.
+        lxc exec "${instName}" -- lxc launch "${IMAGE}" "${nestedInstName}" --storage "${nestedPoolName}"
+        lxc exec "${instName}" -- sh -c "$(declare -f waitInstanceReady); waitInstanceReady ${nestedInstName}"
+
+        # Test container connection.
+        checkNestedInstanceDNS "${instName}" "${nestedInstName}"
+
+        # Test graceful shutdown of the nested container.
+        lxc exec "${instName}" -- timeout 30 lxc stop "${nestedInstName}"
+        lxc exec "${instName}" -- timeout 30 lxc delete "${nestedInstName}"
+    done
+
+    # Cleanup.
+    lxc delete --force "${instName}"
+    lxc storage delete "${poolName}"
+done
+
+# Cleanup.
+lxc profile delete container-nesting
+
+# shellcheck disable=SC2034
+FAIL=0
