@@ -383,7 +383,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Set lxd channel env variable
-        if: always()
+        if: ${{ always() && startsWith(matrix.test, 'ui ') }}
         id: lxd-env
         run: |
           # need to change / to - in lxd channel string for report naming
