@@ -142,6 +142,11 @@ jobs:
           - vm
           - vm-migration
           - vm-nesting
+        include:
+          # Run container-nesting tests on 24.04 as well for comparison.
+          - test: container-nesting
+            track: "5.0/edge"
+            os: 24.04
         exclude:
           # not compatible with 4.0/*
           - test: cloud-init
@@ -241,8 +246,6 @@ jobs:
           - test: vm-migration
             track: "4.0/edge"
           # not compatible with 5.0/*
-          - test: container-nesting
-            track: "5.0/edge"
           - test: cloud-init
             track: "5.0/candidate"
           - test: cloud-init
