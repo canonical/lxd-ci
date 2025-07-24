@@ -63,7 +63,6 @@ lxc profile device add default eth0 nic network=local-network
 lxc config set core.https_address "[::]:8443"
 lxc config set cluster.https_address "127.0.0.1"
 lxc cluster enable local
-lxc config set user.show_permissions=true
 lxc config trust add keys/lxd-ui.crt
 # setup oidc users that are expected in tests
 if hasNeededAPIExtension "oidc"; then
