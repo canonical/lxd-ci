@@ -251,8 +251,6 @@ jobs:
           - test: vm-migration
             track: "4.0/edge"
           # not compatible with 5.0/*
-          - test: container-nesting
-            track: "5.0/edge"
           - test: cloud-init
             track: "5.0/candidate"
           - test: cloud-init

@@ -30,10 +30,8 @@ checkNestedInstanceDNS() {
     return 1
 }
 
-cat << EOF | lxc profile create container-nesting
-config:
-  security.nesting: "true"
-EOF
+lxc profile create container-nesting
+lxc profile set container-nesting security.nesting=true
 
 if hasNeededAPIExtension devlxd_images_vm; then
     lxc profile set container-nesting security.devlxd.images=true
