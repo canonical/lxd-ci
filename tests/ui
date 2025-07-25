@@ -14,13 +14,16 @@ node --version
 
 echo "==> Get ui test code"
 install_deps git
+
+BRANCH="main"
 if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
   # The UI in LXD 5.0 is not compatible with the test suite in the main branch of lxd-ui,
   # fall back to the old test suite from when LXD 5.0 was released.
-  git clone --depth=1 --single-branch --branch stable-5.0 https://github.com/canonical/lxd-ui.git
-else
-  git clone --depth=1 --single-branch --branch main https://github.com/canonical/lxd-ui.git
+  BRANCH="stable-5.0"
 fi
+
+# Clone LXD UI test suite
+git clone --depth=1 --single-branch --branch "${BRANCH}" https://github.com/canonical/lxd-ui.git
 
 echo "==> Install dependencies"
 npm install -g yarn
