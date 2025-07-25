@@ -20,6 +20,10 @@ if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
   # The UI in LXD 5.0 is not compatible with the test suite in the main branch of lxd-ui,
   # fall back to the old test suite from when LXD 5.0 was released.
   BRANCH="stable-5.0"
+
+  # enable ui manually for 5.0, which disables ui by default
+  snap set lxd ui.enable=true
+  systemctl reload snap.lxd.daemon
 fi
 
 # Clone LXD UI test suite
@@ -70,11 +74,6 @@ lxc config trust add keys/lxd-ui.crt
 # setup oidc users that are expected in tests
 if hasNeededAPIExtension "oidc"; then
   ./tests/scripts/setup_test
-fi
-# enable ui manually for 5.0, which disables ui by default
-if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
-  snap set lxd ui.enable=true
-  systemctl reload snap.lxd.daemon
 fi
 
 echo "==> Run e2e test suite"
