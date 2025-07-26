@@ -1,0 +1,68 @@
+name: VM migration test
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/vm-migration.yml'
+      - '.github/workflows/testflinger/vm-live-migration-job.yml'
+      - 'tests/vm-migration'
+  schedule:
+    - cron: '38 6 */5 * *'
+  workflow_dispatch:
+    inputs:
+      ubuntu-releases:
+        description: Ubuntu releases to run the tests against. In JSON format, i.e. '["jammy", "noble"]'.
+        type: choice
+        default: '["noble"]'
+        options:
+          - '["jammy", "noble"]'
+          - '["jammy"]'
+          - '["noble"]'
+      snap-track:
+        description: Snap track to run the tests i.e. '["latest/edge", "5.0/candidate"]'.
+        type: choice
+        default: '["latest/edge"]'
+        options:
+          - '["latest/edge"]'
+          - '["latest/candidate"]'
+          - '["latest/stable"]'
+          - '["6/edge"]'
+          - '["6/candidate"]'
+          - '["6/stable"]'
+          - '["5.21/edge"]'
+          - '["5.21/candidate"]'
+          - '["5.21/stable"]'
+
+jobs:
+  vm-migration:
+    runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
+    strategy:
+      matrix:
+        track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
+        os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
+    env:
+      TESTFLINGER_DIR: .github/workflows/testflinger
+      SNAP_CHANNEL: ${{ matrix.track }}
+    steps:
+      - name: Event data
+        run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Create Testflinger job
+        env:
+          JOB_QUEUE: glameow
+          DISTRO: ${{ matrix.os }}
+        run: |
+          # Prepare job
+          envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' \
+            < $TESTFLINGER_DIR/vm-migration-job.yml \
+            > $TESTFLINGER_DIR/vm-migration-job.temp
+          mv $TESTFLINGER_DIR/vm-migration-job.temp $TESTFLINGER_DIR/vm-migration-job.yml
+
+      - name: Run tests
+        uses: canonical/testflinger/.github/actions/submit@main
+        with:
+          poll: true
+          job-path: ${{ env.TESTFLINGER_DIR }}/vm-migration-job.yml

@@ -1,10 +1,6 @@
 name: NVIDIA GPU passthrough (containers)
 
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/nvidia-test.yml'
-      - '.github/workflows/testflinger/**'
   schedule:
     - cron: '38 6 */5 * *'
   workflow_dispatch:

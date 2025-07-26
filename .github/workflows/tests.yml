@@ -1,10 +1,5 @@
 name: Tests
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/tests.yml'
-      - 'bin/**'
-      - 'tests/**'
   schedule:
     - cron: '38 6 * * *'
   workflow_dispatch:
@@ -142,7 +137,6 @@ jobs:
           - ui chromium
           - ui firefox
           - vm
-          - vm-migration
           - vm-nesting
         exclude:
           # not compatible with 4.0/*

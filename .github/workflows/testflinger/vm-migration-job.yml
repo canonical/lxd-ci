@@ -1,0 +1,31 @@
+job_queue: $JOB_QUEUE
+global_timeout: 3600
+output_timeout: 1800
+provision_data:
+  distro: $DISTRO
+
+test_data:
+  test_cmds: |
+    #!/bin/bash
+
+    set -xeuo pipefail
+
+    # This is used, along with DEVICE_IP, by all scriptlets to access the device
+    export DEVICE_USER="ubuntu"
+
+    # retrieve the tools installer
+    curl -Ls -o install_tools.sh https://raw.githubusercontent.com/canonical/hwcert-jenkins-tools/main/install_tools.sh
+
+    # install the scriptlets and other tools on the agent and the device, as necessary
+    export TOOLS_PATH=tools
+    source install_tools.sh $TOOLS_PATH
+
+    # ensure device is available before continuing
+    wait_for_ssh --allow-degraded
+
+    # _run git clone --depth=1 https://github.com/canonical/lxd-ci
+    _run git clone --depth=1 https://github.com/musicdin/lxd-ci --branch tests/live-migration
+    _run ls -la
+    _run ls -la lxd-ci
+    _run ls -la lxd-ci/bin
+    _run bash -c "cd lxd-ci && ./bin/local-run tests/vm-migration latest/edge"
