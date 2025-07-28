@@ -388,6 +388,17 @@ createPureStoragePool() (
     pure.mode="${PURE_MODE:-nvme}"
 )
 
+# createAlletraStoragePool: creates a new storage pool using the HPE Alletra Storage driver.
+createAlletraStoragePool() (
+  lxc storage create "${1}" alletra \
+    alletra.wsapi.url="${ALLETRA_WSAPI}" \
+    alletra.wsapi.user.name="${ALLETRA_USERNAME}" \
+    alletra.wsapi.user.password="${ALLETRA_PASSWORD}" \
+    alletra.wsapi.verify="${ALLETRA_WSAPI_VERIFY:-true}" \
+    alletra.wsapi.cpg="${ALLETRA_CPG}" \
+    alletra.mode="${ALLETRA_MODE:-nvme}"
+)
+
 # createCertificateAndKey: creates a new key pair.
 createCertificateAndKey() (
   key_file="${1}"

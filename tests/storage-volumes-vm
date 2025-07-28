@@ -33,6 +33,8 @@ do
                 lxc storage create "${poolName}" lvm size=20GiB volume.size=5GB
 	elif [ "${poolDriver}" = "powerflex" ]; then
 		createPowerFlexPool "${poolName}"
+	elif [ "${poolDriver}" = "alletra" ]; then
+		createAlletraStoragePool "${poolName}"
 	else
 		lxc storage create "${poolName}" "${poolDriver}" size=20GB volume.size=5GB
 	fi
@@ -42,7 +44,7 @@ do
 	lxc init "${IMAGE}" v2 --vm -s "${poolName}"
 
 	echo "==> Create custom block volume and attach it to VM"
-	if [ "${poolDriver}" != "powerflex" ]; then
+	if [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "alletra" ]; then
 		lxc storage volume create "${poolName}" vol1 --type=block size=10MB
 	else
 		lxc storage volume create "${poolName}" vol1 --type=block size=8GiB
@@ -50,7 +52,7 @@ do
 	lxc storage volume attach "${poolName}" vol1 v1
 
 	echo "==> Create custom volume and attach it to VM"
-	if [ "${poolDriver}" != "powerflex" ]; then
+	if [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "alletra" ]; then
 		lxc storage volume create "${poolName}" vol4 size=10MB
 	else
 		lxc storage volume create "${poolName}" vol4 size=8GiB
@@ -208,7 +210,7 @@ do
 		echo "==> Instance root & snapshot volumes"
 
 		empty_vm_size=8KiB
-		if [ "${poolDriver}" = "powerflex" ]; then
+		if [ "${poolDriver}" = "powerflex" ] || [ "${poolDriver}" = "alletra" ]; then
 			empty_vm_size=8GiB
 		fi
 
