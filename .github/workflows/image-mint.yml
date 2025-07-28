@@ -2,7 +2,7 @@ name: Linux Mint
 
 on:
   schedule:
-    - cron: '0 0 * * 1-5'  # Build amd64 (Daily on Mon-Fri at 00:00 UTC).
+    - cron: '30 5 * * 1-5'  # Build amd64
   workflow_dispatch:
     inputs:
       publish:

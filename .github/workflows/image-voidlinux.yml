@@ -2,8 +2,8 @@ name: VoidLinux
 
 on:
   schedule:
-    - cron: '0 0 * * 1-5'  # Build amd64 (Daily on Mon-Fri at 00:00 UTC).
-    - cron: '0 0 * * 1'  # Build arm64 (Weekly on Monday at 00:00 UTC).
+    - cron: '0 9 * * 1-5'   # Build amd64
+    - cron: '15 9 * * 1-5'  # Build arm64
   workflow_dispatch:
     inputs:
       publish:
@@ -27,7 +27,7 @@ jobs:
         variant:
           - default
         architecture:
-          - ${{ (inputs.build-arm64 == true || github.event.schedule == '0 0 * * 1') && 'arm64' ||'amd64' }}
+          - ${{ (inputs.build-arm64 == true || github.event.schedule == '15 9 * * 1-5') && 'arm64' || 'amd64' }}
     env:
       type: "container"
       distro: "${{ github.job }}"
