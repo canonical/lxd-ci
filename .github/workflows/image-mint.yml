@@ -18,8 +18,8 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - virginia  # EOL: April 2027
-          - xia       # EOL: April 2029
+          - virginia  # EOL: 2027-04-30
+          - xia       # EOL: 2029-04-30
         variant:
           - default
           - cloud
