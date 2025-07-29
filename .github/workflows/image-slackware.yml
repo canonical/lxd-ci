@@ -23,7 +23,7 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - current
+          - current  # EOL: never
         variant:
           - default
         architecture:
