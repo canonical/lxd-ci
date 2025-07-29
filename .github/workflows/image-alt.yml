@@ -2,7 +2,7 @@ name: ALT Linux
 
 on:
   schedule:
-    - cron: '0 1 * * 1-5'  # Build amd64
+    - cron: '0 1 * * 1-5'   # Build amd64
     - cron: '15 1 * * 1-5'  # Build arm64
   workflow_dispatch:
     inputs:
