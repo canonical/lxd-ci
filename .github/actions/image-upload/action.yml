@@ -60,13 +60,19 @@ runs:
         # move the directory to the final destination to avoid potential race
         # where simplestream-maintainer includes partially uploaded images.
         JITTER="$((RANDOM % 10))"
-        for attempt in 1 2 3; do
-          sftp -oHostKeyAlgorithms=ssh-ed25519 -P ${SSH_PORT} -oConnectionAttempts=5 -oConnectTimeout=5 -b - "${SSH_USER}@${SSH_HOST}" <<EOF
-              put -R "${SRC_DIR}"-upload/*
-              rename "${IMG_DIR}/.${VERSION}" "${IMG_DIR}/${VERSION}"
-              bye
-          EOF && exit 0
 
-          DELAY=$((JITTER + attempt * 5))
+        SFTP_BATCHFILE="$(mktemp)"
+        cat << EOF > "${SFTP_BATCHFILE}"
+        put -R "${SRC_DIR}"-upload/*
+        rename "${IMG_DIR}/.${VERSION}" "${IMG_DIR}/${VERSION}"
+        bye
+        EOF
+
+        for attempt in 1 2 3; do
+          sftp -oHostKeyAlgorithms=ssh-ed25519 -P "${SSH_PORT}" -oConnectionAttempts=5 -oConnectTimeout=5 -b "${SFTP_BATCHFILE}" "${SSH_USER}@${SSH_HOST}" && exit 0
+
+          DELAY="$((JITTER + attempt * 5))"
           echo "Attempt ${attempt}/3 failed, waiting ${DELAY}s before retrying..."
         done
+
+        rm -f "${SFTP_BATCHFILE}"
