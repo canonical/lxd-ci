@@ -23,8 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - unstable
-          - 24.05
+          - unstable  # EOL: never
+          - 24.05     # EOL: 2024-12-31
         variant:
           - default
         architecture:
