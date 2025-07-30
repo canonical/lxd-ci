@@ -10,6 +10,9 @@ lxd init --auto --storage-backend btrfs
 # Test
 set -x
 
+# Containers should boot quickly
+export MAX_WAIT_SECONDS=15
+
 RELEASES="${RELEASES:-"20.04 22.04 24.04"}"
 
 known_systemd_remount_fs_issue() {
