@@ -66,6 +66,7 @@ defaults:
 
 jobs:
   code-tests:
+    if: ${{ github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci' }}
     name: Code
     runs-on: ubuntu-24.04
     steps:
@@ -94,6 +95,7 @@ jobs:
         if: github.event_name == 'pull_request'
 
   system-tests:
+    if: ${{ github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci' }}
     name: ${{ matrix.test }} (${{ matrix.track }} - ${{ matrix.os }})
     runs-on: ubuntu-${{ matrix.os }}
     # avoid runaway test burning 6 hours of CI
