@@ -115,22 +115,22 @@ for release in $RELEASES; do
 
     echo "==> unprivileged container (${release})"
     lxc launch "${IMAGE}" u1
-    isSystemdClean u1 || ignore_known_issues "u1" "unprivileged"
+    isSystemdClean u1 || ignore_known_issues u1 unprivileged
     lxc delete -f u1
 
     echo "==> privileged container (${release})"
     lxc launch "${IMAGE}" p1 -c security.privileged=true
-    isSystemdClean p1 || ignore_known_issues "p1" "privileged"
+    isSystemdClean p1 || ignore_known_issues p1 privileged
     lxc delete -f p1
 
     echo "==> escapable container (${release})"
     lxc launch "${IMAGE}" e1 -c security.privileged=true -c security.nesting=true
-    isSystemdClean e1 || ignore_known_issues "e1" "escapable"
+    isSystemdClean e1 || ignore_known_issues e1 escapable
     lxc delete -f e1
 
     echo "==> isolated container (${release})"
     lxc launch "${IMAGE}" i1 -c security.idmap.isolated=true
-    isSystemdClean i1 || ignore_known_issues "i1" "isolated"
+    isSystemdClean i1 || ignore_known_issues i1 isolated
     lxc delete -f i1
 
     echo "==> nested container (${release})"
@@ -144,7 +144,7 @@ Environment=SNAPD_STANDBY_WAIT=1m
 EOF
     lxc exec n1 -- systemctl daemon-reload
     lxc exec n1 -- systemctl restart snapd.service
-    isSystemdClean n1 || ignore_known_issues "n1" "nesting"
+    isSystemdClean n1 || ignore_known_issues n1 nesting
     lxc exec n1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
     lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
     lxc exec n1 -- lxd init --auto
