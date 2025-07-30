@@ -22,13 +22,8 @@ jobs:
           - noble  # EOL: 2029-04
         variant:
           - desktop
-          # - default
-          # - cloud
         architecture:
           - amd64
-          # - arm64
-        exclude:
-          - {variant: desktop, architecture: arm64}
 
     env:
       type: "container"

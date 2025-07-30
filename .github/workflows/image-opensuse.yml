@@ -23,8 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 15.6
-          - tumbleweed
+          - 15.6        # EOL: 2025-12-31
+          - tumbleweed  # EOL: never
         variant:
           - default
           - cloud

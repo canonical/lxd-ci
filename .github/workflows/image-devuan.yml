@@ -2,30 +2,35 @@ name: Devuan
 
 on:
   schedule:
-    - cron: '0 4 * * 1-5'  # Build amd64
+    - cron: '0 4 * * 1-5'   # Build amd64
+    - cron: '15 4 * * 1-5'  # Build arm64
   workflow_dispatch:
     inputs:
       publish:
         type: boolean
         default: false
         description: Publish built image
+      build-arm64:
+        type: boolean
+        default: false
+        description: Build arm64 images
 
 jobs:
   devuan:
     if: github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci'
     # XXX: Ubuntu 24.04 debootstrap doesn't work with Devuan Chimera (oldoldstable). Revert this when dropping Chimera on 2026-08-15
-    runs-on: 'ubuntu-22.04'
+    runs-on: ${{ matrix.architecture == 'arm64' && 'ubuntu-22.04-arm' || 'ubuntu-22.04' }}
     strategy:
       fail-fast: false
       matrix:
         release:
-          - chimaera
-          - daedalus
+          - chimaera   # EOL: 2026-08-15
+          - daedalus   # EOL: 2028-06-10
         variant:
           - default
           - cloud
         architecture:
-          - 'amd64'
+          - ${{ (inputs.build-arm64 == true || github.event.schedule == '15 4 * * 1-5') && 'arm64' || 'amd64' }}
     env:
       type: "container"
       distro: "${{ github.job }}"

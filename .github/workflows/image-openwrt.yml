@@ -23,9 +23,9 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - snapshot
-          - "24.10"
-          - 23.05
+          - snapshot  # EOL: never
+          - 24.10     # EOL: ??
+          - 23.05     # EOL: 2025-08-04
         variant:
           - default
         architecture:

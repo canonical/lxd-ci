@@ -23,10 +23,10 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - bullseye
-          - sid
-          - bookworm
-          - trixie
+          - bullseye  # EOL: 2026-08-31
+          - sid       # EOL: never
+          - bookworm  # EOL: 2026-06-10
+          - trixie    # EOL: ?? (not officially released yet)
         variant:
           - default
           - cloud
