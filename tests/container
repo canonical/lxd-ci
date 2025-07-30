@@ -138,7 +138,7 @@ for release in $RELEASES; do
 
     echo "==> nested container (${release})"
     lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
-    waitInstanceReady n1
+    isSystemdClean n1 || ignore_known_issues n1 nesting
     lxc exec n1 -- mkdir -p /etc/systemd/system/snapd.service.d
     lxc file push - n1/etc/systemd/system/snapd.service.d/override.conf << EOF
 # Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
@@ -147,13 +147,12 @@ Environment=SNAPD_STANDBY_WAIT=1m
 EOF
     lxc exec n1 -- systemctl daemon-reload
     lxc exec n1 -- systemctl restart snapd.service
-    isSystemdClean n1 || ignore_known_issues n1 nesting
     lxc exec n1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
     lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
     lxc exec n1 -- lxd init --auto
     lxc exec n1 -- lxc launch "${IMAGE}" n11
     sleep 5
-    [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues "n11" "nested"
+    [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues n11 nested
     lxc delete -f n1
 done
 unset WARNING_PREFIX
