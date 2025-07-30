@@ -156,6 +156,9 @@ install_deps() (
 
 # install_microceph: install MicroCeph snap.
 install_microceph() (
+    # Wait for snapd seeding
+    waitSnapdSeed
+
     if snap list microceph 2>/dev/null; then
         snap refresh microceph --channel="${MICROCEPH_SNAP_CHANNEL:-latest/edge}" --cohort=+
     else
@@ -212,6 +215,9 @@ configure_microceph() {
 
 # install_ovn: install OVN packages or MicroOVN snap.
 install_ovn() (
+    # Wait for snapd seeding
+    waitSnapdSeed
+
     if [ "${OVN_SOURCE:-latest/edge}" = "deb" ]; then
         # Avoid clashing with the microovn snap
         if snap list microovn 2>/dev/null; then
