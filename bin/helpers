@@ -88,14 +88,8 @@ isSystemdClean() (
   # Wait for the instance to be booted
   waitInstanceBooted "${instName}" "${instProj}"
 
-  # Return 0 if `systemctl --quiet --failed` output is empty, 1 otherwise.
-  if [ "$(lxc exec --project "${instProj}" "${instName}" -- systemctl --quiet --failed)" = "" ]; then
-      return 0 # Success.
-  fi
-
-  # List failed units
-  lxc exec --project "${instProj}" "${instName}" -- systemctl --failed
-  return 1 # Failed.
+  # On 20.04, --quiet is silently ignored
+  lxc exec --project "${instProj}" "${instName}" -- systemctl --quiet --failed
 )
 
 # enableNICSRIOV: enable SR-IOV on a NIC.
