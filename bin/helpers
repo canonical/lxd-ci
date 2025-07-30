@@ -44,7 +44,7 @@ waitInstanceBooted() (
   if [ "${WARNING_PREFIX:-}" = "false" ]; then
     prefix=""
   fi
-  maxWait=90
+  maxWait="${MAX_WAIT_SECONDS:-90}"
   instName="$1"
   instProj="${2:-}"
   if [ -z "${instProj}" ]; then
