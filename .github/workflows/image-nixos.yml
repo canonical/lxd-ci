@@ -24,7 +24,7 @@ jobs:
       matrix:
         release:
           - unstable  # EOL: never
-          - 24.05     # EOL: 2024-12-31
+          - 25.05     # EOL: 2025-12-31
         variant:
           - default
         architecture:
