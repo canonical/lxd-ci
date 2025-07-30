@@ -14,13 +14,25 @@ node --version
 
 echo "==> Get ui test code"
 install_deps git
+
+TARGET="${LXD_SNAP_CHANNEL%%/*}"
+PLAYWRIGHT_PROJECT="${BROWSER}:lxd-${TARGET:-latest}-edge"
+BRANCH="main"
 if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
+  # LXD 5.0 suite has only chromium and firefox test projects
+  PLAYWRIGHT_PROJECT="${BROWSER}"
+
   # The UI in LXD 5.0 is not compatible with the test suite in the main branch of lxd-ui,
   # fall back to the old test suite from when LXD 5.0 was released.
-  git clone --depth=1 --single-branch --branch stable-5.0 https://github.com/canonical/lxd-ui.git
-else
-  git clone --depth=1 --single-branch --branch main https://github.com/canonical/lxd-ui.git
+  BRANCH="stable-5.0"
+
+  # enable ui manually for 5.0, which disables ui by default
+  snap set lxd ui.enable=true
+  systemctl reload snap.lxd.daemon
 fi
+
+# Clone LXD UI test suite
+git clone --depth=1 --single-branch --branch "${BRANCH}" https://github.com/canonical/lxd-ui.git
 
 echo "==> Install dependencies"
 npm install -g yarn
@@ -68,20 +80,9 @@ lxc config trust add keys/lxd-ui.crt
 if hasNeededAPIExtension "oidc"; then
   ./tests/scripts/setup_test
 fi
-# enable ui manually for 5.0, which disables ui by default
-if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
-  snap set lxd ui.enable=true
-  systemctl reload snap.lxd.daemon
-fi
 
 echo "==> Run e2e test suite"
-TARGET="${LXD_SNAP_CHANNEL%%/*}"
-if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
-  # LXD 5.0 suite has only chromium and firefox test projects
-  CI=1 npx playwright test --project "${BROWSER}"
-else
-  CI=1 npx playwright test --project "${BROWSER}:lxd-${TARGET:-latest}-edge"
-fi
+CI=1 npx playwright test --project "${PLAYWRIGHT_PROJECT}"
 
 # shellcheck disable=SC2034
 FAIL=0
