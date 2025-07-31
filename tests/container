@@ -10,22 +10,49 @@ lxd init --auto --storage-backend btrfs
 # Test
 set -x
 
-RELEASES="${RELEASES:-"20.04 22.04 24.04"}"
+# Containers should boot quickly
+export MAX_WAIT_SECONDS=15
+
+RELEASES="${RELEASES:-"20.04 22.04 24.04 25.04 25.10"}"
+
+reset_failed() {
+    local ctn_name="${1}"
+    shift
+
+    # Reset the failed state of the specified systemd service(s) in the instance.
+    lxc exec "${ctn_name}" -- systemctl reset-failed "${@}"
+}
+
+unit_failed() {
+    local ctn_name="${1}"
+    local unit="${2}"
+
+    # Check if the specified systemd service in the instance has failed.
+    lxc exec "${ctn_name}" -- systemctl --quiet --failed | grep -wF "${unit}"
+}
+
+print_message() {
+    local msg="${1}"
+    if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+        echo "${msg}" >> "${GITHUB_STEP_SUMMARY}"
+    fi
+    echo "${msg}"
+}
 
 known_systemd_remount_fs_issue() {
-    ctn_name="${1}"
-    if [ "$(lxc exec "${ctn_name}" -- systemctl --failed | grep -wF failed | cut -d' ' -f2)" = "systemd-remount-fs.service" ]; then
+    local ctn_name="${1}"
+    # 20.04 has a known issue with systemd-remount-fs.service failing.
+    if unit_failed "${ctn_name}" systemd-remount-fs.service; then
         if lxc exec "${ctn_name}" -- journalctl -o cat --unit=systemd-remount-fs.service | grep -xF "mount: /: can't find LABEL=cloudimg-rootfs."; then
-            return 0
+            # Reset the failed state and return success.
+            reset_failed "${ctn_name}" systemd-remount-fs.service
         fi
     fi
-    return 1
 }
 
 ignore_known_issues() {
-    ctn_name="${1}"
-    use_case="${2}"
-    known_issue=0
+    local ctn_name="${1}"
+    local use_case="${2}"
 
     case "${use_case}" in
       unprivileged|privileged|escapable|isolated|nesting|nested)
@@ -33,81 +60,70 @@ ignore_known_issues() {
       *)
         echo "::error::Unknown use case: ${use_case}" >&2
         return 1
+        ;;
     esac
 
-    if [ "${use_case}" = "nested" ]; then
-        # XXX: 20.04, 22.04 and 24.04 fail with:
-        # ● apparmor.service      loaded failed failed Load AppArmor profiles
-        # ● snapd.failure.service loaded failed failed Failure handling of the snapd snap
-        # ● snapd.service         loaded failed failed Snap Daemon
-        # ● snapd.socket          loaded failed failed Socket activation for snappy daemon
-        if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-            echo "Ignoring known issue with ${use_case} container (${release})" >> "${GITHUB_STEP_SUMMARY}"
-        else
-            echo "Ignoring known issue with ${use_case} container (${release})"
-        fi
-
+    if [ "${release}" = "20.04" ]; then
+      # Don't deal with nested containers in 20.04
+      if [ "${use_case}" = "nested" ]; then
         return 0
+      fi
+
+      # All other use cases should be fine with 20.04 once the systemd-remount-fs issue is handled.
+      known_systemd_remount_fs_issue "${ctn_name}"
+
+      isSystemdClean "${ctn_name}"
+      return 0
     fi
 
-    # XXX: ignore a specific failure with `systemd-remount-fs.service`
-    if known_systemd_remount_fs_issue "${ctn_name}"; then
-        if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-            echo "Ignoring known issue with systemd-remount-fs.service on ${use_case} container (${release})" >> "${GITHUB_STEP_SUMMARY}"
-        else
-            echo "Ignoring known issue with systemd-remount-fs.service on ${use_case} container (${release})"
+    if [ "${use_case}" = "privileged" ]; then
+      if [ "${release}" = "22.04" ]; then
+        # XXX: 22.04 fail with:
+        # ● systemd-sysusers.service loaded failed failed Create System Users
+        if unit_failed "${ctn_name}" systemd-sysusers.service; then
+            reset_failed "${ctn_name}" systemd-sysusers.service
+
+            isSystemdClean "${ctn_name}"
+            return 0
         fi
+      elif [ "${release}" = "24.04" ]; then
+        # XXX: 24.04 fail with:
+        # ● systemd-binfmt.service                   loaded failed failed Set Up Additional Binary Formats
+        # ● systemd-logind.service                   loaded failed failed User Login Management
+        # ● systemd-networkd.service                 loaded failed failed Network Configuration
+        # ● systemd-resolved.service                 loaded failed failed Network Name Resolution
+        # ● systemd-sysctl.service                   loaded failed failed Apply Kernel Variables
+        # ● systemd-sysusers.service                 loaded failed failed Create System Users
+        # ● systemd-timedated.service                loaded failed failed Time & Date Service
+        # ● systemd-tmpfiles-setup-dev-early.service loaded failed failed Create Static Device Nodes in /dev gracefully
+        # ● systemd-tmpfiles-setup-dev.service       loaded failed failed Create Static Device Nodes in /dev
+        # ● systemd-tmpfiles-setup.service           loaded failed failed Create Volatile Files and Directories
+        # ● systemd-networkd.socket                  loaded failed failed Network Service Netlink Socket
 
+        print_message "Ignoring known issue with privileged container (${release})"
         return 0
-    fi
-
-    if [ "${release}" != "20.04" ]; then
-        if [ "${use_case}" = "privileged" ]; then
-            # XXX: 22.04 fail with:
-            # ● systemd-sysusers.service loaded failed failed Create System Users
-
+      fi
+    elif [ "${use_case}" = "escapable" ]; then
+        if [ "${release}" = "24.04" ]; then
+            # https://github.com/canonical/lxd/issues/13607
             # XXX: 24.04 fail with:
-            # ● apparmor.service                         loaded failed failed Load AppArmor profiles
-            # ● systemd-logind.service                   loaded failed failed User Login Management
-            # ● systemd-networkd.service                 loaded failed failed Network Configuration
-            # ● systemd-resolved.service                 loaded failed failed Network Name Resolution
-            # ● systemd-sysctl.service                   loaded failed failed Apply Kernel Variables
-            # ● systemd-sysusers.service                 loaded failed failed Create System Users
-            # ● systemd-timedated.service                loaded failed failed Time & Date Service
-            # ● systemd-tmpfiles-setup-dev-early.service loaded failed failed Create Static Device Nodes in /dev gracefully
-            # ● systemd-tmpfiles-setup-dev.service       loaded failed failed Create Static Device Nodes in /dev
-            # ● systemd-tmpfiles-setup.service           loaded failed failed Create Volatile Files and Directories
-            # ● systemd-networkd.socket                  loaded failed failed Network Service Netlink Socket
-            known_issue=1
-        elif [ "${release}" = "24.04" ]; then
-            if [ "${use_case}" = "escapable" ]; then
-                # https://github.com/canonical/lxd/issues/13607
-                # XXX: 24.04 fail with:
-                # ● systemd-binfmt.service loaded failed failed Set Up Additional Binary Formats
-                known_issue=1
-            elif [ "${use_case}" = "isolated" ]; then
-                # XXX: 24.04 fail with:
-                # ● apparmor.service loaded failed failed Load AppArmor profiles
-                known_issue=1
-            elif [ "${use_case}" = "nesting" ]; then
-                # XXX: 24.04 fail with:
-                # ● apparmor.service loaded failed failed Load AppArmor profiles
-                known_issue=1
+            # ● systemd-binfmt.service loaded failed failed Set Up Additional Binary Formats
+            if unit_failed "${ctn_name}" systemd-binfmt.service; then
+                reset_failed "${ctn_name}" systemd-binfmt.service
+
+                isSystemdClean "${ctn_name}"
+                return 0
             fi
         fi
-    fi
-
-    if [ "${known_issue}" -eq 1 ]; then
-        if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-            echo "Ignoring known issue with ${use_case} container (${release})"
-        else
-            echo "Ignoring known issue with ${use_case} container (${release})"
-        fi
-
+    elif [ "${use_case}" = "nested" ]; then
+        # The nested case is rather broken as apparmor.service and multiple other services fail.
+        # Consider it a success if it can get an IPv4 for eth0 and do a DNS lookup.
+        lxc exec n1 -- lxc list "${ctn_name}" -c 4 -f csv | grep -wF eth0
+        lxc exec n1 -- lxc exec "${ctn_name}" -- getent ahosts _gateway
         return 0
     fi
 
-    echo "::error::Unknown issue with ${use_case} container (${release})" >&2
+    print_message "::error::Unknown issue with ${use_case} container (${release})"
     return 1
 }
 
@@ -123,27 +139,27 @@ for release in $RELEASES; do
 
     echo "==> unprivileged container (${release})"
     lxc launch "${IMAGE}" u1
-    isSystemdClean u1 || ignore_known_issues "u1" "unprivileged"
+    isSystemdClean u1 || ignore_known_issues u1 unprivileged
     lxc delete -f u1
 
     echo "==> privileged container (${release})"
     lxc launch "${IMAGE}" p1 -c security.privileged=true
-    isSystemdClean p1 || ignore_known_issues "p1" "privileged"
+    isSystemdClean p1 || ignore_known_issues p1 privileged
     lxc delete -f p1
 
     echo "==> escapable container (${release})"
     lxc launch "${IMAGE}" e1 -c security.privileged=true -c security.nesting=true
-    isSystemdClean e1 || ignore_known_issues "e1" "escapable"
+    isSystemdClean e1 || ignore_known_issues e1 escapable
     lxc delete -f e1
 
     echo "==> isolated container (${release})"
     lxc launch "${IMAGE}" i1 -c security.idmap.isolated=true
-    isSystemdClean i1 || ignore_known_issues "i1" "isolated"
+    isSystemdClean i1 || ignore_known_issues i1 isolated
     lxc delete -f i1
 
     echo "==> nested container (${release})"
     lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
-    waitInstanceReady n1
+    isSystemdClean n1 || ignore_known_issues n1 nesting
     lxc exec n1 -- mkdir -p /etc/systemd/system/snapd.service.d
     lxc file push - n1/etc/systemd/system/snapd.service.d/override.conf << EOF
 # Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
@@ -152,13 +168,12 @@ Environment=SNAPD_STANDBY_WAIT=1m
 EOF
     lxc exec n1 -- systemctl daemon-reload
     lxc exec n1 -- systemctl restart snapd.service
-    isSystemdClean n1 || ignore_known_issues "n1" "nesting"
     lxc exec n1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
     lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
     lxc exec n1 -- lxd init --auto
     lxc exec n1 -- lxc launch "${IMAGE}" n11
     sleep 5
-    [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues "n11" "nested"
+    [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues n11 nested
     lxc delete -f n1
 done
 unset WARNING_PREFIX
