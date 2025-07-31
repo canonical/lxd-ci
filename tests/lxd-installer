@@ -36,7 +36,7 @@ test_lxd_installer() {
 
     if [ -n "${snapd_channel}" ]; then
         echo "==> Installing snapd from ${snapd_channel}"
-        install_snapd "${snapd_channel}"
+        lxc exec "${instance}" -- sh -c "$(declare -f waitSnapdSeed install_snapd); install_snapd ${snapd_channel}"
     fi
 
     # report on lxd-installer version
