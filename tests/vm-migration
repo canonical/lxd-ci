@@ -47,14 +47,8 @@ lxc exec member1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
 for instance in member1 member2; do
-    lxc exec "${instance}" -- mkdir -p /etc/systemd/system/snapd.service.d
-    lxc file push - "${instance}"/etc/systemd/system/snapd.service.d/override.conf << EOF
-# Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
-[Service]
-Environment=SNAPD_STANDBY_WAIT=1m
-EOF
-    lxc exec "${instance}" -- systemctl daemon-reload
-    lxc exec "${instance}" -- systemctl restart snapd.service
+    # Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+    lxc exec "${instance}" -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
 done
 
 # Install LXD in the first member.
