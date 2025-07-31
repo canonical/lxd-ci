@@ -118,8 +118,9 @@ waitInstanceBooted v1
 lxc exec v1 -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
 
 # Test nested VM functionality.
+lxc exec v1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
-lxc exec v1 -- /snap/bin/lxd init --auto
+lxc exec v1 -- lxd init --auto
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" v1/var/snap/lxd/common/lxd.debug
     lxc exec v1 -- systemctl restart snap.lxd.daemon
