@@ -347,16 +347,29 @@ fi
 
 # Check io.threads is working and allowed only when restricted.virtual-machines.lowlevel is allow.
 if hasNeededAPIExtension disk_io_threads_virtiofsd; then
-  # Important to wait for guest to boot before changing io.threads as that will trigger device removal and re-add.
-  # And we need to ensure udev inside the guest picks up the new device.
-  waitInstanceBooted v1
+  lxc stop -f v1
+
+  # Check can't specify io.threads when restricted.
   ! lxc config device set v1 d1 io.threads=4 || false
   lxc project set restricted restricted.virtual-machines.lowlevel=allow
-  lxc exec v1 -- umount /mnt
-  lxc config device set v1 d1 io.threads=4
-  sleep 1
+
+  # Check directory hotplugged after VM start is mounted by lxd-agent using config drive agent-mounts file.
+  lxc config device remove v1 d1
+  lxc start v1
+  lxc config device add v1 d1 disk source="${testRoot}/allowed1" path=/mnt io.threads=4
+
+  # Wait for lxd-agent to start and mount the disk.
+  waitInstanceBooted v1
   pgrep -f "virtiofsd --fd=3 --shared-dir /var/snap/lxd/common/lxd/devices/restricted_v1/disk.d1.mnt --cache auto --allow-direct-io --thread-pool-size 4 --xattr"
   [ "$(lxc exec v1  -- stat /mnt/foo1 -c '%u:%g')" = "1000:1000" ]
+
+  # Check that io.threads can be set on existing disk device and that devlxd events are acted upon by lxd-agent.
+  lxc config device set v1 d1 io.threads=5
+  sleep 1
+  pgrep -f "virtiofsd --fd=3 --shared-dir /var/snap/lxd/common/lxd/devices/restricted_v1/disk.d1.mnt --cache auto --allow-direct-io --thread-pool-size 5 --xattr"
+  [ "$(lxc exec v1 -- findmnt --noheadings /mnt | wc -l)" = "1" ] # Check that the remove/add caused an unmount and mount.
+  [ "$(lxc exec v1  -- stat /mnt/foo1 -c '%u:%g')" = "1000:1000" ] # Check that the ownership is still correct.
+
   ! lxc project unset restricted restricted.virtual-machines.lowlevel || false
 else
   echo 'Skipping disk_io_threads_virtiofsd tests due to missing extension: "disk_io_threads_virtiofsd"'
