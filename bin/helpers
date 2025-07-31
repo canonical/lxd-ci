@@ -12,6 +12,18 @@ waitSnapdSeed() (
   return 1 # Failed.
 )
 
+snapdWorkaround() (
+    # workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+    mkdir -p /etc/systemd/system/snapd.service.d
+    cat << EOF > /etc/systemd/system/snapd.service.d/override.conf
+# Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+[Service]
+Environment=SNAPD_STANDBY_WAIT=1m
+EOF
+    systemctl daemon-reload
+    systemctl try-restart snapd.service || true
+)
+
 # waitInstanceReady: waits for the instance to be ready (processes count > 1).
 waitInstanceReady() (
   { set +x; } 2>/dev/null
@@ -150,6 +162,7 @@ install_deps() (
 
 # install_microceph: install MicroCeph snap.
 install_microceph() (
+    snapdWorkaround
     # Wait for snapd seeding
     waitSnapdSeed
 
@@ -209,6 +222,7 @@ configure_microceph() {
 
 # install_ovn: install OVN packages or MicroOVN snap.
 install_ovn() (
+    snapdWorkaround
     # Wait for snapd seeding
     waitSnapdSeed
 
@@ -252,6 +266,7 @@ install_lxd() (
     [ -x /usr/sbin/lxd ] && chmod -x /usr/sbin/lxd
     [ -x /usr/sbin/lxc ] && chmod -x /usr/sbin/lxc
 
+    snapdWorkaround
     # Wait for snapd seeding
     waitSnapdSeed
 

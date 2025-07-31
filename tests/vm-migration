@@ -39,22 +39,12 @@ if hasNeededAPIExtension devlxd_images_vm; then
 fi
 lxc start member1
 lxc start member2
-waitInstanceReady member1
-waitInstanceReady member2
-# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
-lxc exec member1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
-# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
-lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
 for instance in member1 member2; do
-    lxc exec "${instance}" -- mkdir -p /etc/systemd/system/snapd.service.d
-    lxc file push - "${instance}"/etc/systemd/system/snapd.service.d/override.conf << EOF
-# Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
-[Service]
-Environment=SNAPD_STANDBY_WAIT=1m
-EOF
-    lxc exec "${instance}" -- systemctl daemon-reload
-    lxc exec "${instance}" -- systemctl restart snapd.service
+    waitInstanceReady "${instance}"
+    # Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+    lxc exec "${instance}" -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
+    lxc exec "${instance}" -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 done
 
 # Install LXD in the first member.
