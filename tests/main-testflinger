@@ -93,6 +93,9 @@ run_test jammy default tests/container-copy "${lxd_snap_channel}"
 run_test jammy default tests/vm-nesting "${lxd_snap_channel}"
 run_test jammy hwe tests/vm-nesting "${lxd_snap_channel}"
 
+# vm-migration
+run_test noble default tests/vm-migration "${lxd_snap_channel}"
+
 # image conversion
 run_test jammy default tests/conversion "${lxd_snap_channel}"
 

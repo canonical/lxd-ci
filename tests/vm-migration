@@ -1,68 +1,119 @@
 #!/bin/bash
 set -eux
 
+# testflinger_queue: hoodin
+
 # Install dependencies
 install_deps jq
-
-# Install MicroCeph
-install_microceph
-
-# Disk for use by MicroCeph
-backing_file="$(mktemp)"
-truncate -s 20GiB "${backing_file}"
-CEPH_DISK="$(losetup --direct-io=on --show --find "${backing_file}")"
-export CEPH_DISK
-
-# Configure MicroCeph
-configure_microceph
 
 # Install LXD
 install_lxd
 
-# Configure LXD
-lxc network create lxdbr0
-lxc profile device add default eth0 nic network=lxdbr0
+# Unblock images remote.
+sed -i '/images\.lxd\.canonical\.com/d' /etc/hosts
 
-poolName="vmpool$$"
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
+
+networkName="lxdbr42"
+poolName="ctpool"
 poolDriver=zfs
 
+# Configure LXD.
+lxc network create "${networkName}"
 echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
-lxc profile device add default root disk path="/" pool="${poolName}"
 
-# Launch two instances for our LXD cluster and wait for them to be ready.
-lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member1 --vm -c limits.memory=2GiB
-lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member2 --vm -c limits.memory=2GiB
+LOCAL_LOOP_DEVICE=""
+cleanup() {
+  if [ -n "${LOCAL_LOOP_DEVICE:-}" ]; then
+    losetup --detach "${LOCAL_LOOP_DEVICE}"
+  fi
+}
+
+trap cleanup EXIT HUP INT TERM
+
+# Create ceph node
+lxc init "${IMAGE}" ceph --vm -c limits.cpu=4 -c limits.memory=4GiB --network "${networkName}" --storage "${poolName}"
+if [ -n "${GITHUB_ACTIONS:-}" ]; then
+  # If the rootfs and the ephemeral part are on the same physical disk, giving the whole
+  # disk to microceph would wipe our rootfs. Since it is pretty rare for GitHub Action
+  # runners to have a single disk, we immediately bail rather than trying to gracefully
+  # handle it. Once snapd releases with https://github.com/snapcore/snapd/pull/13150,
+  # we will be able to stop worrying about that special case.
+  if [ "$(stat -c '%d' /)" = "$(stat -c '%d' /mnt)" ]; then
+    echo "FAIL: rootfs and ephemeral part on the same disk, aborting"
+    exit 1
+  fi
+
+  # Free-up the ephemeral disk to use it as ceph OSD.
+  # https://github.com/canonical/microceph/issues/288 and https://github.com/canonical/microceph/issues/289
+  swapoff /mnt/swapfile
+  ephemeral_disk="$(findmnt --noheadings --output SOURCE --target /mnt | sed 's/[0-9]\+$//')"
+  umount /mnt
+
+  lxc config device add ceph ceph-disk disk source="${ephemeral_disk}" path=/dev/sdb
+else
+  lxc storage volume create "${poolName}" ceph-disk size=20GiB --type=block
+  lxc config device add ceph ceph-disk disk pool="${poolName}" source=ceph-disk
+fi
+
+lxc start ceph
+
+# Wait for snap in ceph instance.
+waitInstanceReady ceph
+# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
+lxc exec ceph -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+
+# Install and configure ceph
+lxc exec ceph -- snap install microceph --edge
+lxc exec ceph -- microceph cluster bootstrap
+lxc exec ceph -- microceph.ceph config set global osd_pool_default_size 1
+lxc exec ceph -- microceph.ceph config set global mon_allow_pool_delete true
+lxc exec ceph -- microceph.ceph config set global osd_memory_target 939524096
+lxc exec ceph -- microceph.ceph osd crush rule rm replicated_rule
+lxc exec ceph -- microceph.ceph osd crush rule create-replicated replicated default osd
+for flag in nosnaptrim noscrub nobackfill norebalance norecover noscrub nodeep-scrub; do
+    lxc exec ceph -- microceph.ceph osd set "${flag}"
+done
+lxc exec ceph -- microceph disk add /dev/sdb --wipe
+lxc exec ceph -- microceph.ceph osd pool create cephfs_meta 32
+lxc exec ceph -- microceph.ceph osd pool create cephfs_data 32
+lxc exec ceph -- microceph.ceph fs new cephfs cephfs_meta cephfs_data
+lxc exec ceph -- microceph.ceph fs ls
+for _ in $(seq 60); do
+  if lxc exec ceph -- sudo microceph.ceph pg stat | grep -wF unknown; then
+    sleep 1
+  else
+    break
+  fi
+done
+
+lxc init "${IMAGE}" member1 --network "${networkName}" --storage "${poolName}" --vm --config limits.cpu=4 --config limits.memory=8GiB
+lxc init "${IMAGE}" member2 --network "${networkName}" --storage "${poolName}" --vm --config limits.cpu=4 --config limits.memory=8GiB
+
 if hasNeededAPIExtension devlxd_images_vm; then
     lxc config set member1 security.devlxd.images=true
     lxc config set member2 security.devlxd.images=true
 fi
+
+# Start the instances and wait for member1 to be ready.
 lxc start member1
 lxc start member2
 waitInstanceReady member1
-waitInstanceReady member2
 # shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
 lxc exec member1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
-# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
-lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
-
-for instance in member1 member2; do
-    lxc exec "${instance}" -- mkdir -p /etc/systemd/system/snapd.service.d
-    lxc file push - "${instance}"/etc/systemd/system/snapd.service.d/override.conf << EOF
-# Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
-[Service]
-Environment=SNAPD_STANDBY_WAIT=1m
-EOF
-    lxc exec "${instance}" -- systemctl daemon-reload
-    lxc exec "${instance}" -- systemctl restart snapd.service
-done
 
 # Install LXD in the first member.
-lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec member1 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member1/var/snap/lxd/common/lxd.debug
     lxc exec member1 -- systemctl restart snap.lxd.daemon
+fi
+if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
+  lxc file push "${LXD_AGENT_SIDELOAD_PATH}" "member1/root/$(basename "${LXD_AGENT_SIDELOAD_PATH}")"
+  lxc exec member1 -- mount --bind "$(basename "${LXD_AGENT_SIDELOAD_PATH}")" /snap/lxd/current/bin/lxd-agent
+  lxc exec member1 -- systemctl restart snap.lxd.daemon
 fi
 
 # Initialise and configure LXD in the first member.
@@ -72,28 +123,43 @@ lxc exec member1 -- lxc config set core.https_address="${member1Address}:8443"
 lxc exec member1 -- lxc cluster enable member1
 joinToken="$(lxc exec member1 -- lxc cluster add member2 --quiet)"
 
+# Ensure member2 is ready.
+waitInstanceReady member2
+# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
+lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+
 # Install LXD on the second member.
-lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec member2 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member2/var/snap/lxd/common/lxd.debug
     lxc exec member2 -- systemctl restart snap.lxd.daemon
 fi
+if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
+  lxc file push "${LXD_AGENT_SIDELOAD_PATH}" "member2/root/$(basename "${LXD_AGENT_SIDELOAD_PATH}")"
+  lxc exec member2 -- mount --bind "$(basename "${LXD_AGENT_SIDELOAD_PATH}")" /snap/lxd/current/bin/lxd-agent
+  lxc exec member2 -- systemctl restart snap.lxd.daemon
+fi
 
 # Create a preseed file for member2 to join member1.
 member2Address="$(lxc query /1.0/instances/member2?recursion=2 | jq -r ".state.network.enp5s0.addresses[0].address")"
-
-# Initialise member2 with the preseed.
-lxc exec member2 -- lxd init --preseed << EOF
+preseed="$(
+  cat <<EOF
 cluster:
   enabled: true
   server_address: "${member2Address}"
   cluster_token: "${joinToken}"
 EOF
+)"
 
-# Copy the ceph config from the local microceph snap into each cluster member.
-lxc file push -r -p /var/snap/microceph/current/conf/* member1/etc/ceph/
-lxc file push -r -p /var/snap/microceph/current/conf/* member2/etc/ceph/
+# Initialise member2 with the preseed.
+echo "${preseed}" | lxc exec member2 -- lxd init --preseed
+
+# Copy the ceph config from the microceph node into each cluster member.
+rm -rf etc/ceph
+lxc file pull -r ceph/var/snap/microceph/current/conf etc/ceph
+lxc file push -r -p etc/ceph/conf/* member1/etc/ceph/
+lxc file push -r -p etc/ceph/conf/* member2/etc/ceph/
 lxc exec member1 -- chmod +x /etc/ceph
 lxc exec member2 -- chmod +x /etc/ceph
 
@@ -106,23 +172,47 @@ lxc exec member1 -- lxc storage create ceph ceph
 lxc exec member1 -- lxc storage volume create ceph vol1 --type=block size=64MiB
 
 # Create a VM in the cluster, on member1.
-lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=512MiB -d root,size=3584MiB
+lxc exec member1 -- lxc init images:alpine/edge v1 --vm --config security.secureboot=false --storage ceph --target member1 -c migration.stateful=true -d root,size=4GiB
 
 # Add vol1 as a disk device to the VM.
 lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol1
 
 # Start the VM.
 lxc exec member1 -- lxc start v1
-sleep 60
 
-# Ascertain that the VM is indeed on member1.
-[ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member1" ]
+# Wait for a long time for it to boot (doubly nested VM takes a while).
+for i in $(seq 1 60); do
+  if lxc exec member1 -- lxc info v1 | grep "Processes:" | awk '{print $2}' | awk '{ if ($1 <= 1) exit 1}'; then
+    break
+  fi
 
-# Move the VM to member2 but with a timeout as this sometimes hangs indefinitely but when it works it's fast.
-lxc exec member1 -- timeout 600 lxc move v1 --target member2
+  echo "Waiting for instance v1 on member1 to boot (retry $i/60)"
+  sleep 5
+done
 
-# Verify the migration did succeeded and the VM is running on member2.
-[ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member2" ]
+# vol1 should be available as /dev/sdb. Format it as ext4. Then mount it and create a file.
+lxc exec member1 -- lxc exec v1 -- apk add e2fsprogs
+lxc exec member1 -- lxc exec v1 -- mkfs.ext4 /dev/sdb
+lxc exec member1 -- lxc exec v1 -- mkdir /mnt/vol1
+lxc exec member1 -- lxc exec v1 -- mount -t ext4 /dev/sdb /mnt/vol1
+lxc exec member1 -- lxc exec v1 -- cp /etc/hostname /mnt/vol1/bar
+
+# Move the instance
+lxc exec member1 -- lxc move v1 --target member2
+
+# The VM is slow. So the agent isn't immediately available after the live migration.
+lxc exec member1 -- sh -c "$(declare -f waitInstanceReady); MAX_WAIT_SECONDS=300 waitInstanceReady v1"
+
+# The volume should be functional, still mounted, and the file we created should still be there with the same contents.
+[ "$(lxc exec member2 -- lxc exec v1 -- cat /mnt/vol1/bar)" = "v1" ]
+
+# Cleanup.
+lxc delete -f member1
+lxc delete -f member2
+lxc delete -f ceph
+lxc network delete "${networkName}"
+lxc storage volume delete "${poolName}" ceph-disk || true
+lxc storage delete "${poolName}"
 
 # shellcheck disable=SC2034
 FAIL=0
