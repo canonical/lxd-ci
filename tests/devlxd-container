@@ -122,14 +122,8 @@ if echo "${LXD_SNAP_CHANNEL}" | grep -E '^([45]\.0)/'; then
   exit
 fi
 
-lxc exec c1 -- mkdir -p /etc/systemd/system/snapd.service.d
-lxc file push - c1/etc/systemd/system/snapd.service.d/override.conf << EOF
 # Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
-[Service]
-Environment=SNAPD_STANDBY_WAIT=1m
-EOF
-lxc exec c1 -- systemctl daemon-reload
-lxc exec c1 -- systemctl restart snapd.service
+lxc exec c1 -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
 
 # We need snapd to be ready before the next tests. Finagle the waitSnapdSeed function definition into the container and run it.
 # shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
