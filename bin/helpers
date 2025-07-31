@@ -162,6 +162,7 @@ install_deps() (
 
 # install_microceph: install MicroCeph snap.
 install_microceph() (
+    snapdWorkaround
     # Wait for snapd seeding
     waitSnapdSeed
 
@@ -221,6 +222,7 @@ configure_microceph() {
 
 # install_ovn: install OVN packages or MicroOVN snap.
 install_ovn() (
+    snapdWorkaround
     # Wait for snapd seeding
     waitSnapdSeed
 
@@ -264,6 +266,7 @@ install_lxd() (
     [ -x /usr/sbin/lxd ] && chmod -x /usr/sbin/lxd
     [ -x /usr/sbin/lxc ] && chmod -x /usr/sbin/lxc
 
+    snapdWorkaround
     # Wait for snapd seeding
     waitSnapdSeed
 
