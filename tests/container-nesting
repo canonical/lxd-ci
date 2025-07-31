@@ -58,16 +58,10 @@ for poolDriver in ${poolDriverList}; do
     lxc launch "${IMAGE}" "${instName}" --profile default --profile container-nesting --storage "${poolName}"
     waitInstanceReady "${instName}"
 
-    # Ensure snapd is ready.
     # workaround for https://bugs.launchpad.net/snapd/+bug/2104066
-    lxc exec "${instName}" -- mkdir -p /etc/systemd/system/snapd.service.d
-    lxc file push - "${instName}"/etc/systemd/system/snapd.service.d/override.conf << EOF
-# Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
-[Service]
-Environment=SNAPD_STANDBY_WAIT=1m
-EOF
-    lxc exec "${instName}" -- systemctl daemon-reload
-    lxc exec "${instName}" -- systemctl restart snapd.service
+    lxc exec "${instName}" -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
+
+    # Ensure snapd is ready.
     lxc exec "${instName}" -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
     # Install LXD in the container.
