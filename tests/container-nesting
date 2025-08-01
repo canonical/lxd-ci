@@ -52,6 +52,25 @@ for poolDriver in ${poolDriverList}; do
         # BTRFS can be used within a nested container on top of BTRFS storage
         # pool, if the source is a directory.
         nestedPoolDriverList+=" btrfs"
+    elif [ "${poolDriver}" = "zfs" ]; then
+        # To use ZFS within a nested container, a ZFS version must be greater than
+        # or equal to 2.2, and ZFS delegation must be enabled.
+        zfsVersion=$(modinfo zfs | awk '/^version:/ {print $2}')
+        if dpkg --compare-versions "${zfsVersion}" gt "2.2"; then
+            lxc storage set "${poolName}" volume.zfs.delegate=true
+            nestedPoolDriverList+=" zfs"
+
+            # XXX: Ensure that the ZFS device is accessible within the nested container.
+            #      Otherwise, the LXD storage pool creation will fail.
+            zfsPerm=$(stat -c '%a' /dev/zfs)
+            if [ $((zfsPerm & 7)) -eq 0 ]; then
+                echo "::warning::Workaround for ZFS permission is still in effect."
+                ls -la /dev/zfs
+                chmod 666 /dev/zfs
+            fi
+        else
+            echo "ZFS version ${zfsVersion} does not support ZFS delegation and cannot be used within nested containers."
+        fi
     fi
 
     # Launch a new container and install LXD.
@@ -78,7 +97,12 @@ for poolDriver in ${poolDriverList}; do
             # BTRFS pool must use a directory as a source.
             lxc exec "${instName}" -- lxc storage create "${nestedPoolName}" "${nestedPoolDriver}" source="$(mktemp -d)"
         elif [ "${nestedPoolDriver}" = "zfs" ]; then
-            lxc exec "${instName}" -- lxc storage create "${nestedPoolName}" "${nestedPoolDriver}" size=5GiB
+            # Create a custom volume and attach it to the instance.
+            lxc storage volume create "${poolName}" vol1
+            lxc config device add "${instName}" vol1 disk pool="${poolName}" source=vol1 path=/mnt/vol1
+
+            # Create a ZFS storage pool in the nested container using the attached volume.
+            lxc exec "${instName}" -- lxc storage create "${nestedPoolName}" "${nestedPoolDriver}" source="${poolName}/custom/default_vol1"
         else
             lxc exec "${instName}" -- lxc storage create "${nestedPoolName}" "${nestedPoolDriver}"
         fi
@@ -97,6 +121,9 @@ for poolDriver in ${poolDriverList}; do
 
     # Cleanup.
     lxc delete --force "${instName}"
+    if echo "${nestedPoolDriverList}" | grep -qwF zfs; then
+        lxc storage volume delete "${poolName}" vol1
+    fi
     lxc storage delete "${poolName}"
 done
 
