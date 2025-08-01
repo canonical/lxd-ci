@@ -59,6 +59,15 @@ for poolDriver in ${poolDriverList}; do
         if dpkg --compare-versions "${zfsVersion}" gt "2.2"; then
             lxc storage set "${poolName}" volume.zfs.delegate=true
             nestedPoolDriverList+=" zfs"
+
+            # XXX: Ensure that the ZFS device is accessible within the nested container.
+            #      Otherwise, the LXD storage pool creation will fail.
+            zfsPerm=$(stat -c '%a' /dev/zfs)
+            if [ $((zfsPerm & 7)) -eq 0 ]; then
+                echo "::warning::Workaround for ZFS permission is still in effect."
+                ls -la /dev/zfs
+                chmod 666 /dev/zfs
+            fi
         else
             echo "ZFS version ${zfsVersion} does not support ZFS delegation and cannot be used within nested containers."
         fi
