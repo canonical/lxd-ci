@@ -3,22 +3,17 @@ name: Slackware
 on:
   schedule:
     - cron: '30 8 * * 1-5'  # Build amd64
-    - cron: '45 8 * * 1-5'  # Build arm64
   workflow_dispatch:
     inputs:
       publish:
         type: boolean
         default: false
         description: Publish built image
-      build-arm64:
-        type: boolean
-        default: false
-        description: Build arm64 images
 
 jobs:
   slackware:
     if: github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci'
-    runs-on: ${{ matrix.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -27,7 +22,8 @@ jobs:
         variant:
           - default
         architecture:
-          - ${{ (inputs.build-arm64 == true || github.event.schedule == '45 8 * * 1-5') && 'arm64' || 'amd64' }}
+          - amd64
+
     env:
       type: "container"
       distro: "${{ github.job }}"
