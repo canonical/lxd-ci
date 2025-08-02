@@ -25,7 +25,6 @@ jobs:
         release:
           - snapshot  # EOL: never
           - "24.10"   # EOL: ??
-          - 23.05     # EOL: 2025-08-04
         variant:
           - default
         architecture:
