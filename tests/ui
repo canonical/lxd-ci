@@ -31,6 +31,9 @@ if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
   systemctl reload snap.lxd.daemon
 fi
 
+# Remove any leftover clone
+[ -d lxd-ui ] && rm -rf lxd-ui
+
 # Clone LXD UI test suite
 git clone --depth=1 --single-branch --branch "${BRANCH}" https://github.com/canonical/lxd-ui.git
 
