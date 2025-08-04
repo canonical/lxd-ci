@@ -16,6 +16,10 @@ echo "==> Get ui test code"
 install_deps git
 
 TARGET="${LXD_SNAP_CHANNEL%%/*}"
+# The UI test suite for all the 6 channels match the suite for latest.
+if [ "$TARGET" = "6" ]; then
+  TARGET="latest"
+fi
 PLAYWRIGHT_PROJECT="${BROWSER}:lxd-${TARGET:-latest}-edge"
 BRANCH="main"
 if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
