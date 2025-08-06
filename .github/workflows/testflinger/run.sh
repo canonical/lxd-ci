@@ -1,11 +1,11 @@
 #!/bin/bash -eu
 
-temp_job=uc-nvidia-job.yml.tmp
+temp_job="${TFWORKFLOW}.yml.tmp"
 
-echo "Inputs: $JOB_QUEUE $DISTRO $SNAP_CHANNEL"
+echo "Inputs: $JOB_QUEUE $DISTRO $SNAP_CHANNEL $TFWORKFLOW"
 
 # Replace env vars with inputs
-envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' < uc-nvidia-cdi-job.yml > $temp_job
+envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' < "${TFWORKFLOW}.yml" > $temp_job
 
 if [[ "${1:-}" == "--dryrun" ]]; then
   echo "Dry-run complete"

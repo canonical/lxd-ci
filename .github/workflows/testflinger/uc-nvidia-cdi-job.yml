@@ -37,10 +37,18 @@ test_data:
 
     # refresh to the new kernel
     _run sudo snap refresh pc-kernel --channel 24/stable --no-wait
+    # Add some extra time to ensure that machine has rebooted after updating the kernel
+    sleep 30
     wait_for_snap_changes
 
+    # Pre-test diagnostics I
+    _run snap list
+    _run snap components
+    _run sudo snap changes
+    _run sudo snap connections --all
+
     # install the module component
-    _run sudo snap install pc-kernel+nvidia-550-erd-ko --no-wait
+    _run sudo snap install pc-kernel+nvidia-570-erd-ko --no-wait
     wait_for_snap_changes
 
     # until kernel-module-load is autoconnected
@@ -49,7 +57,7 @@ test_data:
     _run ls /dev/nvidia*
 
     # install the userspace component
-    _run sudo snap install pc-kernel+nvidia-550-erd-user --no-wait
+    _run sudo snap install pc-kernel+nvidia-570-erd-user --no-wait
     wait_for_snap_changes
 
     # manual connection of the kernel-gpu-2404 interface
@@ -65,6 +73,12 @@ test_data:
     # LXD working
     _run sudo snap install lxd --channel=$SNAP_CHANNEL --no-wait
     wait_for_snap_changes
+
+    # Pre-test diagnostics II
+    _run snap list
+    _run snap components
+    _run sudo snap changes
+    _run sudo snap connections --all
 
     _run sudo lxd init --auto
     _run sudo usermod -G lxd ubuntu
