@@ -876,6 +876,23 @@ EOF
     lxc network delete ovn-virtual-network2
     [ "$(ovn-nbctl list load_balancer | grep -cF name)" = 4 ]
 
+    if hasNeededAPIExtension ovn_internal_load_balancer; then
+        echo "==> Test internal forwards"
+
+        echo "==> Check creating internal forwards"
+        lxc network forward create ovn-virtual-network "${ip4AddressPrefix}.10" target_address="${U1_IPV4}"
+        lxc network forward create ovn-virtual-network "${ip6AddressPrefix}::10" target_address="${U1_IPV6}"
+        [ "$(ovn-nbctl list load_balancer | grep -cF name)" = 6 ]
+
+        echo "==> Check we get no connection outside of the OVN network"
+        ! dig a +tcp "@${ip4AddressPrefix}.10" u1.lxd || false
+        ! dig aaaa +tcp "@${ip6AddressPrefix}::10" u1.lxd || false
+
+        echo "==> Check accessing forwards's listen address inside the u1"
+        [ "$(lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.1" ]
+        [ "$(lxc exec u1 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::1" ]
+    fi
+
     echo "==> Clean up"
     lxc delete -f u1
     lxc delete -f u2
@@ -1143,6 +1160,85 @@ EOF
         ! lxc exec u2 -- dig a +tcp @192.0.2.1 lxd.localdomain +short || false
         ! lxc exec u2 -- dig aaaa +tcp @2001:db8:1:2::1 lxd.localdomain +short || false
     done
+
+    if hasNeededAPIExtension ovn_internal_load_balancer; then
+        echo "==> Test internal load balancers"
+
+        echo "==> Start dnsmasq back on both instances"
+        lxc exec u1 -- systemctl start dnsmasq
+        lxc exec u2 -- systemctl start dnsmasq
+
+        echo "==> Check creating internal load balancers"
+        lxc network load-balancer create ovn-virtual-network "${ip4AddressPrefix}.10"
+        lxc network load-balancer create ovn-virtual-network "${ip6AddressPrefix}::10"
+
+        echo "==> Add backend for u1"
+        lxc network load-balancer backend add ovn-virtual-network "${ip4AddressPrefix}.10" u1 "${U1_IPV4}"
+        lxc network load-balancer backend add ovn-virtual-network "${ip6AddressPrefix}::10" u1 "${U1_IPV6}"
+
+        echo "==> Add backend for u2"
+        lxc network load-balancer backend add ovn-virtual-network "${ip4AddressPrefix}.10" u2 "${U2_IPV4}"
+        lxc network load-balancer backend add ovn-virtual-network "${ip6AddressPrefix}::10" u2 "${U2_IPV6}"
+
+        echo "==> Configure ports for the load balancers towards u1 and u2"
+        lxc network load-balancer port add ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53 u1,u2
+        lxc network load-balancer port add ovn-virtual-network "${ip6AddressPrefix}::10" tcp 53 u1,u2
+
+        echo "==> Check OVN config mentions both backend target IPs"
+        ovn-nbctl list load_balancer | grep -F "{\"${ip4AddressPrefix}.10:53\"=\"${U1_IPV4}:53,${U2_IPV4}:53\"}"
+        ovn-nbctl list load_balancer | grep -F "{\"[${ip6AddressPrefix}::10]:53\"=\"[${U1_IPV6}]:53,[${U2_IPV6}]:53\"}"
+
+        echo "==> Check load balancers are not accessible from outside of the OVN network"
+        ! dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+
+        echo "==> Check DNS load balancing is working and is accessible from u1 and u2"
+        u1_ip4_seen=0
+        u1_ip6_seen=0
+        u2_ip4_seen=0
+        u2_ip6_seen=0
+
+        for _ in $(seq 5); do
+            [ "$(lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.1" ] && u1_ip4_seen=$((u1_ip4_seen + 1))
+            [ "$(lxc exec u1 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::1" ] && u1_ip6_seen=$((u1_ip6_seen + 1))
+            [ "$(lxc exec u2 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ] && u2_ip4_seen=$((u2_ip4_seen + 1))
+            [ "$(lxc exec u2 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ] && u2_ip6_seen=$((u2_ip6_seen + 1))
+        done
+
+        if [ "${u1_ip4_seen}" -lt 1 ] || \
+           [ "${u1_ip6_seen}" -lt 1 ] || \
+           [ "${u2_ip4_seen}" -lt 1 ] || \
+           [ "${u2_ip6_seen}" -lt 1 ]; then
+            echo "Error: Load balancing failed: Not all endpoints were resolved"
+            return 1
+        fi
+
+        echo "==> Check stopping dnsmasq on both instances stop load balancer from working"
+        lxc exec u1 -- systemctl stop dnsmasq
+        lxc exec u2 -- systemctl stop dnsmasq
+
+        ! dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+        ! lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! lxc exec u1 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+        ! lxc exec u2 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! lxc exec u2 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+
+        echo "==> Change load balancer ports towards u2 only"
+        lxc network load-balancer port remove ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53
+        lxc network load-balancer port remove ovn-virtual-network "${ip6AddressPrefix}::10" tcp 53
+        lxc network load-balancer port add ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53 u2
+        lxc network load-balancer port add ovn-virtual-network "${ip6AddressPrefix}::10" tcp 53 u2
+
+        echo "==> Check accessing load balancer inside the u1 and u2"
+        lxc exec u2 -- systemctl start dnsmasq
+        for _ in $(seq 5); do
+            [ "$(lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ]
+            [ "$(lxc exec u1 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
+            [ "$(lxc exec u2 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ]
+            [ "$(lxc exec u2 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
+        done
+    fi
 
     echo "==> Clean up"
     lxc delete -f u1
