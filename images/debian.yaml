@@ -1125,6 +1125,7 @@ packages:
     - bookworm
     - sid
     - trixie
+    - forky
 
   - packages:
     - cloud-init
@@ -1158,6 +1159,7 @@ packages:
     - arm64
     releases:
     - trixie
+    - forky
     - sid
 
   - packages:
@@ -1169,6 +1171,7 @@ packages:
     releases:
     - bookworm
     - trixie
+    - forky
     - sid
 
   - packages:
@@ -1338,6 +1341,7 @@ actions:
   - bookworm
   - sid
   - trixie
+  - forky
 
 - trigger: post-packages
   action: |-
@@ -1436,6 +1440,7 @@ actions:
   - bookworm
   - sid
   - trixie
+  - forky
 
 - trigger: post-files
   action: |-
