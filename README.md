@@ -18,6 +18,9 @@ RH-based | Debian-based | Others
 [![rockylinux](https://github.com/canonical/lxd-ci/actions/workflows/image-rockylinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-rockylinux.yml) | | [![slackware](https://github.com/canonical/lxd-ci/actions/workflows/image-slackware.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-slackware.yml)
  | |  | [![voidlinux](https://github.com/canonical/lxd-ci/actions/workflows/image-voidlinux.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/image-voidlinux.yml)
 
+
+Those community maintained images end up in the [`images:` remote](https://images.lxd.canonical.com/).
+
 # Prepare VM to run tests locally
 
 To run the tests locally, it's ideal to run them in a shortlived VM. The simplest way is to create a `lxd-ci` profile that you then use when creating the shortlived VM.
