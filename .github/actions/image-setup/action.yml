@@ -12,6 +12,29 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Check connectivity for SFTP upload
+      shell: bash
+      run: |
+        set -eux
+
+        # Try to get own public IP
+        MY_PUBLIC_IP="$(curl --silent --max-time 5 https://api.ipify.org || true)"
+        [ "${MY_PUBLIC_IP}" = "" ] && exit 0
+        command -v nc || exit 0
+
+        # Test connectivity to SFTP server
+        SUCCESS="false"
+        for attempt in 1 2 3 4 5; do
+          echo "Try to connect from ${MY_PUBLIC_IP}..."
+          if nc -w 5 -zv images.lxd.canonical.com 922; then
+            SUCCESS="true"
+            break
+          fi
+        done
+
+        # Fail the job if the connection did not succeed.
+        [ "${SUCCESS}" = "true" ]
+
     - name: Install dependencies
       shell: bash
       run: |
