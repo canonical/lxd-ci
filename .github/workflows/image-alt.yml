@@ -30,6 +30,9 @@ jobs:
           - cloud
         architecture:
           - ${{ (inputs.build-arm64 == true || github.event.schedule == '15 1 * * 1-5') && 'arm64' || 'amd64' }}
+        exclude:
+          # cloud-init has been broken for a while on Sisyphus
+          - {release: Sisyphus, variant: cloud}
     env:
       type: "container"
       distro: "${{ github.job }}"
