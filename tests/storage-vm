@@ -630,8 +630,8 @@ for poolDriver in $poolDriverList; do
         lxc init "${IMAGE}" v1 --vm -s "${poolName}"
 
         # Set the images_volume on supported drivers only.
-        # Ceph RBD is not supported because it's volumes don't allow concurrent read/writes from multiple hosts.
-        if [ "${poolDriver}" != "ceph" ]; then
+        # Ceph RBD, PowerFlex and Pure are not supported to prevent concurrent mounts.
+        if [ "${poolDriver}" != "ceph"  ] && [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "pure" ]; then
                 lxc storage volume create "${poolName}" images
                 lxc config set storage.images_volume "${poolName}"/images
         fi
@@ -643,7 +643,7 @@ for poolDriver in $poolDriverList; do
         lxc delete -f v2
         lxc image delete v1image
 
-        if [ "${poolDriver}" != "ceph" ]; then
+        if [ "$(lxc config get storage.images_volume)" != "" ]; then
                 lxc config unset storage.images_volume
                 lxc storage volume delete "${poolName}" images
         fi
