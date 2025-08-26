@@ -9,9 +9,13 @@ install_lxd false
 test_lxc() {
     DURATION="${1}"
 
+    echo "Warmup"
+    lxc help >/dev/null
+
     echo "Repeatedly call 'lxc help' for ${DURATION} and see how fast/slow it is"
     # shellcheck disable=SC2016
     ITERATIONS="$(timeout "${DURATION}" bash -c 'i=0; trap "echo \$i" EXIT; while i=$((i+1)); do lxc help >/dev/null; done' || true)"
+    [ "${ITERATIONS}" -ge 0 ]
     FORKS_PER_SECOND="$(awk "BEGIN {printf \"%d\n\", ${ITERATIONS}/${DURATION}}")"
 
     # Check that lxc forks/s are not below a certain threshold
