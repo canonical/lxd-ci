@@ -9,6 +9,9 @@ install_lxd false
 test_lxc() {
     DURATION="${1}"
 
+    echo "Warmup"
+    lxc help >/dev/null
+
     echo "Repeatedly call 'lxc help' for ${DURATION} and see how fast/slow it is"
     # shellcheck disable=SC2016
     ITERATIONS="$(timeout "${DURATION}" bash -c 'i=0; trap "echo \$i" EXIT; while i=$((i+1)); do lxc help >/dev/null; done' || true)"
