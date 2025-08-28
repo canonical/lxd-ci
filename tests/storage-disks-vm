@@ -164,8 +164,9 @@ lxc config device remove v1 cloudinit
 
 # Test file pushes to VMs with uid and gid changes
 touch "${testRoot}/file-push.txt"
-lxc file push "${testRoot}/file-push.txt" v1/root/file-push.txt --uid=65535 --gid=65535
-[ "$(lxc exec v1 -- stat -c "%u:%g" /root/file-push.txt)" = "65535:65535" ]
+lxc file push "${testRoot}/file-push.txt" v1/root/newdir/file-push.txt --uid=65535 --gid=65535 -p
+[ "$(lxc exec v1 -- stat -c "%u:%g" /root/newdir)" = "65535:65535" ]
+[ "$(lxc exec v1 -- stat -c "%u:%g" /root/newdir/file-push.txt)" = "65535:65535" ]
 rm "${testRoot}/file-push.txt"
 
 echo "==> Deleting VM"
