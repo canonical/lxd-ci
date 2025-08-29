@@ -144,6 +144,17 @@ To run the VM storage tests using Pure Storage driver, provide the following env
 * `PURE_API_KEY`: Pure Storage API key.
 * `PURE_MODE`: Operation mode for the consumption of storage volumes. The default is `nvme`.
 
+# Running HPE Alletra Storage VM storage tests
+
+To run the VM storage tests using HPE Alletra Storage driver, provide the following environment variables:
+
+* `ALLETRA_WSAPI`: Address of the HTTP WSAPI gateway
+* `ALLETRA_WSAPI_VERIFY`: Whether to verify the HTTP WSAPI gateway's certificate. The default is `true`.
+* `ALLETRA_USERNAME`: Name of the user
+* `ALLETRA_PASSWORD`: Password of the user
+* `ALLETRA_CPG`: Common Provisioning Group (CPG) name
+* `ALLETRA_MODE`: Operation mode for the consumption of storage volumes. The default is `nvme`.
+
 # Infrastructure managed by IS
 
 The PS6 environment has inbound and outbound firewalling applied at the network edge. In order to access some external sites here are the firewall rules we added to firewall maintained by IS:

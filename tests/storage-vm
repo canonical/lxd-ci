@@ -75,6 +75,8 @@ for poolDriver in $poolDriverList; do
                 createPowerFlexPool "${poolName}"
         elif [ "${poolDriver}" = "pure" ]; then
                 createPureStoragePool "${poolName}"
+        elif [ "${poolDriver}" = "alletra" ]; then
+                createAlletraStoragePool "${poolName}"
         else
                 lxc storage create "${poolName}" "${poolDriver}" size=19GiB
                 lxc storage set "${poolName}" size=20GiB
@@ -342,7 +344,7 @@ for poolDriver in $poolDriverList; do
                 lxc storage set "${poolName}" volume.size 16GiB
         fi
 
-        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ] || [ "${poolDriver}" = "pure" ] || [ "${poolDriver}" = "zfs" ]; then
+        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ] || [ "${poolDriver}" = "pure" ] || [ "${poolDriver}" = "alletra" ] || [ "${poolDriver}" = "zfs" ]; then
                 echo "==> Change volume.block.filesystem on pool and create VM"
                 lxc storage set "${poolName}" volume.block.filesystem xfs
 
@@ -364,7 +366,7 @@ for poolDriver in $poolDriverList; do
                 [ "$(($(lxc exec v1 -- blockdev --getsize64 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root) / GiB))" -eq "16" ]
         fi
 
-        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ] || [ "${poolDriver}" = "pure" ] || [ "${poolDriver}" = "zfs" ]; then
+        if [ "${poolDriver}" = "lvm" ] || [ "${poolDriver}" = "lvm-thin" ] || [ "${poolDriver}" = "ceph" ] || [ "${poolDriver}" = "powerflex" ] || [ "${poolDriver}" = "pure" ] || [ "${poolDriver}" = "alletra" ] || [ "${poolDriver}" = "zfs" ]; then
                 echo "==> Ensure the VM volume ignores volume.block.filesystem"
                 if [ "${poolDriver}" = "zfs" ]; then
                     # The VM config disk is not a zvol with ext4 on top but just a plain ZFS dataset so no block.filesystem is used
@@ -464,6 +466,8 @@ for poolDriver in $poolDriverList; do
                 createPowerFlexPool "${poolName}-2"
         elif [ "${poolDriver}" = "pure" ]; then
                 createPureStoragePool "${poolName}-2"
+        elif [ "${poolDriver}" = "alletra" ]; then
+                createAlletraStoragePool "${poolName}-2"
         else
                 lxc storage create "${poolName}-2" "${poolDriver}" size=20GiB
         fi
@@ -631,7 +635,7 @@ for poolDriver in $poolDriverList; do
 
         # Set the images_volume on supported drivers only.
         # Ceph RBD, PowerFlex and Pure are not supported to prevent concurrent mounts.
-        if [ "${poolDriver}" != "ceph"  ] && [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "pure" ]; then
+        if [ "${poolDriver}" != "ceph"  ] && [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "pure" ] && [ "${poolDriver}" != "alletra" ]; then
                 lxc storage volume create "${poolName}" images
                 lxc config set storage.images_volume "${poolName}"/images
         fi
