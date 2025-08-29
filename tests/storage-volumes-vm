@@ -335,6 +335,60 @@ do
 		echo "==> Skipping instance root attachment tests, not supported"
 	fi
 
+	if hasNeededAPIExtension instance_snapshots_multi_volume; then
+		echo "==> Instance multi-volume snapshot and restore"
+
+		echo "==> Create custom volume and attach it to VM"
+		if [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "alletra" ]; then
+			lxc storage volume create "${poolName}" vol7 size=10MiB
+		else
+			lxc storage volume create "${poolName}" vol7 size=8GiB
+		fi
+		lxc storage volume attach "${poolName}" vol7 v1 /mnt/vol7
+		sleep 3
+
+		echo "==> Start VM"
+		lxc start v1
+		waitInstanceReady v1
+
+		echo "==> Create test files"
+		lxc exec v1 -- touch /mnt/vol7/snap1 snap1
+        lxc exec v1 -- sync
+
+		echo "==> Check multi-volume snapshot"
+		lxc snapshot v1 v1-snap1 --disk-volumes=all-exclusive
+
+		echo "==> Check attached volume snapshots inherit expiry from instance snapshot"
+		[ "$(lxc storage volume get "${poolName}" vol7/snap0 expires_at --property)" = "$(lxc config get v1/v1-snap1 expires_at --property)" ]
+
+		lxc exec v1 -- rm /mnt/vol7/snap1 snap1
+        lxc exec v1 -- sync
+
+		echo "==> Check root volume restore"
+		lxc restore v1 v1-snap1 --disk-volumes=root
+		waitInstanceReady v1
+		lxc exec v1 -- test -f snap1
+		! lxc exec v1 -- test -f /mnt/vol7/snap1 || false
+
+		lxc exec v1 -- rm snap1
+        lxc exec v1 -- sync
+
+		echo "==> Check multi-volume restore"
+		lxc restore v1 v1-snap1 --disk-volumes=all-exclusive
+		waitInstanceReady v1
+		lxc exec v1 -- test -f snap1
+		lxc exec v1 -- test -f /mnt/vol7/snap1
+
+		echo "==> Check deleting multi-volume snapshot also deletes attached volume snapshots when requested"
+		[ "$(lxc storage volume list -f csv | grep -cF "Created alongside virtual-machine v1/v1-snap1 snapshot in project test")" = 1 ]
+		lxc delete v1/v1-snap1 --disk-volumes=all-exclusive
+		[ "$(lxc storage volume list -f csv | grep -cF "Created alongside virtual-machine v1/v1-snap1 snapshot in project test")" = 0 ]
+
+		lxc stop -f v1
+	else
+		echo "==> Skipping instance multi-volume snapshot and restore tests, not supported"
+	fi
+
 	echo "==> Deleting VM"
 	lxc delete v1
 
@@ -346,6 +400,7 @@ do
 	lxc storage volume rm "${poolName}" vol5 || true  # optional ISO
 	lxc storage volume rm "${poolName}" vol6 || true  # optional ISO
 	lxc storage volume rm "${poolName}" volblro
+	lxc storage volume rm "${poolName}" vol7 || true
 	lxc storage rm "${poolName}"
 done
 
