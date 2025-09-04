@@ -20,7 +20,7 @@ TARGET="${LXD_SNAP_CHANNEL%%/*}"
 if [ "$TARGET" = "6" ]; then
   TARGET="latest"
 fi
-PLAYWRIGHT_PROJECT="${BROWSER}:lxd-${TARGET:-latest}-edge"
+PLAYWRIGHT_PROJECT="${BROWSER}:lxd-${TARGET:-latest}-edge:unclustered"
 BRANCH="main"
 if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
   # LXD 5.0 suite has only chromium and firefox test projects
@@ -81,7 +81,12 @@ lxc network create local-network
 lxc profile device add default eth0 nic network=local-network
 lxc config set core.https_address "[::]:8443"
 lxc config set cluster.https_address "127.0.0.1"
-lxc cluster enable local
+if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
+  # LXD 5.0 suite needs a clustered backend
+  # newer suites expect unclustered setup
+  lxc cluster enable local
+fi
+
 lxc config trust add keys/lxd-ui.crt
 # setup oidc users that are expected in tests
 if hasNeededAPIExtension "oidc"; then
