@@ -27,10 +27,10 @@ do
 		lxc storage create "${poolName}" "${poolDriver}" volume.size=5GB
 	elif [ "${poolDriver}" = "ceph" ]; then
 		lxc storage create "${poolName}" "${poolDriver}" source="${poolName}" volume.size=5GB
-        elif [ "${poolDriver}" = "lvm" ]; then
-                lxc storage create "${poolName}" "${poolDriver}" size=40GiB lvm.use_thinpool=false volume.size=5GB
-        elif [ "${poolDriver}" = "lvm-thin" ]; then
-                lxc storage create "${poolName}" lvm size=20GiB volume.size=5GB
+	elif [ "${poolDriver}" = "lvm" ]; then
+		lxc storage create "${poolName}" "${poolDriver}" size=40GiB lvm.use_thinpool=false volume.size=5GB
+	elif [ "${poolDriver}" = "lvm-thin" ]; then
+		lxc storage create "${poolName}" lvm size=20GiB volume.size=5GB
 	elif [ "${poolDriver}" = "powerflex" ]; then
 		createPowerFlexPool "${poolName}"
 	elif [ "${poolDriver}" = "pure" ]; then
