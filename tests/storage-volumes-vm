@@ -33,6 +33,8 @@ do
                 lxc storage create "${poolName}" lvm size=20GiB volume.size=5GB
 	elif [ "${poolDriver}" = "powerflex" ]; then
 		createPowerFlexPool "${poolName}"
+	elif [ "${poolDriver}" = "pure" ]; then
+		createPureStoragePool "${poolName}"
 	elif [ "${poolDriver}" = "alletra" ]; then
 		createAlletraStoragePool "${poolName}"
 	else
