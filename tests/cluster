@@ -110,6 +110,9 @@ EOF
     fi
 done
 
+echo "==> Wait for all members to be ONLINE"
+wait_for_online_cluster
+
 echo "==> Validating the cluster"
 lxc exec m1 -- lxc info
 lxc exec m1 -- lxc cluster list
