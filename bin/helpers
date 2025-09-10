@@ -13,6 +13,8 @@ waitSnapdSeed() (
 )
 
 snapdWorkaround() (
+    [ -e /etc/systemd/system/snapd.service.d/override.conf ] && return
+
     # workaround for https://bugs.launchpad.net/snapd/+bug/2104066
     mkdir -p /etc/systemd/system/snapd.service.d
     cat << EOF > /etc/systemd/system/snapd.service.d/override.conf
