@@ -13,6 +13,8 @@ waitSnapdSeed() (
 )
 
 snapdWorkaround() (
+    [ -e /etc/systemd/system/snapd.service.d/override.conf ] && return
+
     # workaround for https://bugs.launchpad.net/snapd/+bug/2104066
     mkdir -p /etc/systemd/system/snapd.service.d
     cat << EOF > /etc/systemd/system/snapd.service.d/override.conf
@@ -267,13 +269,19 @@ install_lxd() (
     [ -x /usr/sbin/lxc ] && chmod -x /usr/sbin/lxc
 
     snapdWorkaround
-    # Wait for snapd seeding
-    waitSnapdSeed
 
     if [ -n "${KEEP_LXD:-}" ]; then
         # Make sure LXD is started at least
         systemctl start snap.lxd.daemon.service
     else
+        # If installing LXD from an edge channel, also pull snapd from candidate channel to catch regressions early
+        if [[ $LXD_SNAP_CHANNEL =~ /edge$ ]]; then
+          install_snapd "latest/candidate"
+        else
+          # Wait for snapd seeding
+          waitSnapdSeed
+        fi
+
         # Prior to removal, snap takes a snapshot of the user data. This is
         # slow and IO intensive so best skipped if possible by a purge.
         if [ -n "${PURGE_LXD:-}" ]; then
