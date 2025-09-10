@@ -267,8 +267,6 @@ install_lxd() (
     [ -x /usr/sbin/lxc ] && chmod -x /usr/sbin/lxc
 
     snapdWorkaround
-    # Wait for snapd seeding
-    waitSnapdSeed
 
     if [ -n "${KEEP_LXD:-}" ]; then
         # Make sure LXD is started at least
@@ -277,6 +275,9 @@ install_lxd() (
         # If installing LXD from an edge channel, also pull snapd from candidate channel to catch regressions early
         if [[ $LXD_SNAP_CHANNEL =~ /edge$ ]]; then
           install_snapd "latest/candidate"
+        else
+          # Wait for snapd seeding
+          waitSnapdSeed
         fi
 
         # Prior to removal, snap takes a snapshot of the user data. This is
