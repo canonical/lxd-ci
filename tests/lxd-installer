@@ -8,9 +8,6 @@ if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
   exit 0
 fi
 
-# in the test runner, pull snapd from candidate channel to catch regressions early
-install_snapd "latest/candidate"
-
 # Install LXD
 install_lxd
 
