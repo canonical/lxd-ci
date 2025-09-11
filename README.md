@@ -79,6 +79,13 @@ This will be copied to `/var/snap/lxd/common/lxd.debug` and the daemon will be r
 LXD_SIDELOAD_PATH=/tmp/lxd ./bin/local-run tests/interception latest/edge
 ```
 
+To also test a custom build of `lxc`, you can set the `LXC_SIDELOAD_PATH` environment variable. 
+This will be copied to `/var/snap/lxd/common/lxc.debug` and used by the tests.
+
+```sh
+LXC_SIDELOAD_PATH=/tmp/lxc ./bin/local-run tests/interception latest/edge
+```
+
 To test a custom snap of LXD, you can set the `LXD_SNAP_PATH` environment variable.
 
 ```sh
