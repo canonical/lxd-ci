@@ -2334,6 +2334,132 @@ ovn_vlan_uplink_tests() {
     lxc network delete lxdbr0
 }
 
+ovn_keepalived_ip_failover_tests() {
+    echo "==> Keepalived IP failover"
+
+    echo "==> Create bridge uplink network"
+    lxc network create lxdbr0 \
+        ipv4.address=10.10.10.1/24 ipv4.nat=true \
+        ipv4.dhcp.ranges=10.10.10.2-10.10.10.199 \
+        ipv4.ovn.ranges=10.10.10.200-10.10.10.254 \
+        ipv6.address=fd42:4242:4242:1010::1/64 ipv6.nat=true \
+        ipv6.ovn.ranges=fd42:4242:4242:1010::200-fd42:4242:4242:1010::254
+
+    echo "==> Create OVN network"
+    lxc network create ovn-net --type=ovn network=lxdbr0
+
+    ovnIP4AddressPrefix=$(lxc network get ovn-net ipv4.address | sed 's/\.1\/24$//g')
+    ovnIP6AddressPrefix=$(lxc network get ovn-net ipv6.address | sed 's/::1\/64$//g')
+
+    echo "==> Set up containers c1, c2, c3"
+    lxc launch "${IMAGE}" c1 -n ovn-net -s default
+    lxc launch "${IMAGE}" c2 -n ovn-net -s default
+    lxc launch "${IMAGE}" c3 -n ovn-net -s default
+
+    echo "==> Install and configure Keepalived on c1 and c2"
+    lxc exec c1 -- apt-get update
+    lxc exec c1 --env DEBIAN_FRONTEND=noninteractive -- apt-get install --no-install-recommends --yes keepalived
+    lxc exec c2 -- apt-get update
+    lxc exec c2 --env DEBIAN_FRONTEND=noninteractive -- apt-get install --no-install-recommends --yes keepalived
+
+    vip4ForKeepalived="${ovnIP4AddressPrefix}.100"
+    vip6ForKeepalived="${ovnIP6AddressPrefix}::100"
+
+    lxc file push - c1/etc/keepalived/keepalived.conf << EOF
+vrrp_instance P1 {
+    state BACKUP
+    interface eth0
+    virtual_router_id 41
+    priority 150
+    advert_int 1
+    preempt_delay 5
+    authentication {
+        auth_type PASS
+        auth_pass 1066
+    }
+    virtual_ipaddress {
+        ${vip4ForKeepalived}/24
+    }
+}
+vrrp_instance P1_V6 {
+    state BACKUP
+    interface eth0
+    virtual_router_id 42
+    priority 150
+    advert_int 1
+    preempt_delay 5
+    virtual_ipaddress {
+        ${vip6ForKeepalived}/64
+    }
+}
+EOF
+
+    lxc file push - c2/etc/keepalived/keepalived.conf << EOF
+vrrp_instance P1 {
+    state BACKUP
+    interface eth0
+    virtual_router_id 41
+    priority 100
+    advert_int 1
+    preempt_delay 5
+    authentication {
+        auth_type PASS
+        auth_pass 1066
+    }
+    virtual_ipaddress {
+        ${vip4ForKeepalived}/24
+    }
+}
+vrrp_instance P1_V6 {
+    state BACKUP
+    interface eth0
+    virtual_router_id 42
+    priority 100
+    advert_int 1
+    preempt_delay 5
+    virtual_ipaddress {
+        ${vip6ForKeepalived}/64
+    }
+}
+EOF
+
+    echo "==> Restart Keepalived on c1 and c2"
+    lxc exec c1 -- systemctl restart keepalived
+    lxc exec c2 -- systemctl restart keepalived
+
+    sleep 10
+
+    echo "==> Check that c1 is now Keepalived master and has the VIP assigned to it"
+    [ "$(lxc list -f csv -c 4 c1 | grep -Fc "${vip4ForKeepalived} (eth0)")" = "1" ]
+    [ "$(lxc list -f csv -c 6 c1 | grep -Fc "${vip6ForKeepalived} (eth0)")" = "1" ]
+    [ "$(lxc list -f csv -c 4 c2 | grep -Fc "${vip4ForKeepalived} (eth0)")" = "0" ]
+    [ "$(lxc list -f csv -c 6 c2 | grep -Fc "${vip6ForKeepalived} (eth0)")" = "0" ]
+
+    echo "==> Check that probing the VIP works from c3"
+    lxc exec c3 -- bash -c "timeout 5 grep -m1 ^SSH < /dev/tcp/${vip4ForKeepalived}/22"
+    lxc exec c3 -- bash -c "timeout 5 grep -m1 ^SSH < /dev/tcp/${vip6ForKeepalived}/22"
+
+    echo "==> Forcibly shut down Keepalived master (c1)"
+    lxc stop c1 --force
+
+    echo "==> Check that probing the VIP still works from c3"
+    lxc exec c3 -- bash -c "timeout 5 grep -m1 ^SSH < /dev/tcp/${vip4ForKeepalived}/22"
+    lxc exec c3 -- bash -c "timeout 5 grep -m1 ^SSH < /dev/tcp/${vip6ForKeepalived}/22"
+
+    echo "==> Check that c2 is now Keepalived master and has the VIP assigned to it"
+    [ "$(lxc list -f csv -c 4 c2 | grep -Fc "${vip4ForKeepalived} (eth0)")" = "1" ]
+    [ "$(lxc list -f csv -c 6 c2 | grep -Fc "${vip6ForKeepalived} (eth0)")" = "1" ]
+
+    echo "==> Clean up containers"
+    lxc delete c1 --force
+    lxc delete c2 --force
+    lxc delete c3 --force
+
+    echo "==> Clean up networks"
+    lxc network delete ovn-net
+    lxc network delete lxdbr0
+}
+
 # Allow for running a specific set of tests.
 if [ "$#" -gt 0 ]; then
     TEST_CURRENT="ovn_${1}_tests"
@@ -2366,6 +2492,7 @@ else
       echo "Skipping ovn_vlan_uplink_tests, not supported"
     fi
     ovn_leases_tests
+    ovn_keepalived_ip_failover_tests
 fi
 
 lxc storage delete default
