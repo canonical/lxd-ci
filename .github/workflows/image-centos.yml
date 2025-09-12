@@ -58,7 +58,7 @@ jobs:
           EXTRA_ARGS=""
           if [ "${RELEASE}" = "9-Stream" ]; then
               EXTRA_ARGS="${EXTRA_ARGS} -o source.variant=boot"
-              EXTRA_ARGS="${EXTRA_ARGS} -o source.url=https://mirror1.hs-esslingen.de/pub/Mirrors/centos-stream"
+              EXTRA_ARGS="${EXTRA_ARGS} -o source.url=https://mirror.facebook.net/centos-stream"
           fi
 
           ./bin/build-distro "${YAML}" "${ARCH}" "${TYPE}" "${TIMEOUT}" "${{ env.target }}" \
