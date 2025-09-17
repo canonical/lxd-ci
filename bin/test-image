@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -eux
 
 # Source helper functions.
 . "$(realpath "$(dirname "$0")/helpers")"
@@ -180,6 +180,20 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
 
     # Systemd cleanliness.
     if lxc exec "${name}" -- test -d /run/systemd/system/; then
+        # XXX: Debian Forky/Sid unpriv containers have a problem with console-getty.service
+        #      this breaks `lxc console` for those images.
+        if [ "${DISTRO}" = "debian" ] && [ "${TYPE}" = "container" ] && [ "$(lxc config get "${name}" security.privileged)" = "true" ]; then
+            if [ "${RELEASE}" = "sid" ] || [ "${RELEASE}" = "forky" ]; then
+                if isSystemdUnitFailed "${name}" console-getty.service; then
+                    echo "::warning::Disabling console-getty.service on ${DISTRO} ${RELEASE} (broken)"
+                    lxc exec "${name}" -- systemctl mask --now console-getty.service
+                    systemdUnitResetFailed "${name}" console-getty.service
+                else
+                    echo "::notice::Please remove workaround for console-getty.service on ${DISTRO} ${RELEASE}"
+                fi
+            fi
+        fi
+
         if lxc exec "${name}" -- systemctl --failed 2>&1 | grep -qwF 'failed'; then
             echo "===> FAIL: systemd clean: ${name}"
 

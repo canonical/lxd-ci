@@ -15,22 +15,6 @@ export MAX_WAIT_SECONDS=15
 
 RELEASES="${RELEASES:-"20.04 22.04 24.04 25.04 25.10"}"
 
-reset_failed() {
-    local ctn_name="${1}"
-    shift
-
-    # Reset the failed state of the specified systemd service(s) in the instance.
-    lxc exec "${ctn_name}" -- systemctl reset-failed "${@}"
-}
-
-unit_failed() {
-    local ctn_name="${1}"
-    local unit="${2}"
-
-    # Check if the specified systemd service in the instance has failed.
-    lxc exec "${ctn_name}" -- systemctl --quiet --failed | grep -wF "${unit}"
-}
-
 print_message() {
     local msg="${1}"
     if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
@@ -42,10 +26,10 @@ print_message() {
 known_systemd_remount_fs_issue() {
     local ctn_name="${1}"
     # 20.04 has a known issue with systemd-remount-fs.service failing.
-    if unit_failed "${ctn_name}" systemd-remount-fs.service; then
+    if isSystemdUnitFailed "${ctn_name}" systemd-remount-fs.service; then
         if lxc exec "${ctn_name}" -- journalctl -o cat --unit=systemd-remount-fs.service | grep -xF "mount: /: can't find LABEL=cloudimg-rootfs."; then
             # Reset the failed state and return success.
-            reset_failed "${ctn_name}" systemd-remount-fs.service
+            systemdUnitResetFailed "${ctn_name}" systemd-remount-fs.service
         fi
     fi
 }
@@ -80,8 +64,8 @@ ignore_known_issues() {
       if [ "${release}" = "22.04" ]; then
         # XXX: 22.04 fail with:
         # ● systemd-sysusers.service loaded failed failed Create System Users
-        if unit_failed "${ctn_name}" systemd-sysusers.service; then
-            reset_failed "${ctn_name}" systemd-sysusers.service
+        if isSystemdUnitFailed "${ctn_name}" systemd-sysusers.service; then
+            systemdUnitResetFailed "${ctn_name}" systemd-sysusers.service
 
             isSystemdClean "${ctn_name}"
             return 0
@@ -108,8 +92,8 @@ ignore_known_issues() {
             # https://github.com/canonical/lxd/issues/13607
             # XXX: 24.04 fail with:
             # ● systemd-binfmt.service loaded failed failed Set Up Additional Binary Formats
-            if unit_failed "${ctn_name}" systemd-binfmt.service; then
-                reset_failed "${ctn_name}" systemd-binfmt.service
+            if isSystemdUnitFailed "${ctn_name}" systemd-binfmt.service; then
+                systemdUnitResetFailed "${ctn_name}" systemd-binfmt.service
 
                 isSystemdClean "${ctn_name}"
                 return 0
