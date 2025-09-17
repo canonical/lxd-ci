@@ -88,6 +88,25 @@ waitInstanceBooted() (
   return 0 # Success.
 )
 
+
+# systemdUnitResetFailed: reset the failed state of a specific systemd unit in the instance.
+systemdUnitResetFailed() {
+    local name="${1}"
+    shift
+
+    # Reset the failed state of the specified systemd service(s) in the instance.
+    lxc exec "${name}" -- systemctl reset-failed "${@}"
+}
+
+# isSystemdUnitFailed: check if a specific systemd unit has failed in the instance.
+isSystemdUnitFailed() {
+    local name="${1}"
+    local unit="${2}"
+
+    # Check if the specified systemd service in the instance has failed.
+    lxc exec "${name}" -- systemctl --quiet --failed | grep -wF "${unit}"
+}
+
 # isSystemdClean: wait for instance to be booted and check for systemd failures.
 # ==> Returns 1 if systemd state is clean (no failure), 1 otherwise.
 isSystemdClean() (
