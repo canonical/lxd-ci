@@ -22,7 +22,8 @@ jobs:
           - bullseye  # EOL: 2026-08-31
           - sid       # EOL: never
           - bookworm  # EOL: 2026-06-10
-          - trixie    # EOL: ?? (not officially released yet)
+          - trixie    # EOL: 2030-06-30
+          - forky     # EOL: ?? (not officially released yet)
         variant:
           - default
           - cloud
