@@ -21,7 +21,7 @@ jobs:
         release:
           - bullseye  # EOL: 2026-08-31
           - sid       # EOL: never
-          - bookworm  # EOL: 2026-06-10
+          - bookworm  # EOL: 2028-06-30
           - trixie    # EOL: 2030-06-30
           - forky     # EOL: ?? (not officially released yet)
         variant:
