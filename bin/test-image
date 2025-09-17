@@ -1,5 +1,5 @@
 #!/bin/bash
-set -eu
+set -eux
 
 # Source helper functions.
 . "$(realpath "$(dirname "$0")/helpers")"
