@@ -34,6 +34,12 @@ if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
   snap set lxd ui.enable=true
   systemctl reload snap.lxd.daemon
 fi
+if [[ $LXD_SNAP_CHANNEL =~ ^5\.21 ]]; then
+  # For LXD 5.21, use the UI test suite from the corresponding branch
+  BRANCH="stable-5.21"
+  # Use project names from the 5.21 test suite
+  PLAYWRIGHT_PROJECT="${BROWSER}:lxd-${TARGET:-latest}-edge"
+fi
 
 # Remove any leftover clone
 [ -d lxd-ui ] && rm -rf lxd-ui
@@ -81,8 +87,8 @@ lxc network create local-network
 lxc profile device add default eth0 nic network=local-network
 lxc config set core.https_address "[::]:8443"
 lxc config set cluster.https_address "127.0.0.1"
-if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]]; then
-  # LXD 5.0 suite needs a clustered backend
+if [[ $LXD_SNAP_CHANNEL =~ ^5\.0 ]] || [[ $LXD_SNAP_CHANNEL =~ ^5\.21 ]]; then
+  # LXD 5.0 and 5.21 suites need a clustered backend
   # newer suites expect unclustered setup
   lxc cluster enable local
 fi
