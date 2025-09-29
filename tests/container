@@ -153,6 +153,11 @@ for release in $RELEASES; do
     sleep 5
     [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues n11 nested
     lxc delete -f n1
+
+    # Expunge images that won't be reused (!= 24.04)
+    for image in $(lxc image list -f csv | grep -vwF 24.04 | cut -d, -f2); do
+        lxc image delete "${image}"
+    done
 done
 unset WARNING_PREFIX
 
