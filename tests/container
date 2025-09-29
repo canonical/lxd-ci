@@ -5,7 +5,7 @@ set -eu
 install_lxd
 
 # Configure LXD
-lxd init --auto --storage-backend btrfs --storage-create-loop 24
+lxd init --auto --storage-backend btrfs
 
 # Test
 set -x
