@@ -199,6 +199,7 @@ wait $!
 echo "==> Ensure aliased image won't launch with VM flag set"
 lxc image alias create containeralias "$(lxc config get c1 volatile.base_image)"
 ! lxc launch containeralias c2 --vm || false
+lxc image alias delete containeralias
 
 echo "==> Test unprivileged BPF delegation"
 if ! { runsMinimumKernel 6.9 && hasNeededAPIExtension container_bpf_delegation; }; then
