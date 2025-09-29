@@ -16,6 +16,7 @@ echo "==> Ensure aliased image can launch without VM flag set"
 lxc image alias create vmalias "$(lxc config get v1 volatile.base_image)"
 lxc launch vmalias v2
 lxc delete -f v2
+lxc image alias delete vmalias
 
 echo "==> Start test instance"
 lxc start v1
