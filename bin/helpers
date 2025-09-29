@@ -484,13 +484,22 @@ cleanup() {
             # Report current disk usage to diagnose potential out of space issues
             df -h
 
+            # Report about disk usage as seen from LXD's mount namespace
+            LD_LIBRARY_PATH=/snap/lxd/current/lib/:/snap/lxd/current/lib/x86_64-linux-gnu/:/snap/lxd/current/lib/x86_64-linux-gnu/ceph:/snap/lxd/current/zfs-2.3/lib PATH=/snap/lxd/current/zfs-2.3/bin:/snap/lxd/current/bin:$PATH nsenter --mount=/run/snapd/ns/lxd.mnt -- df -h
+
             # Report some more information for diagnostic purposes
             snap list --all
             uname -a
             if echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
                 lxc list
+                lxc image list
+                lxc storage list
+                lxc storage info default
             else
                 lxc list --all-projects
+                lxc image list --all-projects
+                lxc storage list
+                for storage in $(lxc storage list -f csv | cut -d, -f1); do lxc storage info "${storage}"; done
             fi
             echo "::endgroup::"
 
