@@ -217,6 +217,8 @@ if ! { runsMinimumKernel 6.9 && hasNeededAPIExtension container_bpf_delegation; 
     fi
 
     echo "Skipping unprivileged container bpf delegation test as the kernel is too old or LXD support missing"
+
+	lxc config unset c1 security.delegate_bpf
 else
     lxc delete -f c1
     lxc init "${IMAGE}" c1
@@ -231,6 +233,38 @@ else
     waitInstanceBooted c1
 
     lxc exec c1 -- grep -F "delegate_cmds=map_create:prog_load,delegate_maps=ringbuf,delegate_progs=socket_filter,delegate_attachs=cgroup_inet_ingress" /proc/self/mountinfo
+
+	lxc stop -f c1
+fi
+
+echo "==> Test running miscellaneous binary formats with binfmt_misc in unprivileged container"
+if lxc info | grep -F 'unpriv_binfmt: "true"'; then
+	lxc start c1
+	waitInstanceBooted c1
+
+	echo "Enabling binfmt_misc in unprivileged container"
+	lxc exec c1 -- mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
+    [ "$(lxc exec c1 -- cat /proc/sys/fs/binfmt_misc/status)" = "enabled" ]
+
+	echo "Installing required packages and compiling aarch64 test binary"
+	lxc exec c1 -- apt-get update
+	lxc exec c1 -- apt-get install --no-install-recommends -y qemu-user-static gcc-aarch64-linux-gnu binfmt-support libc6-dev-arm64-cross
+	lxc exec c1 -- systemctl restart systemd-binfmt # Restart systemd-binfmt service to pick up new binary types provided by qemu-user
+	lxc exec c1 -- test -f /proc/sys/fs/binfmt_misc/qemu-aarch64
+	lxc file push - c1/root/hello.c << EOF
+#include <stdio.h>
+
+int main() {
+    printf("Hello, World!\n");
+    return 0;
+}
+EOF
+	lxc exec c1 -- aarch64-linux-gnu-gcc -static hello.c -o hello
+
+	echo "Running aarch64 test binary"
+	[ "$(lxc exec c1 -- ./hello)" = "Hello, World!" ]
+else
+	echo "Skipping unprivileged container binfmt_misc test as the kernel is too old or LXD support missing"
 fi
 
 # Cleanup
