@@ -2,8 +2,9 @@ name: BusyBox
 
 on:
   schedule:
-    - cron: '30 2 * * 1-5'  # Build amd64
-    - cron: '45 2 * * 1-5'  # Build arm64
+    # XXX: weekly build cadence due to tarball releases only (no package to update)
+    - cron: '30 2 * * 1'  # Build amd64
+    - cron: '45 2 * * 1'  # Build arm64
   workflow_dispatch:
     inputs:
       build-arm64:
@@ -24,7 +25,7 @@ jobs:
         variant:
           - default
         architecture:
-          - ${{ (inputs.build-arm64 == true || github.event.schedule == '45 2 * * 1-5') && 'arm64' || 'amd64' }}
+          - ${{ (inputs.build-arm64 == true || github.event.schedule == '45 2 * * 1') && 'arm64' || 'amd64' }}
     env:
       type: "container"
       distro: "${{ github.job }}"
