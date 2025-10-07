@@ -345,7 +345,6 @@ do
 			lxc storage volume create "${poolName}" vol7 size=8GiB
 		fi
 		lxc storage volume attach "${poolName}" vol7 v1 /mnt/vol7
-		sleep 3
 
 		echo "==> Start VM"
 		lxc start v1
