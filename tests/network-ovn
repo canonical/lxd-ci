@@ -1206,7 +1206,7 @@ EOF
         u2_ip4_seen=0
         u2_ip6_seen=0
 
-        for _ in $(seq 5); do
+        for _ in $(seq 20); do
             [ "$(lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.1" ] && u1_ip4_seen=$((u1_ip4_seen + 1))
             [ "$(lxc exec u1 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::1" ] && u1_ip6_seen=$((u1_ip6_seen + 1))
             [ "$(lxc exec u2 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ] && u2_ip4_seen=$((u2_ip4_seen + 1))
