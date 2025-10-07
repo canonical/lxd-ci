@@ -32,10 +32,6 @@ waitInstanceReady() (
   maxWait="${MAX_WAIT_SECONDS:-120}"
   instName="${1}"
   instProj="${2:-}"
-  if [ -z "${instProj}" ]; then
-    # Find the currently selected project.
-    instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
-  fi
 
   # Wait for the instance to report more than one process.
   processes=0
@@ -47,7 +43,7 @@ waitInstanceReady() (
       sleep 1
   done
 
-  echo "Instance ${instName} (${instProj}) not ready after ${maxWait}s"
+  echo "Instance ${instName} (${instProj:-current}) not ready after ${maxWait}s"
   return 1 # Failed.
 )
 
@@ -61,10 +57,6 @@ waitInstanceBooted() (
   maxWait="${MAX_WAIT_SECONDS:-90}"
   instName="$1"
   instProj="${2:-}"
-  if [ -z "${instProj}" ]; then
-    # Find the currently selected project.
-    instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
-  fi
 
   # Wait for the instance to be ready
   waitInstanceReady "${instName}" "${instProj}"
@@ -78,11 +70,11 @@ waitInstanceBooted() (
   # Other rc values are ignored as it doesn't matter if the system is fully
   # operational (`running`) as it is booted.
   if [ "${rc}" -eq 124 ]; then
-    echo "${prefix}Instance ${instName} (${instProj}) not booted after ${maxWait}s"
+    echo "${prefix}Instance ${instName} (${instProj:-current}) not booted after ${maxWait}s"
     lxc list --project "${instProj}" "${instName}"
     return 1 # Failed.
   elif [ "${state}" != "running" ]; then
-    echo "${prefix}Instance ${instName} (${instProj}) booted but not fully operational: ${state} != running"
+    echo "${prefix}Instance ${instName} (${instProj:-current}) booted but not fully operational: ${state} != running"
   fi
 
   return 0 # Success.
@@ -113,10 +105,6 @@ isSystemdClean() (
   { set +x; } 2>/dev/null
   instName="$1"
   instProj="${2:-}"
-  if [ -z "${instProj}" ]; then
-    # Find the currently selected project.
-    instProj="$(lxc project list -f csv | sed -n 's/^\([^(]\+\) (current),.*/\1/ p')"
-  fi
 
   # Wait for the instance to be booted
   waitInstanceBooted "${instName}" "${instProj}"
