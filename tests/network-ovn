@@ -641,10 +641,12 @@ ovn_forward_tests() {
     echo "==> Add routes to the uplink network and check we can create forwards"
     lxc network set lxdbr0 ipv4.routes=192.0.2.0/24 ipv6.routes=2001:db8:1:2::/64 --project=default
 
-    echo "==> Add a static route to SNAT address on uplink to OVN network's router (simulating BGP route advert to uplink)"
-    # XXX: only needed for IPv6 now (see https://github.com/ovn-org/ovn/issues/124)
+    echo "==> Add static routes to network forward external address on uplink to OVN network's router (simulating BGP route advert to uplink)"
+    # XXX: (see https://github.com/ovn-org/ovn/issues/124)
     ovnIPv6="$(lxc network get ovn-virtual-network volatile.network.ipv6.address)"
+    ovnIPv4="$(lxc network get ovn-virtual-network volatile.network.ipv4.address)"
     ip r add 2001:db8:1:2::1/128 via "${ovnIPv6}" dev lxdbr0
+    ip r add 192.0.2.1/32 via "${ovnIPv4}" dev lxdbr0
 
     echo "==> Check forwards can be created with no target address"
     lxc network forward create ovn-virtual-network 192.0.2.1
@@ -893,6 +895,10 @@ EOF
         [ "$(lxc exec u1 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::1" ]
     fi
 
+    echo "==> Clean up static routes to network forward external address"
+    ip r del 2001:db8:1:2::1/128 via "${ovnIPv6}" dev lxdbr0
+    ip r del 192.0.2.1/32 via "${ovnIPv4}" dev lxdbr0
+
     echo "==> Clean up"
     lxc delete -f u1
     lxc delete -f u2
@@ -934,10 +940,12 @@ ovn_load_balancer_tests() {
     echo "==> Add routes to the uplink network and check we can create load balancers"
     lxc network set lxdbr0 ipv4.routes=192.0.2.0/24 ipv6.routes=2001:db8:1:2::/64 --project=default
 
-    echo "==> Add a static route to SNAT address on uplink to OVN network's router (simulating BGP route advert to uplink)"
-    # XXX: only needed for IPv6 now (see https://github.com/ovn-org/ovn/issues/124)
+    echo "==> Add a static route to LB external address on uplink to OVN network's router (simulating BGP route advert to uplink)"
+    # XXX: (see https://github.com/ovn-org/ovn/issues/124)
     ovnIPv6="$(lxc network get ovn-virtual-network volatile.network.ipv6.address)"
+    ovnIPv4="$(lxc network get ovn-virtual-network volatile.network.ipv4.address)"
     ip r add 2001:db8:1:2::1/128 via "${ovnIPv6}" dev lxdbr0
+    ip r add 192.0.2.1/32 via "${ovnIPv4}" dev lxdbr0
 
     echo "==> Check load balancers can be created"
     lxc network load-balancer create ovn-virtual-network 192.0.2.1
@@ -1239,6 +1247,10 @@ EOF
             [ "$(lxc exec u2 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
         done
     fi
+
+    echo "==> Clean up static routes to LB external address"
+    ip r del 2001:db8:1:2::1/128 via "${ovnIPv6}" dev lxdbr0
+    ip r del 192.0.2.1/32 via "${ovnIPv4}" dev lxdbr0
 
     echo "==> Clean up"
     lxc delete -f u1
