@@ -52,8 +52,8 @@ curl -s http://canonical-lxd.stgraber.org/config/snapd.sh | sh
 
 # Install specific core snap channels if requested
 if [ "${CORE}" != "stable" ]; then
-    snap install core18 --channel=${CORE} --cohort=+
-    snap install snapd --channel=${CORE} --cohort=+
+    snap install core18 --channel="${CORE}" --cohort=+
+    snap install snapd --channel="${CORE}" --cohort=+
 fi
 
 exit 0
