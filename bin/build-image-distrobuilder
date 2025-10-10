@@ -107,8 +107,8 @@ apt-get clean
 export PATH=/snap/bin:\${PATH}
 
 # Install distrobuilder
-snap install snapd || true
-snap install snapd || true
+snap install snapd --cohort=+ || true
+snap install snapd --cohort=+ || true
 snap install distrobuilder --classic --edge
 snap refresh
 
