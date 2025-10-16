@@ -237,9 +237,8 @@ for vers in "latest" "5.21" "5.0"; do
         waitInstanceReady i1
         lxc stop -f i1
 
-        # Only try resetting the config keys if the local version of LXD (${LXD_SNAP_CHANNEL}) isn't 5.0.
-        if [ "${vers}" = "5.0" ] && [ "$(echo "${LXD_SNAP_CHANNEL}" | cut -d/ -f1)" != "5.0" ]; then
-            echo "==> Reset config keys not available in 5.0 to enable migration"
+        # Unset incompatible volatile key if remote version of LXD doesn't support instance_ready_state.
+        if hasNeededAPIExtension instance_ready_state && ! lxc exec c1 -- sh -c "$(declare -f hasNeededAPIExtension); hasNeededAPIExtension instance_ready_state"; then
             lxc config unset i1 volatile.last_state.ready
         fi
 
