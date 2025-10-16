@@ -61,6 +61,8 @@ check_format_version2() {
 # Releases before 24.04 don't have a yq deb so use the snap instead.
 # shellcheck disable=SC1091
 . /etc/os-release
+
+install_deps pigz
 if dpkg --compare-versions "${VERSION_ID}" ge 24.04; then
     install_deps jq yq
 else
@@ -81,6 +83,7 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 lxc config set core.https_address :8443
+lxc config set images.compression_algorithm /var/lib/snapd/hostfs/usr/bin/pigz
 
 poolDriver="zfs"
 poolName="vmpool-${poolDriver}"
@@ -151,7 +154,7 @@ for vers in "latest" "5.21" "5.0"; do
         echo "==> Export using the default backup format implicitly by not specifying a version"
         # 5.0/5.21 always use the old format.
         # > 5.21 uses the new format.
-        lxc export c1:i1 "${tmpdir}/i1.tar.gz"
+        lxc export c1:i1 "${tmpdir}/i1.tar.gz" --compression pigz
         tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
 
         echo "==> Check the backup index file"
@@ -187,7 +190,7 @@ for vers in "latest" "5.21" "5.0"; do
         # As both the server and client get shipped together with the snap, by testing for backup_metadata_version we can check if the client supports the --export-version flag.
         if lxc exec c1 -- sh -c "$(declare -f hasNeededAPIExtension); hasNeededAPIExtension backup_metadata_version" && hasNeededAPIExtension backup_metadata_version; then
             echo "==> Export using the old backup format 1 explicitly"
-            lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 1
+            lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 1 --compression pigz
             tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
 
             echo "==> Check the backup index file"
@@ -204,7 +207,7 @@ for vers in "latest" "5.21" "5.0"; do
             lxc delete -f i1
 
             echo "==> Export using the new backup format 2 explicitly"
-            lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 2
+            lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 2 --compression pigz
             tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
 
             echo "==> Check the backup index file"
