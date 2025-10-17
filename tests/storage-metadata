@@ -242,6 +242,11 @@ for vers in "latest" "5.21" "5.0"; do
             lxc config unset i1 volatile.last_state.ready
         fi
 
+        # Unset incompatible volatile key if remote version of LXD doesn't support vm_persistent_bus.
+        if [ "${type}" = "vm" ] && hasNeededAPIExtension vm_persistent_bus && ! lxc exec c1 -- sh -c "$(declare -f hasNeededAPIExtension); hasNeededAPIExtension vm_persistent_bus"; then
+            lxc config set i1 volatile.bus.mode="" volatile.eth0.bus=""
+        fi
+
         echo "==> Check the ${type} can be migrated from LXD ${LXD_SNAP_CHANNEL} to ${versStr}"
         lxc move i1 c1:i1
         [ "$(lxc query "c1:/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
