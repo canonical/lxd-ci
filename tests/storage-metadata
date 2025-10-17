@@ -72,6 +72,9 @@ else
     fi
 fi
 
+# Install dependencies
+install_deps pigz
+
 # Install LXD.
 install_lxd
 
@@ -81,6 +84,7 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 lxc config set core.https_address :8443
+lxc config set images.compression_algorithm /var/lib/snapd/hostfs/usr/bin/pigz
 
 poolDriver="zfs"
 poolName="vmpool-${poolDriver}"
@@ -151,7 +155,7 @@ for vers in "latest" "5.21" "5.0"; do
         echo "==> Export using the default backup format implicitly by not specifying a version"
         # 5.0/5.21 always use the old format.
         # > 5.21 uses the new format.
-        lxc export c1:i1 "${tmpdir}/i1.tar.gz"
+        lxc export c1:i1 "${tmpdir}/i1.tar.gz" --compression pigz
         tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
 
         echo "==> Check the backup index file"
@@ -187,7 +191,7 @@ for vers in "latest" "5.21" "5.0"; do
         # As both the server and client get shipped together with the snap, by testing for backup_metadata_version we can check if the client supports the --export-version flag.
         if lxc exec c1 -- sh -c "$(declare -f hasNeededAPIExtension); hasNeededAPIExtension backup_metadata_version" && hasNeededAPIExtension backup_metadata_version; then
             echo "==> Export using the old backup format 1 explicitly"
-            lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 1
+            lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 1 --compression pigz
             tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
 
             echo "==> Check the backup index file"
@@ -204,7 +208,7 @@ for vers in "latest" "5.21" "5.0"; do
             lxc delete -f i1
 
             echo "==> Export using the new backup format 2 explicitly"
-            lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 2
+            lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 2 --compression pigz
             tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
 
             echo "==> Check the backup index file"
@@ -234,10 +238,14 @@ for vers in "latest" "5.21" "5.0"; do
         waitInstanceReady i1
         lxc stop -f i1
 
-        # Only try resetting the config keys if the local version of LXD (${LXD_SNAP_CHANNEL}) isn't 5.0.
-        if [ "${vers}" = "5.0" ] && [ "$(echo "${LXD_SNAP_CHANNEL}" | cut -d/ -f1)" != "5.0" ]; then
-            echo "==> Reset config keys not available in 5.0 to enable migration"
+        # Unset incompatible volatile key if local version of LXD doesn't support instance_ready_state.
+        if ! lxc exec c1 -- sh -c "$(declare -f hasNeededAPIExtension); hasNeededAPIExtension instance_ready_state"; then
             lxc config unset i1 volatile.last_state.ready
+        fi
+
+        # Unset incompatible volatile key if local version of LXD doesn't support vm_persistent_bus.
+        if [ "${type}" = "vm" ] && hasNeededAPIExtension vm_persistent_bus && ! lxc exec c1 -- sh -c "$(declare -f hasNeededAPIExtension); hasNeededAPIExtension vm_persistent_bus"; then
+            lxc config set i1 volatile.bus.mode="" volatile.eth0.bus=""
         fi
 
         echo "==> Check the ${type} can be migrated from LXD ${LXD_SNAP_CHANNEL} to ${versStr}"
