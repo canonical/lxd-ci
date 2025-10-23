@@ -202,9 +202,9 @@ lxc exec c1 -- apt-get update
 lxc exec c1 --env DEBIAN_FRONTEND=noninteractive -- apt-get install --no-install-recommends --yes iperf3
 
 iperf3 -s -D
-lxc exec c1 -- iperf3 -c "${IP}" -J > iperf.json
+lxc exec c1 -- iperf3 -t 3 -c "${IP}" -J > iperf.json
 E1=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
-lxc exec c1 -- iperf3 -R -c "${IP}" -J > iperf.json
+lxc exec c1 -- iperf3 -t 3 -R -c "${IP}" -J > iperf.json
 I1=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
 echo "Throughput before limits: ${E1}Mbps / ${I1}Mbps"
 
@@ -213,9 +213,9 @@ if uname -r | grep -- "-kvm$"; then
     echo "The -kvm kernel flavor does not have the required extra modules to test limits.egress/limits.ingress"
 else
     lxc config device override c1 eth0 limits.egress=50Mbit limits.ingress=200Mbit
-    lxc exec c1 -- iperf3 -c "${IP}" -J > iperf.json
+    lxc exec c1 -- iperf3 -t 3 -c "${IP}" -J > iperf.json
     E2=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
-    lxc exec c1 -- iperf3 -R -c "${IP}" -J > iperf.json
+    lxc exec c1 -- iperf3 -t 3 -R -c "${IP}" -J > iperf.json
     I2=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
     echo "Throughput after limits: ${E2}Mbps / ${I2}Mbps"
     [ "${E2}" -lt "50" ]
