@@ -175,8 +175,7 @@ if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] ||
     # Wait for post-stop to complete
     sleep 2s
 
-    lxc config unset c1 limits.memory
-    lxc config unset c1 limits.memory.enforce
+    lxc config set c1 limits.memory= limits.memory.enforce=
     lxc start c1
 fi
 
