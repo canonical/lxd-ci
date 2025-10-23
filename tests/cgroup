@@ -196,7 +196,7 @@ if [ -e "/sys/fs/cgroup/net_prio" ] && echo "${LXD_SNAP_CHANNEL}" | grep -qE "^5
 fi
 
 lxc restart c1 --force
-sleep 10s
+waitInstanceReady c1
 IP=$(lxc network get lxdbr0 ipv4.address | cut -d/ -f1)
 lxc exec c1 -- apt-get update
 lxc exec c1 --env DEBIAN_FRONTEND=noninteractive -- apt-get install --no-install-recommends --yes iperf3
