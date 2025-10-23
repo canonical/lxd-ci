@@ -8,7 +8,7 @@ install_lxd
 
 echo "==> Setup node"
 if ! command -v node > /dev/null; then
-  snap install node --channel=20/stable --classic
+  snap install node --channel=22/stable --classic
 fi
 node --version
 
