@@ -152,13 +152,11 @@ if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] ||
     lxc exec c1 -- mount -t tmpfs tmpfs /root/dd -o size=2G
     lxc exec c1 -- dd if=/dev/zero of=/root/dd/blob bs=4M count=16
     dmesg -c >/dev/null 2>&1
-    # shellcheck disable=SC2251
-    ! lxc exec c1 -- dd if=/dev/zero of=/root/dd/blob bs=4M count=64
+    ! lxc exec c1 -- dd if=/dev/zero of=/root/dd/blob bs=4M count=64 || false
     dmesg | grep -F "Memory cgroup out of memory: Killed process"
     dmesg -c >/dev/null 2>&1
 
-    # shellcheck disable=SC2251
-    ! lxc stop c1 --force
+    lxc stop c1 --force
 
     # Wait for post-stop to complete
     sleep 2s
@@ -172,8 +170,7 @@ if [ -e "/sys/fs/cgroup/memory/memory.memsw.limit_in_bytes" ] ||
     dmesg | grep -F "Memory cgroup out of memory: Killed process" && false
     dmesg -c >/dev/null 2>&1
 
-    # shellcheck disable=SC2251
-    ! lxc stop c1 --force
+    lxc stop c1 --force
 
     # Wait for post-stop to complete
     sleep 2s
