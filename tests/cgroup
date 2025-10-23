@@ -234,21 +234,20 @@ elif [ -e /sys/fs/cgroup/blkio/blkio.weight ]; then
     [ "$(lxc exec c1 -- cat /sys/fs/cgroup/blkio/blkio.weight)" = "500" ]
 fi
 
-
 lxc config device override c1 root limits.read=10iops limits.write=20iops
 if [ -e /sys/fs/cgroup/init.scope/io.max ]; then
-    lxc exec c1 -- grep -q "riops=10 wiops=20" /sys/fs/cgroup/io.max
+    lxc exec c1 -- grep -wF "riops=10 wiops=20" /sys/fs/cgroup/io.max
 else
-    lxc exec c1 -- grep -q "10$" /sys/fs/cgroup/blkio/blkio.throttle.read_iops_device
-    lxc exec c1 -- grep -q "20$" /sys/fs/cgroup/blkio/blkio.throttle.write_iops_device
+    lxc exec c1 -- grep -w "10$" /sys/fs/cgroup/blkio/blkio.throttle.read_iops_device
+    lxc exec c1 -- grep -w "20$" /sys/fs/cgroup/blkio/blkio.throttle.write_iops_device
 fi
 
 lxc config device set c1 root limits.read=10MB limits.write=20MB
 if [ -e /sys/fs/cgroup/init.scope/io.max ]; then
-    lxc exec c1 -- grep -q "rbps=10000000 wbps=20000000" /sys/fs/cgroup/io.max
+    lxc exec c1 -- grep -wF "rbps=10000000 wbps=20000000" /sys/fs/cgroup/io.max
 else
-    lxc exec c1 -- grep -q "10000000$" /sys/fs/cgroup/blkio/blkio.throttle.read_bps_device
-    lxc exec c1 -- grep -q "20000000$" /sys/fs/cgroup/blkio/blkio.throttle.write_bps_device
+    lxc exec c1 -- grep -w "10000000$" /sys/fs/cgroup/blkio/blkio.throttle.read_bps_device
+    lxc exec c1 -- grep -w "20000000$" /sys/fs/cgroup/blkio/blkio.throttle.write_bps_device
 fi
 
 lxc config device set c1 root limits.read= limits.write=
