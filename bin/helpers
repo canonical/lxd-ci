@@ -432,9 +432,9 @@ certificateFingerprintShort() (
   certificateFingerprint "${1}" | head -c12
 )
 
-# setup_swap: create a temporary swapfile for lxd-ci usage but only if there is no existing swap.
+# setup_swap: create a temporary swapfile for CI usage but only if there is no existing swap.
 setup_swap() {
-    if [ "$(swapon --noheading --raw)" != "" ]; then
+    if [ -n "$(swapon --noheading --raw)" ]; then
         # Swap detected, nothing to do
         return
     fi
@@ -448,7 +448,7 @@ setup_swap() {
     export LXD_CI_SWAPFILE
 }
 
-# teardown_swap: deactivate and remove any swapfile created by lxd-ci
+# teardown_swap: deactivate and remove any swapfile created by setup_swap
 teardown_swap() {
     if [ -z "${LXD_CI_SWAPFILE:-}" ]; then
         return
