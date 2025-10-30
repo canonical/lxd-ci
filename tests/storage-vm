@@ -690,7 +690,6 @@ for poolDriver in $poolDriverList; do
                         # For PowerFlex use more memory than the default size of the VM's config drive which is 8GiB.
                         lxc launch "${IMAGE}" v1 --vm --config migration.stateful=true --config limits.memory=9GiB -s "${poolName}" -p vmsmall
                 fi
-                waitInstanceReady v1
                 # However, we should not be able to statefully stop the VM.
                 ! lxc stop v1 --stateful || false
                 # But we should be able to change the root size.state config without stopping the VM.
@@ -702,7 +701,8 @@ for poolDriver in $poolDriverList; do
                 fi
                 # And then we should be able to statefully stop the VM.
                 # But before, let's register the boot_id to check that it has not changed after a stateful stop / start.
-                boot_id=$(lxc exec v1 -- cat /proc/sys/kernel/random/boot_id)
+                waitInstanceReady v1
+                boot_id="$(lxc exec v1 -- cat /proc/sys/kernel/random/boot_id)"
                 lxc stop v1 --stateful
                 # And then we should be able to statefully start the VM again.
                 lxc start v1
