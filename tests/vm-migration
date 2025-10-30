@@ -91,7 +91,7 @@ lxc exec member1 -- lxc storage create ceph ceph --target member2
 lxc exec member1 -- lxc storage create ceph ceph
 
 # Create a volume in the ceph pool to test that we can live-migrate a VM with this volume attached.
-lxc exec member1 -- lxc storage volume create ceph vol1 --type=block size=64MiB
+lxc exec member1 -- lxc storage volume create ceph vol1 --type=block size=4MiB
 
 # Create a VM in the cluster, on member1.
 lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=512MiB -d root,size=3584MiB
