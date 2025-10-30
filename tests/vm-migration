@@ -48,7 +48,7 @@ done
 # Install LXD in the first member.
 lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
-    lxc file push "${LXD_SIDELOAD_PATH}" member1/var/snap/lxd/common/lxd.debug
+    lxc file push --quiet "${LXD_SIDELOAD_PATH}" member1/var/snap/lxd/common/lxd.debug
     lxc exec member1 -- systemctl restart snap.lxd.daemon
 fi
 lxc exec member1 -- lxd waitready --timeout=300
@@ -63,7 +63,7 @@ joinToken="$(lxc exec member1 -- lxc cluster add member2 --quiet)"
 # Install LXD on the second member.
 lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
-    lxc file push "${LXD_SIDELOAD_PATH}" member2/var/snap/lxd/common/lxd.debug
+    lxc file push --quiet "${LXD_SIDELOAD_PATH}" member2/var/snap/lxd/common/lxd.debug
     lxc exec member2 -- systemctl restart snap.lxd.daemon
 fi
 lxc exec member2 -- lxd waitready --timeout=300
@@ -80,8 +80,8 @@ cluster:
 EOF
 
 # Copy the ceph config from the local microceph snap into each cluster member.
-lxc file push -r -p /var/snap/microceph/current/conf/* member1/etc/ceph/
-lxc file push -r -p /var/snap/microceph/current/conf/* member2/etc/ceph/
+lxc file push -r -p --quiet /var/snap/microceph/current/conf/* member1/etc/ceph/
+lxc file push -r -p --quiet /var/snap/microceph/current/conf/* member2/etc/ceph/
 lxc exec member1 -- chmod +x /etc/ceph
 lxc exec member2 -- chmod +x /etc/ceph
 
