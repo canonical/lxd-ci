@@ -145,7 +145,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Checking VM can be copied with snapshots"
         lxc copy v1 v2
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 1'
         lxc start v2
         waitInstanceReady v2
         lxc stop -f v2
@@ -153,7 +153,7 @@ for poolDriver in $poolDriverList; do
         echo "==> Checking VM can be refreshed"
         lxc snapshot v1
         lxc copy v1 v2 --refresh
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "2" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 2'
         lxc delete v1/snap1
         lxc delete -f v2
 
@@ -179,7 +179,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Checking VM can be migrated with snapshots (same storage pool)"
         lxc copy v1 localhost:v2 --stateless
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 1'
         lxc start v2
         waitInstanceReady v2
         lxc stop -f v2
@@ -187,7 +187,7 @@ for poolDriver in $poolDriverList; do
         echo "==> Checking VM can be refreshed remotely (same storage pool)"
         lxc snapshot v1
         lxc copy v1 localhost:v2 --refresh
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "2" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 2'
         lxc delete v1/snap1
         lxc delete -f v2
 
@@ -217,7 +217,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Checking VM can be migrated with snapshots (different storage pool)"
         lxc copy v1 localhost:v2 -s "${poolName}2" --stateless
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 1'
         lxc start v2
         waitInstanceReady v2
         lxc stop -f v2
@@ -225,7 +225,7 @@ for poolDriver in $poolDriverList; do
         echo "==> Checking VM can be refreshed remotely (different storage pool)"
         lxc snapshot v1
         lxc copy v1 localhost:v2 --refresh -s "${poolName}2"
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "2" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 2'
         lxc delete v1/snap1
         lxc delete -f v2
 
@@ -658,24 +658,24 @@ for poolDriver in $poolDriverList; do
 
                 lxc config set instances.migration.stateful=true
                 lxc init --empty v1 --vm -s "${poolName}" -p vmsmall
-                [ "$(lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]')" = true ]
+                lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "true"'
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=false
                 lxc init --empty v1 --vm -s "${poolName}" -p vmsmall
-                [ -z "$(lxc config get --expanded v1 migration.stateful)" ] # instances.migration.stateful leave it unset because since it is `false`, it is the same as the default value of `migration.stateful`.
+                [ -z "$(lxc config get --expanded v1 migration.stateful || echo fail)" ] # instances.migration.stateful leave it unset because since it is `false`, it is the same as the default value of `migration.stateful`.
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=true
                 lxc init --empty v1 --vm --config migration.stateful=false -s "${poolName}" -p vmsmall
-                [ "$(lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]')" = "false" ] # the instance local config should take precedence
+                lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "false"' # the instance local config should take precedence
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=false
                 lxc profile copy default stateful_profile
                 lxc profile set stateful_profile migration.stateful=true
                 lxc init --empty v1 --vm -p stateful_profile -s "${poolName}"
-                [ "$(lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]')" = "true" ] # the profile config should take precedence
+                lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "true"' # the profile config should take precedence
                 lxc delete v1 -f
                 lxc profile delete stateful_profile
 
