@@ -4,41 +4,95 @@ set -eux
 # Install dependencies
 install_deps jq
 
-# Install MicroCeph
-install_microceph
-
-# Disk for use by MicroCeph
-backing_file="$(mktemp)"
-truncate -s 20GiB "${backing_file}"
-CEPH_DISK="$(losetup --direct-io=on --show --find "${backing_file}")"
-export CEPH_DISK
-
-# Configure MicroCeph
-configure_microceph
-
-# Install LXD
+# # Install LXD
 install_lxd
 
-# Configure LXD
-lxc network create lxdbr0
-lxc profile device add default eth0 nic network=lxdbr0
+# Unblock images remote.
+sed -i '/images\.lxd\.canonical\.com/d' /etc/hosts
 
-poolName="vmpool$$"
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
+
+networkName="lxdbr42"
+poolName="ctpool"
 poolDriver=zfs
 
+# Configure LXD.
+lxc network create "${networkName}"
 echo "==> Create storage pool using driver ${poolDriver}"
-lxc storage create "${poolName}" "${poolDriver}"
-lxc profile device add default root disk path="/" pool="${poolName}"
 
-# Launch two instances for our LXD cluster and wait for them to be ready.
-lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member1 --vm -c limits.memory=2GiB
-lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" member2 --vm -c limits.memory=2GiB
-if hasNeededAPIExtension devlxd_images_vm; then
-    lxc config set member1 security.devlxd.images=true
-    lxc config set member2 security.devlxd.images=true
+if [ "${poolDriver}" != "zfs" ]; then
+  return
 fi
-lxc start member1
-lxc start member2
+
+trap cleanup EXIT HUP INT TERM
+
+# To use ZFS within a nested container, a ZFS version must be greater than
+# or equal to 2.2, and ZFS delegation must be enabled.
+zfsVersion=$(modinfo zfs | awk '/^version:/ {print $2}')
+if dpkg --compare-versions "${zfsVersion}" gt "2.2"; then
+  if [ "${poolDriver}" = "zfs" ]; then
+    lxc storage create "${poolName}" "${poolDriver}" volume.zfs.delegate=true
+
+    # XXX: Ensure that the ZFS device is accessible within the nested container.
+    #      Otherwise, the LXD storage pool creation will fail.
+    zfsPerm=$(stat -c '%a' /dev/zfs)
+    if [ $((zfsPerm & 7)) -eq 0 ]; then
+        # It's udev's job to fix the perms but the rule for it ships in
+        # the zfsutils-linux package which might not be installed.
+        chmod 0666 /dev/zfs
+    fi
+  else
+    echo "SKIP: Live migration test does not support storage driver ${poolDriver}"
+    exit 0
+  fi
+else
+  echo "ZFS version ${zfsVersion} does not support ZFS delegation and cannot be used within nested containers."
+fi
+
+# Create a profile that allows running VMs within a container.
+cat << EOF | lxc profile create container-kvm
+description: Makes containers capable of running VMs
+config:
+  linux.kernel_modules: kvm,vhost_net,vhost_vsock
+  security.devlxd.images: "true"
+  security.idmap.isolated: "false"
+  security.nesting: "true"
+devices:
+  kvm:
+    source: /dev/kvm
+    type: unix-char
+  vhost-net:
+    source: /dev/vhost-net
+    type: unix-char
+  vhost-vsock:
+    source: /dev/vhost-vsock
+    type: unix-char
+  vsock:
+    mode: "0666"
+    source: /dev/vsock
+    type: unix-char
+EOF
+
+for instance in member1 member2; do
+  lxc init "${IMAGE}" "${instance}" \
+    --network "${networkName}" \
+    --storage "${poolName}" \
+    --profile default \
+    --profile container-kvm \
+    --config limits.cpu=4
+
+  if hasNeededAPIExtension devlxd_images_vm; then
+      lxc config set "${instance}" security.devlxd.images=true
+  fi
+
+  # Attach additional disks to the members for new storage.
+  disk="${instance}-disk"
+  lxc storage volume create "${poolName}" "${disk}" size=10GiB
+  lxc config device add "${instance}" "${disk}" disk pool="${poolName}" source="${disk}" path=/mnt/disk
+
+  # Start the instance.
+  lxc start "${instance}"
+done
 
 for instance in member1 member2; do
     waitInstanceReady "${instance}"
@@ -48,71 +102,105 @@ for instance in member1 member2; do
 done
 
 # Install LXD in the first member.
-lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec member1 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member1/var/snap/lxd/common/lxd.debug
     lxc exec member1 -- systemctl restart snap.lxd.daemon
 fi
+if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
+  lxc file push "${LXD_AGENT_SIDELOAD_PATH}" "member1/root/$(basename "${LXD_AGENT_SIDELOAD_PATH}")"
+  lxc exec member1 -- mount --bind "$(basename "${LXD_AGENT_SIDELOAD_PATH}")" /snap/lxd/current/bin/lxd-agent
+  lxc exec member1 -- systemctl restart snap.lxd.daemon
+fi
 
 # Initialise and configure LXD in the first member.
 lxc exec member1 -- lxd init --auto
-member1Address="$(lxc query /1.0/instances/member1?recursion=2 | jq -r ".state.network.enp5s0.addresses[0].address")"
+member1Address="$(lxc query /1.0/instances/member1?recursion=2 | jq -r ".state.network.eth0.addresses[0].address")"
 lxc exec member1 -- lxc config set core.https_address="${member1Address}:8443"
 lxc exec member1 -- lxc cluster enable member1
 joinToken="$(lxc exec member1 -- lxc cluster add member2 --quiet)"
 
+# Ensure member2 is ready.
+waitInstanceReady member2
+# shellcheck disable=SC3044 # Ignore "declare is undefined" shellcheck error.
+lxc exec member2 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+
 # Install LXD on the second member.
-lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}"
 lxc exec member2 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member2/var/snap/lxd/common/lxd.debug
     lxc exec member2 -- systemctl restart snap.lxd.daemon
 fi
+if [ -n "${LXD_AGENT_SIDELOAD_PATH:-}" ]; then
+  lxc file push "${LXD_AGENT_SIDELOAD_PATH}" "member2/root/$(basename "${LXD_AGENT_SIDELOAD_PATH}")"
+  lxc exec member2 -- mount --bind "$(basename "${LXD_AGENT_SIDELOAD_PATH}")" /snap/lxd/current/bin/lxd-agent
+  lxc exec member2 -- systemctl restart snap.lxd.daemon
+fi
 
 # Create a preseed file for member2 to join member1.
-member2Address="$(lxc query /1.0/instances/member2?recursion=2 | jq -r ".state.network.enp5s0.addresses[0].address")"
-
-# Initialise member2 with the preseed.
-lxc exec member2 -- lxd init --preseed << EOF
+member2Address="$(lxc query /1.0/instances/member2?recursion=2 | jq -r ".state.network.eth0.addresses[0].address")"
+preseed="$(
+  cat <<EOF
 cluster:
   enabled: true
   server_address: "${member2Address}"
   cluster_token: "${joinToken}"
 EOF
+)"
 
-# Copy the ceph config from the local microceph snap into each cluster member.
-lxc file push -r -p /var/snap/microceph/current/conf/* member1/etc/ceph/
-lxc file push -r -p /var/snap/microceph/current/conf/* member2/etc/ceph/
-lxc exec member1 -- chmod +x /etc/ceph
-lxc exec member2 -- chmod +x /etc/ceph
+# Initialise member2 with the preseed.
+echo "${preseed}" | lxc exec member2 -- lxd init --preseed
 
 # Create the ceph storage pool
-lxc exec member1 -- lxc storage create ceph ceph --target member1
-lxc exec member1 -- lxc storage create ceph ceph --target member2
-lxc exec member1 -- lxc storage create ceph ceph
+lxc exec member1 -- lxc storage create subpool zfs --target member1 source="${poolName}/custom/default_member1-disk"
+lxc exec member1 -- lxc storage create subpool zfs --target member2 source="${poolName}/custom/default_member2-disk"
+lxc exec member1 -- lxc storage create subpool zfs
 
-# Create a volume in the ceph pool to test that we can live-migrate a VM with this volume attached.
-lxc exec member1 -- lxc storage volume create ceph vol1 --type=block size=64MiB
+# Create a volume in the pool to test that we can live-migrate a VM with this volume attached.
+lxc exec member1 -- lxc storage volume create subpool vol1 --type=block size=64MiB
 
 # Create a VM in the cluster, on member1.
-lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=512MiB -d root,size=3584MiB
+lxc exec member1 -- lxc init images:alpine/edge v1 --vm --config security.secureboot=false --storage subpool --target member1 -c migration.stateful=true -d root,size=4GiB
 
 # Add vol1 as a disk device to the VM.
-lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol1
+lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=subpool source=vol1
 
 # Start the VM.
 lxc exec member1 -- lxc start v1
-sleep 60
 
-# Ascertain that the VM is indeed on member1.
-[ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member1" ]
+# Wait for nested VM to boot.
+for i in $(seq 1 60); do
+  if lxc exec member1 -- lxc info v1 | grep "Processes:" | awk '{print $2}' | awk '{ if ($1 <= 1) exit 1}'; then
+    break
+  fi
 
-# Move the VM to member2 but with a timeout as this sometimes hangs indefinitely but when it works it's fast.
-lxc exec member1 -- timeout 600 lxc move v1 --target member2
+  echo "Waiting for instance v1 on member1 to boot (retry $i/60)"
+  sleep 5
+done
 
-# Verify the migration did succeeded and the VM is running on member2.
-[ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member2" ]
+# vol1 should be available as /dev/sdb. Format it as ext4. Then mount it and create a file.
+lxc exec member1 -- lxc exec v1 -- apk add e2fsprogs
+lxc exec member1 -- lxc exec v1 -- mkfs.ext4 /dev/sdb
+lxc exec member1 -- lxc exec v1 -- mkdir /mnt/vol1
+lxc exec member1 -- lxc exec v1 -- mount -t ext4 /dev/sdb /mnt/vol1
+lxc exec member1 -- lxc exec v1 -- cp /etc/hostname /mnt/vol1/bar
+
+# Move the instance
+lxc exec member1 -- lxc move v1 --target member2
+
+# Wait for the instance to be ready on member2.
+lxc exec member1 -- sh -c "$(declare -f waitInstanceReady); MAX_WAIT_SECONDS=300 waitInstanceReady v1"
+
+# The volume should be functional, still mounted, and the file we created should still be there with the same contents.
+[ "$(lxc exec member2 -- lxc exec v1 -- cat /mnt/vol1/bar)" = "v1" ]
+
+# Cleanup.
+lxc delete -f member1
+lxc delete -f member2
+lxc network delete "${networkName}"
+lxc storage delete "${poolName}"
 
 # shellcheck disable=SC2034
 FAIL=0
