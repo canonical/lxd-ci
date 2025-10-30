@@ -16,6 +16,7 @@ jobs:
         release:
           - jammy  # EOL: 2027-04
           - noble  # EOL: 2029-04
+          - questing # EOL: 2026-07
         variant:
           - desktop
         architecture:
