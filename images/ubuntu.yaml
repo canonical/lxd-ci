@@ -5,11 +5,13 @@ simplestream:
   release_aliases:
     jammy: 22.04
     noble: 24.04
+    questing: 25.10
   requirements:
   - requirements:
       cgroup: v2
     releases:
     - noble
+    - questing
 
 source:
   downloader: debootstrap
@@ -444,6 +446,7 @@ packages:
     action: install
     releases:
     - noble
+    - questing
 
   - packages:
     - grub-efi-amd64-signed
@@ -553,6 +556,7 @@ actions:
     ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
   releases:
   - noble
+  - questing
 
 - trigger: post-packages
   action: |-
