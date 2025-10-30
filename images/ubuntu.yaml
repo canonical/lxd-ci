@@ -3,7 +3,6 @@ image:
 
 simplestream:
   release_aliases:
-    focal: 20.04
     jammy: 22.04
     noble: 24.04
   requirements:
@@ -429,19 +428,7 @@ packages:
   cleanup: true
   sets:
   - packages:
-    - fuse
-    releases:
-    - focal
-    action: install
-
-  - packages:
     - fuse3
-    releases:
-    - jammy
-    - noble
-    action: install
-
-  - packages:
     - openssh-client
     - sudo
     - vim
@@ -580,7 +567,6 @@ actions:
     # Enable systemd-networkd
     systemctl enable systemd-networkd
   releases:
-  - focal
   - jammy
 
 - trigger: post-packages
