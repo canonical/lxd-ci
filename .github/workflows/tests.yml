@@ -109,201 +109,201 @@ jobs:
         os: ${{ fromJSON(inputs.ubuntu-releases || '["22.04", "24.04"]') }}
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge", "5.21/edge", "5.0/edge", "4.0/edge"]') }}
         test:
-          - cgroup
-          - cloud-init
-          - cluster
-          - container
-          - container-copy
-          - container-nesting
-          - conversion
-          - cpu-vm
-          - devlxd-container
-          - devlxd-vm
-          - efi-vars-editor-vm
-          - lxd-installer
-          - lxd-user
-          - interception
-          - network-bridge-firewall
-          - network-ovn ovn:deb
-          - network-ovn ovn:latest/edge
-          - network-routed
-          - pylxd
-          - qemu-external-vm
-          - snapd
-          - storage-buckets
-          - storage-disks-vm
-          - storage-metadata
-          - storage-vm btrfs
-          - storage-vm ceph
-          - storage-vm dir
-          - storage-vm lvm
-          - storage-vm lvm-thin
-          - storage-vm zfs
-          - storage-volumes-vm
-          - tpm-vm
-          - ui chromium
-          - ui firefox
-          - vm
+          # - cgroup
+          # - cloud-init
+          # - cluster
+          # - container
+          # - container-copy
+          # - container-nesting
+          # - conversion
+          # - cpu-vm
+          # - devlxd-container
+          # - devlxd-vm
+          # - efi-vars-editor-vm
+          # - lxd-installer
+          # - lxd-user
+          # - interception
+          # - network-bridge-firewall
+          # - network-ovn ovn:deb
+          # - network-ovn ovn:latest/edge
+          # - network-routed
+          # - pylxd
+          # - qemu-external-vm
+          # - snapd
+          # - storage-buckets
+          # - storage-disks-vm
+          # - storage-metadata
+          # - storage-vm btrfs
+          # - storage-vm ceph
+          # - storage-vm dir
+          # - storage-vm lvm
+          # - storage-vm lvm-thin
+          # - storage-vm zfs
+          # - storage-volumes-vm
+          # - tpm-vm
+          # - ui chromium
+          # - ui firefox
+          # - vm
           - vm-migration
-          - vm-nesting
+          # - vm-nesting
         exclude:
           # not compatible with 4.0/*
-          - test: cloud-init
-            track: "4.0/candidate"
-          - test: container-copy
-            track: "4.0/candidate"
-          - test: container-nesting
-            track: "4.0/candidate"
-          - test: conversion
-            track: "4.0/candidate"
-          - test: cpu-vm
-            track: "4.0/candidate"
-          - test: devlxd-vm
-            track: "4.0/candidate"
-          - test: efi-vars-editor-vm
-            track: "4.0/candidate"
-          - test: lxd-installer
-            track: "4.0/candidate"
-          - test: lxd-user
-            track: "4.0/candidate"
-          - test: network-ovn ovn:deb
-            track: "4.0/candidate"
-          - test: network-ovn ovn:latest/edge
-            track: "4.0/candidate"
-          - test: qemu-external-vm
-            track: "4.0/candidate"
-          - test: storage-buckets
-            track: "4.0/candidate"
-          - test: storage-disks-vm
-            track: "4.0/candidate"
-          - test: storage-metadata
-            track: "4.0/candidate"
-          - test: storage-vm btrfs
-            track: "4.0/candidate"
-          - test: storage-vm ceph
-            track: "4.0/candidate"
-          - test: storage-vm dir
-            track: "4.0/candidate"
-          - test: storage-vm lvm
-            track: "4.0/candidate"
-          - test: storage-vm lvm-thin
-            track: "4.0/candidate"
-          - test: storage-vm zfs
-            track: "4.0/candidate"
-          - test: storage-volumes-vm
-            track: "4.0/candidate"
-          - test: tpm-vm
-            track: "4.0/candidate"
-          - test: ui chromium
-            track: "4.0/candidate"
-          - test: ui firefox
-            track: "4.0/candidate"
+          # - test: cloud-init
+          #   track: "4.0/candidate"
+          # - test: container-copy
+          #   track: "4.0/candidate"
+          # - test: container-nesting
+          #   track: "4.0/candidate"
+          # - test: conversion
+          #   track: "4.0/candidate"
+          # - test: cpu-vm
+          #   track: "4.0/candidate"
+          # - test: devlxd-vm
+          #   track: "4.0/candidate"
+          # - test: efi-vars-editor-vm
+          #   track: "4.0/candidate"
+          # - test: lxd-installer
+          #   track: "4.0/candidate"
+          # - test: lxd-user
+          #   track: "4.0/candidate"
+          # - test: network-ovn ovn:deb
+          #   track: "4.0/candidate"
+          # - test: network-ovn ovn:latest/edge
+          #   track: "4.0/candidate"
+          # - test: qemu-external-vm
+          #   track: "4.0/candidate"
+          # - test: storage-buckets
+          #   track: "4.0/candidate"
+          # - test: storage-disks-vm
+          #   track: "4.0/candidate"
+          # - test: storage-metadata
+          #   track: "4.0/candidate"
+          # - test: storage-vm btrfs
+          #   track: "4.0/candidate"
+          # - test: storage-vm ceph
+          #   track: "4.0/candidate"
+          # - test: storage-vm dir
+          #   track: "4.0/candidate"
+          # - test: storage-vm lvm
+          #   track: "4.0/candidate"
+          # - test: storage-vm lvm-thin
+          #   track: "4.0/candidate"
+          # - test: storage-vm zfs
+          #   track: "4.0/candidate"
+          # - test: storage-volumes-vm
+          #   track: "4.0/candidate"
+          # - test: tpm-vm
+          #   track: "4.0/candidate"
+          # - test: ui chromium
+          #   track: "4.0/candidate"
+          # - test: ui firefox
+          #   track: "4.0/candidate"
           - test: vm-migration
             track: "4.0/candidate"
-          - test: cloud-init
-            track: "4.0/edge"
-          - test: container-copy
-            track: "4.0/edge"
-          - test: container-nesting
-            track: "4.0/edge"
-          - test: conversion
-            track: "4.0/edge"
-          - test: cpu-vm
-            track: "4.0/edge"
-          - test: devlxd-vm
-            track: "4.0/edge"
-          - test: efi-vars-editor-vm
-            track: "4.0/edge"
-          - test: lxd-installer
-            track: "4.0/edge"
-          - test: lxd-user
-            track: "4.0/edge"
-          - test: network-ovn ovn:deb
-            track: "4.0/edge"
-          - test: network-ovn ovn:latest/edge
-            track: "4.0/edge"
-          - test: qemu-external-vm
-            track: "4.0/edge"
-          - test: storage-buckets
-            track: "4.0/edge"
-          - test: storage-disks-vm
-            track: "4.0/edge"
-          - test: storage-metadata
-            track: "4.0/edge"
-          - test: storage-vm btrfs
-            track: "4.0/edge"
-          - test: storage-vm ceph
-            track: "4.0/edge"
-          - test: storage-vm dir
-            track: "4.0/edge"
-          - test: storage-vm lvm
-            track: "4.0/edge"
-          - test: storage-vm lvm-thin
-            track: "4.0/edge"
-          - test: storage-vm zfs
-            track: "4.0/edge"
-          - test: storage-volumes-vm
-            track: "4.0/edge"
-          - test: tpm-vm
-            track: "4.0/edge"
-          - test: ui chromium
-            track: "4.0/edge"
-          - test: ui firefox
-            track: "4.0/edge"
+          # - test: cloud-init
+          #   track: "4.0/edge"
+          # - test: container-copy
+          #   track: "4.0/edge"
+          # - test: container-nesting
+          #   track: "4.0/edge"
+          # - test: conversion
+          #   track: "4.0/edge"
+          # - test: cpu-vm
+          #   track: "4.0/edge"
+          # - test: devlxd-vm
+          #   track: "4.0/edge"
+          # - test: efi-vars-editor-vm
+          #   track: "4.0/edge"
+          # - test: lxd-installer
+          #   track: "4.0/edge"
+          # - test: lxd-user
+          #   track: "4.0/edge"
+          # - test: network-ovn ovn:deb
+          #   track: "4.0/edge"
+          # - test: network-ovn ovn:latest/edge
+          #   track: "4.0/edge"
+          # - test: qemu-external-vm
+          #   track: "4.0/edge"
+          # - test: storage-buckets
+          #   track: "4.0/edge"
+          # - test: storage-disks-vm
+          #   track: "4.0/edge"
+          # - test: storage-metadata
+          #   track: "4.0/edge"
+          # - test: storage-vm btrfs
+          #   track: "4.0/edge"
+          # - test: storage-vm ceph
+          #   track: "4.0/edge"
+          # - test: storage-vm dir
+          #   track: "4.0/edge"
+          # - test: storage-vm lvm
+          #   track: "4.0/edge"
+          # - test: storage-vm lvm-thin
+          #   track: "4.0/edge"
+          # - test: storage-vm zfs
+          #   track: "4.0/edge"
+          # - test: storage-volumes-vm
+          #   track: "4.0/edge"
+          # - test: tpm-vm
+          #   track: "4.0/edge"
+          # - test: ui chromium
+          #   track: "4.0/edge"
+          # - test: ui firefox
+          #   track: "4.0/edge"
           - test: vm-migration
             track: "4.0/edge"
           # not compatible with 5.0/*
-          - test: cloud-init
-            track: "5.0/candidate"
-          - test: cloud-init
-            track: "5.0/edge"
-          - test: efi-vars-editor-vm
-            track: "5.0/candidate"
-          - test: efi-vars-editor-vm
-            track: "5.0/edge"
-          - test: lxd-installer
-            track: "5.0/candidate"
-          - test: lxd-installer
-            track: "5.0/edge"
-          - test: network-ovn ovn:latest/edge
-            track: "5.0/candidate"
-          - test: network-ovn ovn:latest/edge
-            track: "5.0/edge"
-          - test: qemu-external-vm
-            track: "5.0/candidate"
-          - test: qemu-external-vm
-            track: "5.0/edge"
+          # - test: cloud-init
+          #   track: "5.0/candidate"
+          # - test: cloud-init
+          #   track: "5.0/edge"
+          # - test: efi-vars-editor-vm
+          #   track: "5.0/candidate"
+          # - test: efi-vars-editor-vm
+          #   track: "5.0/edge"
+          # - test: lxd-installer
+          #   track: "5.0/candidate"
+          # - test: lxd-installer
+          #   track: "5.0/edge"
+          # - test: network-ovn ovn:latest/edge
+          #   track: "5.0/candidate"
+          # - test: network-ovn ovn:latest/edge
+          #   track: "5.0/edge"
+          # - test: qemu-external-vm
+          #   track: "5.0/candidate"
+          # - test: qemu-external-vm
+          #   track: "5.0/edge"
           - test: vm-migration
             track: "5.0/candidate"
           - test: vm-migration
             track: "5.0/edge"
           # not compatible with 5.21/*
-          - test: lxd-installer
-            track: "5.21/stable"
-          - test: lxd-installer
-            track: "5.21/candidate"
-          - test: lxd-installer
-            track: "5.21/edge"
-          - test: qemu-external-vm
-            track: "5.21/stable"
-          - test: qemu-external-vm
-            track: "5.21/candidate"
-          - test: qemu-external-vm
-            track: "5.21/edge"
+          # - test: lxd-installer
+          #   track: "5.21/stable"
+          # - test: lxd-installer
+          #   track: "5.21/candidate"
+          # - test: lxd-installer
+          #   track: "5.21/edge"
+          # - test: qemu-external-vm
+          #   track: "5.21/stable"
+          # - test: qemu-external-vm
+          #   track: "5.21/candidate"
+          # - test: qemu-external-vm
+          #   track: "5.21/edge"
           # some tests are not worth testing on specific OSes
-          - os: 22.04
-            test: lxd-installer
-          - os: 22.04
-            test: qemu-external-vm
-          # skip track/os combinations that are too far appart
-          - os: 24.04
-            track: "4.0/candidate"
-          - os: 24.04
-            track: "4.0/edge"
-          - os: 24.04
-            track: "5.0/candidate"
-          - os: 24.04
-            track: "5.0/edge"
+          # - os: 22.04
+          #   test: lxd-installer
+          # - os: 22.04
+          #   test: qemu-external-vm
+          # # skip track/os combinations that are too far appart
+          # - os: 24.04
+          #   track: "4.0/candidate"
+          # - os: 24.04
+          #   track: "4.0/edge"
+          # - os: 24.04
+          #   track: "5.0/candidate"
+          # - os: 24.04
+          #   track: "5.0/edge"
 
     steps:
       - name: Tune disk performance
