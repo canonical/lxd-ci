@@ -112,13 +112,14 @@ for vers in "latest" "5.21" "5.0"; do
 
     echo "==> Create container with a ${versStr} LXD"
     lxc launch "${IMAGE}" c1 -s "${poolName}" -c security.devlxd.images=true -c security.nesting=true -c limits.cpu=4 -c limits.memory=4GiB -d root,size=20GiB
-    waitInstanceReady c1
 
     echo "==> Add required devices for creating empty VMs inside of the container"
     lxc config device add c1 kvm unix-char source=/dev/kvm
     lxc config device add c1 vhost-net unix-char source=/dev/vhost-net
     lxc config device add c1 vhost-vsock unix-char source=/dev/vhost-vsock
     lxc config device add c1 vsock unix-char source=/dev/vsock
+
+    waitInstanceReady c1
 
     # workaround for LP: #2104066
     lxc exec c1 -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
