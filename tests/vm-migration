@@ -47,11 +47,11 @@ done
 
 # Install LXD in the first member.
 lxc exec member1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
-lxc exec member1 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member1/var/snap/lxd/common/lxd.debug
     lxc exec member1 -- systemctl restart snap.lxd.daemon
 fi
+lxc exec member1 -- lxd waitready --timeout=300
 
 # Initialise and configure LXD in the first member.
 lxc exec member1 -- lxd init --auto
@@ -62,11 +62,11 @@ joinToken="$(lxc exec member1 -- lxc cluster add member2 --quiet)"
 
 # Install LXD on the second member.
 lxc exec member2 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
-lxc exec member2 -- lxd waitready --timeout=300
 if [ -n "${LXD_SIDELOAD_PATH:-}" ]; then
     lxc file push "${LXD_SIDELOAD_PATH}" member2/var/snap/lxd/common/lxd.debug
     lxc exec member2 -- systemctl restart snap.lxd.daemon
 fi
+lxc exec member2 -- lxd waitready --timeout=300
 
 # Create a preseed file for member2 to join member1.
 member2Address="$(lxc query /1.0/instances/member2?recursion=2 | jq -r ".state.network.enp5s0.addresses[0].address")"
