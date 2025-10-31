@@ -353,8 +353,7 @@ for poolDriver in $poolDriverList; do
                 fi
         fi
 
-        lxc init "${IMAGE}" v1 --vm -s "${poolName}"
-        lxc start v1
+        lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
         waitInstanceReady v1
         lxc info v1
 
@@ -591,8 +590,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Check VM create succeeds when no volume.size set"
         lxc storage unset "${poolName}" volume.size
-        lxc init vmbig v1 --vm -s "${poolName}"
-        lxc start v1
+        lxc launch vmbig v1 --vm -s "${poolName}"
         waitInstanceReady v1
         lxc info v1
 
@@ -617,7 +615,7 @@ for poolDriver in $poolDriverList; do
         lxc image delete vmbig
 
         echo "==> Checking VM Generation UUID with QEMU"
-        lxc launch "${IMAGE}" v1 --vm -s "${poolName}" -p vmsmall
+        lxc launch --empty v1 --vm -s "${poolName}" -p vmsmall
         lxc info v1
 
         # Check that the volatile.uuid.generation setting is applied to the QEMU process.
@@ -641,9 +639,9 @@ for poolDriver in $poolDriverList; do
 
         lxc publish v1 --alias v1image
         lxc delete v1
-        lxc launch v1image v2 -s "${poolName}" -p vmsmall # --vm flag omitted as we are implicitly launching a vm
+        lxc init v1image v2 -s "${poolName}" -p vmsmall # --vm flag omitted as we are implicitly creating a vm
         [ "$(lxc list -f csv -c t v2)" = "VIRTUAL-MACHINE" ]
-        lxc delete -f v2
+        lxc delete v2
         lxc image delete v1image
 
         if [ "$(lxc config get storage.images_volume)" != "" ]; then
@@ -659,24 +657,24 @@ for poolDriver in $poolDriverList; do
                 lxc config set instances.migration.stateful=true
                 lxc init --empty v1 --vm -s "${poolName}" -p vmsmall
                 lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "true"'
-                lxc delete v1 -f
+                lxc delete v1
 
                 lxc config set instances.migration.stateful=false
                 lxc init --empty v1 --vm -s "${poolName}" -p vmsmall
                 [ -z "$(lxc config get --expanded v1 migration.stateful || echo fail)" ] # instances.migration.stateful leave it unset because since it is `false`, it is the same as the default value of `migration.stateful`.
-                lxc delete v1 -f
+                lxc delete v1
 
                 lxc config set instances.migration.stateful=true
                 lxc init --empty v1 --vm --config migration.stateful=false -s "${poolName}" -p vmsmall
                 lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "false"' # the instance local config should take precedence
-                lxc delete v1 -f
+                lxc delete v1
 
                 lxc config set instances.migration.stateful=false
-                lxc profile copy default stateful_profile
+                lxc profile copy vmsmall stateful_profile
                 lxc profile set stateful_profile migration.stateful=true
                 lxc init --empty v1 --vm -p stateful_profile -s "${poolName}"
                 lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "true"' # the profile config should take precedence
-                lxc delete v1 -f
+                lxc delete v1
                 lxc profile delete stateful_profile
 
                 # Finally, unset the value to avoid any potential side effects on other tests.
