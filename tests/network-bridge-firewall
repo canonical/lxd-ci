@@ -181,7 +181,7 @@ firewallTests() {
             # Check if multicast traffic passes within the same network.
             waitInstanceReady c3
             lxc exec c3 -- apt-get install --no-install-recommends --yes socat
-            lxc exec c3 -- socat stdio udp4-datagram:239.0.0.1:1234 <<< "" | grep -q c2
+            [ "$(lxc exec c3 -- socat stdio udp4-datagram:239.0.0.1:1234 <<< "")" = "c2" ]
             kill "${server_process}"
         fi
 
@@ -203,7 +203,7 @@ firewallTests() {
             lxc exec c2 -- socat udp4-recvfrom:1234,ip-add-membership=239.0.0.1:192.0.3.254,fork exec:hostname &
             server_process="$!"
             sleep 1
-            lxc exec c3 -- socat stdio udp4-datagram:239.0.0.1:1234 <<< "" | grep -q c2
+            [ "$(lxc exec c3 -- socat stdio udp4-datagram:239.0.0.1:1234 <<< "")" = "c2" ]
             kill "${server_process}"
 
             lxc delete -f c3
