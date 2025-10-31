@@ -643,7 +643,7 @@ for poolDriver in $poolDriverList; do
         lxc delete v1
         lxc init v1image v2 -s "${poolName}" -p vmsmall # --vm flag omitted as we are implicitly creating a vm
         [ "$(lxc list -f csv -c t v2)" = "VIRTUAL-MACHINE" ]
-        lxc delete -f v2
+        lxc delete v2
         lxc image delete v1image
 
         if [ "$(lxc config get storage.images_volume)" != "" ]; then
@@ -659,24 +659,24 @@ for poolDriver in $poolDriverList; do
                 lxc config set instances.migration.stateful=true
                 lxc init --empty v1 --vm -s "${poolName}" -p vmsmall
                 lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "true"'
-                lxc delete v1 -f
+                lxc delete v1
 
                 lxc config set instances.migration.stateful=false
                 lxc init --empty v1 --vm -s "${poolName}" -p vmsmall
                 [ -z "$(lxc config get --expanded v1 migration.stateful || echo fail)" ] # instances.migration.stateful leave it unset because since it is `false`, it is the same as the default value of `migration.stateful`.
-                lxc delete v1 -f
+                lxc delete v1
 
                 lxc config set instances.migration.stateful=true
                 lxc init --empty v1 --vm --config migration.stateful=false -s "${poolName}" -p vmsmall
                 lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "false"' # the instance local config should take precedence
-                lxc delete v1 -f
+                lxc delete v1
 
                 lxc config set instances.migration.stateful=false
                 lxc profile copy default stateful_profile
                 lxc profile set stateful_profile migration.stateful=true
                 lxc init --empty v1 --vm -p stateful_profile -s "${poolName}"
                 lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "true"' # the profile config should take precedence
-                lxc delete v1 -f
+                lxc delete v1
                 lxc profile delete stateful_profile
 
                 # Finally, unset the value to avoid any potential side effects on other tests.
