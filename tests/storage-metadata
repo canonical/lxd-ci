@@ -112,13 +112,14 @@ for vers in "latest" "5.21" "5.0"; do
 
     echo "==> Create container with a ${versStr} LXD"
     lxc launch "${IMAGE}" c1 -s "${poolName}" -c security.devlxd.images=true -c security.nesting=true -c limits.cpu=4 -c limits.memory=4GiB -d root,size=20GiB
-    waitInstanceReady c1
 
     echo "==> Add required devices for creating empty VMs inside of the container"
     lxc config device add c1 kvm unix-char source=/dev/kvm
     lxc config device add c1 vhost-net unix-char source=/dev/vhost-net
     lxc config device add c1 vhost-vsock unix-char source=/dev/vhost-vsock
     lxc config device add c1 vsock unix-char source=/dev/vsock
+
+    waitInstanceReady c1
 
     # workaround for LP: #2104066
     lxc exec c1 -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
@@ -166,7 +167,7 @@ for vers in "latest" "5.21" "5.0"; do
             # The old format should be allowed for import in any case.
             echo "==> Check the ${type} can be imported on LXD ${LXD_SNAP_CHANNEL}"
             lxc import "${tmpdir}/i1.tar.gz" i1
-            [ "$(lxc query "/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+            lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
             lxc delete -f i1
         else
@@ -176,7 +177,7 @@ for vers in "latest" "5.21" "5.0"; do
             if hasNeededAPIExtension backup_metadata_version; then
                 echo "==> Check the ${type} can be imported on LXD ${LXD_SNAP_CHANNEL}"
                 lxc import "${tmpdir}/i1.tar.gz" i1
-                [ "$(lxc query "/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+                lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
                 lxc delete -f i1
             fi
@@ -201,7 +202,7 @@ for vers in "latest" "5.21" "5.0"; do
 
             echo "==> Check the ${type} can be imported on LXD ${LXD_SNAP_CHANNEL}"
             lxc import "${tmpdir}/i1.tar.gz" i1
-            [ "$(lxc query "/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+            lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
             rm "${tmpdir}/i1.tar.gz"
             lxc delete -f i1
@@ -220,7 +221,7 @@ for vers in "latest" "5.21" "5.0"; do
             if hasNeededAPIExtension backup_metadata_version; then
                 echo "==> Check the ${type} can be imported on LXD ${LXD_SNAP_CHANNEL}"
                 lxc import "${tmpdir}/i1.tar.gz" i1
-                [ "$(lxc query "/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+                lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
                 lxc delete -f i1
             fi
@@ -230,7 +231,7 @@ for vers in "latest" "5.21" "5.0"; do
 
         echo "==> Check the ${type} can be migrated from LXD ${versStr} to ${LXD_SNAP_CHANNEL}"
         lxc move c1:i1 i1
-        [ "$(lxc query "/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+        lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
         echo "==> Check the migrated ${type} can be started"
         lxc start i1
@@ -249,7 +250,7 @@ for vers in "latest" "5.21" "5.0"; do
 
         echo "==> Check the ${type} can be migrated from LXD ${LXD_SNAP_CHANNEL} to ${versStr}"
         lxc move i1 c1:i1
-        [ "$(lxc query "c1:/1.0/instances/i1?recursion=1" | jq '.snapshots | length')" = "1" ]
+        lxc query "c1:/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
         # When migrating the instance from 5.0 to latest and back to 5.0, the VM's
         # state directory contains an invalid version of the firmware.
@@ -285,7 +286,7 @@ for vers in "latest" "5.21" "5.0"; do
         # The old format should be allowed for import in any case.
         echo "==> Check the custom storage volume can be imported on LXD ${LXD_SNAP_CHANNEL}"
         lxc storage volume import "${poolName}" "${tmpdir}/foo.tar.gz" foo
-        [ "$(lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq length)" = "1" ]
+        lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq --exit-status 'length == 1'
 
         lxc storage volume delete "${poolName}" foo
     else
@@ -295,7 +296,7 @@ for vers in "latest" "5.21" "5.0"; do
         if hasNeededAPIExtension backup_metadata_version; then
             echo "==> Check the custom storage volume can be imported on LXD ${LXD_SNAP_CHANNEL}"
             lxc storage volume import "${poolName}" "${tmpdir}/foo.tar.gz" foo
-            [ "$(lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq length)" = "1" ]
+            lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq --exit-status 'length == 1'
 
             lxc storage volume delete "${poolName}" foo
         fi
@@ -320,7 +321,7 @@ for vers in "latest" "5.21" "5.0"; do
 
         echo "==> Check the custom storage volume can be imported on LXD ${LXD_SNAP_CHANNEL}"
         lxc storage volume import "${poolName}" "${tmpdir}/foo.tar.gz" foo
-        [ "$(lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq length)" = "1" ]
+        lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq --exit-status 'length == 1'
 
         rm "${tmpdir}/foo.tar.gz"
         lxc storage volume delete "${poolName}" foo
@@ -339,7 +340,7 @@ for vers in "latest" "5.21" "5.0"; do
         if hasNeededAPIExtension backup_metadata_version; then
             echo "==> Check the custom storage volume can be imported on LXD ${LXD_SNAP_CHANNEL}"
             lxc storage volume import "${poolName}" "${tmpdir}/foo.tar.gz" foo
-            [ "$(lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq length)" = "1" ]
+            lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq --exit-status 'length == 1'
 
             lxc storage volume delete "${poolName}" foo
         fi
@@ -349,11 +350,11 @@ for vers in "latest" "5.21" "5.0"; do
 
     echo "==> Check the custom storage volume can be migrated from LXD ${versStr} to ${LXD_SNAP_CHANNEL}"
     lxc storage volume move c1:default/foo "${poolName}/foo"
-    [ "$(lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq length)" = "1" ]
+    lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq --exit-status 'length == 1'
 
     echo "==> Check the custom storage volume can be migrated from LXD ${LXD_SNAP_CHANNEL} to ${versStr}"
     lxc storage volume move "${poolName}/foo" c1:default/foo
-    [ "$(lxc query "c1:/1.0/storage-pools/default/volumes/custom/foo/snapshots" | jq length)" = "1" ]
+    lxc query "c1:/1.0/storage-pools/default/volumes/custom/foo/snapshots" | jq --exit-status 'length == 1'
 
     lxc storage volume delete c1:default foo
 
