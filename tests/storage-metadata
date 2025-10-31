@@ -62,7 +62,6 @@ check_format_version2() {
 # shellcheck disable=SC1091
 . /etc/os-release
 
-install_deps pigz
 if dpkg --compare-versions "${VERSION_ID}" ge 24.04; then
     install_deps jq yq
 else
@@ -83,7 +82,6 @@ IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 lxc config set core.https_address :8443
-lxc config set images.compression_algorithm /var/lib/snapd/hostfs/usr/bin/pigz
 
 poolDriver="zfs"
 poolName="vmpool-${poolDriver}"
@@ -155,8 +153,8 @@ for vers in "latest" "5.21" "5.0"; do
         echo "==> Export using the default backup format implicitly by not specifying a version"
         # 5.0/5.21 always use the old format.
         # > 5.21 uses the new format.
-        lxc export c1:i1 "${tmpdir}/i1.tar.gz" --compression pigz
-        tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
+        lxc export c1:i1 "${tmpdir}/i1.tar" --compression none --optimized-storage
+        tar --occurrence=1 -xf "${tmpdir}/i1.tar" -C "${tmpdir}" backup/index.yaml
 
         echo "==> Check the backup index file"
         cat "${tmpdir}/backup/index.yaml"
@@ -166,7 +164,7 @@ for vers in "latest" "5.21" "5.0"; do
 
             # The old format should be allowed for import in any case.
             echo "==> Check the ${type} can be imported on LXD ${LXD_SNAP_CHANNEL}"
-            lxc import "${tmpdir}/i1.tar.gz" i1
+            lxc import "${tmpdir}/i1.tar" i1
             lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
             lxc delete -f i1
@@ -176,7 +174,7 @@ for vers in "latest" "5.21" "5.0"; do
             # Only LXD >= 5.21 allows importing the new format.
             if hasNeededAPIExtension backup_metadata_version; then
                 echo "==> Check the ${type} can be imported on LXD ${LXD_SNAP_CHANNEL}"
-                lxc import "${tmpdir}/i1.tar.gz" i1
+                lxc import "${tmpdir}/i1.tar" i1
                 lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
                 lxc delete -f i1
@@ -184,15 +182,15 @@ for vers in "latest" "5.21" "5.0"; do
         fi
 
         rm -rf "${tmpdir}/backup"
-        rm "${tmpdir}/i1.tar.gz"
+        rm "${tmpdir}/i1.tar"
 
         # Only LXD >= 5.21 allows setting the export version.
         # We check for the backup_metadata_version API extension on both source (c1) and target (present) LXD.
         # As both the server and client get shipped together with the snap, by testing for backup_metadata_version we can check if the client supports the --export-version flag.
         if lxc exec c1 -- sh -c "$(declare -f hasNeededAPIExtension); hasNeededAPIExtension backup_metadata_version" && hasNeededAPIExtension backup_metadata_version; then
             echo "==> Export using the old backup format 1 explicitly"
-            lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 1 --compression pigz
-            tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
+            lxc export c1:i1 "${tmpdir}/i1.tar" --export-version 1 --compression none --optimized-storage
+            tar --occurrence=1 -xf "${tmpdir}/i1.tar" -C "${tmpdir}" backup/index.yaml
 
             echo "==> Check the backup index file"
             cat "${tmpdir}/backup/index.yaml"
@@ -201,15 +199,15 @@ for vers in "latest" "5.21" "5.0"; do
             rm -rf "${tmpdir}/backup"
 
             echo "==> Check the ${type} can be imported on LXD ${LXD_SNAP_CHANNEL}"
-            lxc import "${tmpdir}/i1.tar.gz" i1
+            lxc import "${tmpdir}/i1.tar" i1
             lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
-            rm "${tmpdir}/i1.tar.gz"
+            rm "${tmpdir}/i1.tar"
             lxc delete -f i1
 
             echo "==> Export using the new backup format 2 explicitly"
-            lxc export c1:i1 "${tmpdir}/i1.tar.gz" --export-version 2 --compression pigz
-            tar --occurrence=1 -xzf "${tmpdir}/i1.tar.gz" -C "${tmpdir}" backup/index.yaml
+            lxc export c1:i1 "${tmpdir}/i1.tar" --export-version 2 --compression none --optimized-storage
+            tar --occurrence=1 -xf "${tmpdir}/i1.tar" -C "${tmpdir}" backup/index.yaml
 
             echo "==> Check the backup index file"
             cat "${tmpdir}/backup/index.yaml"
@@ -220,13 +218,13 @@ for vers in "latest" "5.21" "5.0"; do
             # Only LXD >= 5.21 allows importing the new format 2.
             if hasNeededAPIExtension backup_metadata_version; then
                 echo "==> Check the ${type} can be imported on LXD ${LXD_SNAP_CHANNEL}"
-                lxc import "${tmpdir}/i1.tar.gz" i1
+                lxc import "${tmpdir}/i1.tar" i1
                 lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
                 lxc delete -f i1
             fi
 
-            rm "${tmpdir}/i1.tar.gz"
+            rm "${tmpdir}/i1.tar"
         fi
 
         echo "==> Check the ${type} can be migrated from LXD ${versStr} to ${LXD_SNAP_CHANNEL}"
@@ -274,8 +272,8 @@ for vers in "latest" "5.21" "5.0"; do
     echo "==> Export using the default backup format implicitly by not specifying a version"
     # 5.0/5.21 always use the old format.
     # > 5.21 uses the new format.
-    lxc storage volume export c1:default foo "${tmpdir}/foo.tar.gz"
-    tar --occurrence=1 -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
+    lxc storage volume export c1:default foo "${tmpdir}/foo.tar" --compression none --optimized-storage
+    tar --occurrence=1 -xf "${tmpdir}/foo.tar" -C "${tmpdir}" backup/index.yaml
 
     echo "==> Check the backup index file"
     cat "${tmpdir}/backup/index.yaml"
@@ -285,7 +283,7 @@ for vers in "latest" "5.21" "5.0"; do
 
         # The old format should be allowed for import in any case.
         echo "==> Check the custom storage volume can be imported on LXD ${LXD_SNAP_CHANNEL}"
-        lxc storage volume import "${poolName}" "${tmpdir}/foo.tar.gz" foo
+        lxc storage volume import "${poolName}" "${tmpdir}/foo.tar" foo
         lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq --exit-status 'length == 1'
 
         lxc storage volume delete "${poolName}" foo
@@ -295,7 +293,7 @@ for vers in "latest" "5.21" "5.0"; do
         # Only LXD >= 5.21 allows importing the new format.
         if hasNeededAPIExtension backup_metadata_version; then
             echo "==> Check the custom storage volume can be imported on LXD ${LXD_SNAP_CHANNEL}"
-            lxc storage volume import "${poolName}" "${tmpdir}/foo.tar.gz" foo
+            lxc storage volume import "${poolName}" "${tmpdir}/foo.tar" foo
             lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq --exit-status 'length == 1'
 
             lxc storage volume delete "${poolName}" foo
@@ -303,15 +301,15 @@ for vers in "latest" "5.21" "5.0"; do
     fi
 
     rm -rf "${tmpdir}/backup"
-    rm "${tmpdir}/foo.tar.gz"
+    rm "${tmpdir}/foo.tar"
 
     # Only LXD >= 5.21 allows setting the export version.
     # We check for the backup_metadata_version API extension on both source (c1) and target (present) LXD.
         # As both the server and client get shipped together with the snap, by testing for backup_metadata_version we can check if the client supports the --export-version flag.
     if lxc exec c1 -- sh -c "$(declare -f hasNeededAPIExtension); hasNeededAPIExtension backup_metadata_version" && hasNeededAPIExtension backup_metadata_version; then
         echo "==> Export using the old backup format 1 explicitly"
-        lxc storage volume export c1:default foo "${tmpdir}/foo.tar.gz" --export-version 1
-        tar --occurrence=1 -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
+        lxc storage volume export c1:default foo "${tmpdir}/foo.tar" --export-version 1 --compression none --optimized-storage
+        tar --occurrence=1 -xf "${tmpdir}/foo.tar" -C "${tmpdir}" backup/index.yaml
 
         echo "==> Check the backup index file"
         cat "${tmpdir}/backup/index.yaml"
@@ -320,15 +318,15 @@ for vers in "latest" "5.21" "5.0"; do
         rm -rf "${tmpdir}/backup"
 
         echo "==> Check the custom storage volume can be imported on LXD ${LXD_SNAP_CHANNEL}"
-        lxc storage volume import "${poolName}" "${tmpdir}/foo.tar.gz" foo
+        lxc storage volume import "${poolName}" "${tmpdir}/foo.tar" foo
         lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq --exit-status 'length == 1'
 
-        rm "${tmpdir}/foo.tar.gz"
+        rm "${tmpdir}/foo.tar"
         lxc storage volume delete "${poolName}" foo
 
         echo "==> Export using the new backup format 2 explicitly"
-        lxc storage volume export c1:default foo "${tmpdir}/foo.tar.gz" --export-version 2
-        tar --occurrence=1 -xzf "${tmpdir}/foo.tar.gz" -C "${tmpdir}" backup/index.yaml
+        lxc storage volume export c1:default foo "${tmpdir}/foo.tar" --export-version 2 --compression none --optimized-storage
+        tar --occurrence=1 -xf "${tmpdir}/foo.tar" -C "${tmpdir}" backup/index.yaml
 
         echo "==> Check the backup index file"
         cat "${tmpdir}/backup/index.yaml"
@@ -339,13 +337,13 @@ for vers in "latest" "5.21" "5.0"; do
         # Only LXD >= 5.21 allows importing the new format 2.
         if hasNeededAPIExtension backup_metadata_version; then
             echo "==> Check the custom storage volume can be imported on LXD ${LXD_SNAP_CHANNEL}"
-            lxc storage volume import "${poolName}" "${tmpdir}/foo.tar.gz" foo
+            lxc storage volume import "${poolName}" "${tmpdir}/foo.tar" foo
             lxc query "/1.0/storage-pools/${poolName}/volumes/custom/foo/snapshots" | jq --exit-status 'length == 1'
 
             lxc storage volume delete "${poolName}" foo
         fi
 
-        rm "${tmpdir}/foo.tar.gz"
+        rm "${tmpdir}/foo.tar"
     fi
 
     echo "==> Check the custom storage volume can be migrated from LXD ${versStr} to ${LXD_SNAP_CHANNEL}"
