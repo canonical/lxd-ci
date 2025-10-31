@@ -672,7 +672,7 @@ for poolDriver in $poolDriverList; do
                 lxc delete v1
 
                 lxc config set instances.migration.stateful=false
-                lxc profile copy default stateful_profile
+                lxc profile copy vmsmall stateful_profile
                 lxc profile set stateful_profile migration.stateful=true
                 lxc init --empty v1 --vm -p stateful_profile -s "${poolName}"
                 lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "true"' # the profile config should take precedence
