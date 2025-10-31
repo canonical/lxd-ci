@@ -641,7 +641,7 @@ for poolDriver in $poolDriverList; do
 
         lxc publish v1 --alias v1image
         lxc delete v1
-        lxc launch v1image v2 -s "${poolName}" -p vmsmall # --vm flag omitted as we are implicitly launching a vm
+        lxc init v1image v2 -s "${poolName}" -p vmsmall # --vm flag omitted as we are implicitly creating a vm
         [ "$(lxc list -f csv -c t v2)" = "VIRTUAL-MACHINE" ]
         lxc delete -f v2
         lxc image delete v1image
