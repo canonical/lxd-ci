@@ -145,7 +145,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Checking VM can be copied with snapshots"
         lxc copy v1 v2
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 1'
         lxc start v2
         waitInstanceReady v2
         lxc stop -f v2
@@ -153,7 +153,7 @@ for poolDriver in $poolDriverList; do
         echo "==> Checking VM can be refreshed"
         lxc snapshot v1
         lxc copy v1 v2 --refresh
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "2" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 2'
         lxc delete v1/snap1
         lxc delete -f v2
 
@@ -179,7 +179,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Checking VM can be migrated with snapshots (same storage pool)"
         lxc copy v1 localhost:v2 --stateless
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 1'
         lxc start v2
         waitInstanceReady v2
         lxc stop -f v2
@@ -187,7 +187,7 @@ for poolDriver in $poolDriverList; do
         echo "==> Checking VM can be refreshed remotely (same storage pool)"
         lxc snapshot v1
         lxc copy v1 localhost:v2 --refresh
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "2" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 2'
         lxc delete v1/snap1
         lxc delete -f v2
 
@@ -217,7 +217,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Checking VM can be migrated with snapshots (different storage pool)"
         lxc copy v1 localhost:v2 -s "${poolName}2" --stateless
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "1" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 1'
         lxc start v2
         waitInstanceReady v2
         lxc stop -f v2
@@ -225,7 +225,7 @@ for poolDriver in $poolDriverList; do
         echo "==> Checking VM can be refreshed remotely (different storage pool)"
         lxc snapshot v1
         lxc copy v1 localhost:v2 --refresh -s "${poolName}2"
-        [ "$(lxc query /1.0/instances/v2?recursion=1 | jq '.snapshots | length')" -eq "2" ]
+        lxc query /1.0/instances/v2?recursion=1 | jq --exit-status '.snapshots | length == 2'
         lxc delete v1/snap1
         lxc delete -f v2
 
@@ -612,13 +612,12 @@ for poolDriver in $poolDriverList; do
         lxc stop -f v1
         lxc rename v1 v1renamed
 
-        echo "==> Deleting VM, vmbig image and vmsmall profile"
+        echo "==> Deleting VM, and vmbig image"
         lxc delete -f v1renamed
         lxc image delete vmbig
-        lxc profile delete vmsmall
 
         echo "==> Checking VM Generation UUID with QEMU"
-        lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
+        lxc launch "${IMAGE}" v1 --vm -s "${poolName}" -p vmsmall
         lxc info v1
 
         # Check that the volatile.uuid.generation setting is applied to the QEMU process.
@@ -631,7 +630,7 @@ for poolDriver in $poolDriverList; do
         lxc delete -f v1
 
         echo "==> Publishing VM to image"
-        lxc init "${IMAGE}" v1 --vm -s "${poolName}"
+        lxc init "${IMAGE}" v1 --vm -s "${poolName}" -p vmsmall
 
         # Set the images_volume on supported drivers only.
         # Ceph RBD, PowerFlex and Pure are not supported to prevent concurrent mounts.
@@ -642,8 +641,8 @@ for poolDriver in $poolDriverList; do
 
         lxc publish v1 --alias v1image
         lxc delete v1
-        lxc launch v1image v2 -s "${poolName}" # --vm flag omitted as we are implicitly launching a vm
-        waitInstanceReady v2
+        lxc launch v1image v2 -s "${poolName}" -p vmsmall # --vm flag omitted as we are implicitly launching a vm
+        [ "$(lxc list -f csv -c t v2)" = "VIRTUAL-MACHINE" ]
         lxc delete -f v2
         lxc image delete v1image
 
@@ -658,25 +657,25 @@ for poolDriver in $poolDriverList; do
                 # if no local instance config nor profile value of `migration.stateful` is set.
 
                 lxc config set instances.migration.stateful=true
-                lxc init --empty v1 --vm -s "${poolName}"
-                [ "$(lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]')" = true ]
+                lxc init --empty v1 --vm -s "${poolName}" -p vmsmall
+                lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "true"'
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=false
-                lxc init --empty v1 --vm -s "${poolName}"
-                [ -z "$(lxc config get --expanded v1 migration.stateful)" ] # instances.migration.stateful leave it unset because since it is `false`, it is the same as the default value of `migration.stateful`.
+                lxc init --empty v1 --vm -s "${poolName}" -p vmsmall
+                [ -z "$(lxc config get --expanded v1 migration.stateful || echo fail)" ] # instances.migration.stateful leave it unset because since it is `false`, it is the same as the default value of `migration.stateful`.
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=true
-                lxc init --empty v1 --vm --config migration.stateful=false -s "${poolName}"
-                [ "$(lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]')" = "false" ] # the instance local config should take precedence
+                lxc init --empty v1 --vm --config migration.stateful=false -s "${poolName}" -p vmsmall
+                lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "false"' # the instance local config should take precedence
                 lxc delete v1 -f
 
                 lxc config set instances.migration.stateful=false
                 lxc profile copy default stateful_profile
                 lxc profile set stateful_profile migration.stateful=true
                 lxc init --empty v1 --vm -p stateful_profile -s "${poolName}"
-                [ "$(lxc query /1.0/instances/v1 | jq -r '.expanded_config["migration.stateful"]')" = "true" ] # the profile config should take precedence
+                lxc query /1.0/instances/v1 | jq --exit-status '.expanded_config["migration.stateful"] == "true"' # the profile config should take precedence
                 lxc delete v1 -f
                 lxc profile delete stateful_profile
 
@@ -686,12 +685,11 @@ for poolDriver in $poolDriverList; do
                 echo "==> Checking start / stop operations with root size.state being unset"
                 # We should be able to start a VM with migration.stateful=true eventhough the root `size.state` config is unset.
                 if [ "${poolDriver}" != "powerflex" ]; then
-                        lxc launch "${IMAGE}" v1 --vm --config migration.stateful=true -s "${poolName}"
+                        lxc launch "${IMAGE}" v1 --vm --config migration.stateful=true -s "${poolName}" -p vmsmall
                 else
                         # For PowerFlex use more memory than the default size of the VM's config drive which is 8GiB.
-                        lxc launch "${IMAGE}" v1 --vm --config migration.stateful=true --config limits.memory=9GiB -s "${poolName}"
+                        lxc launch "${IMAGE}" v1 --vm --config migration.stateful=true --config limits.memory=9GiB -s "${poolName}" -p vmsmall
                 fi
-                waitInstanceReady v1
                 # However, we should not be able to statefully stop the VM.
                 ! lxc stop v1 --stateful || false
                 # But we should be able to change the root size.state config without stopping the VM.
@@ -703,7 +701,8 @@ for poolDriver in $poolDriverList; do
                 fi
                 # And then we should be able to statefully stop the VM.
                 # But before, let's register the boot_id to check that it has not changed after a stateful stop / start.
-                boot_id=$(lxc exec v1 -- cat /proc/sys/kernel/random/boot_id)
+                waitInstanceReady v1
+                boot_id="$(lxc exec v1 -- cat /proc/sys/kernel/random/boot_id)"
                 lxc stop v1 --stateful
                 # And then we should be able to statefully start the VM again.
                 lxc start v1
@@ -716,6 +715,9 @@ for poolDriver in $poolDriverList; do
 
                 lxc delete v1 -f
         fi
+
+        echo "==> Deleting profile"
+        lxc profile delete vmsmall
 
         echo "==> Deleting storage pool"
         lxc storage delete "${poolName}"
