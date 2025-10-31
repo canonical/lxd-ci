@@ -51,6 +51,7 @@ fi
 
 # Setup bridge filter and unmanaged bridges
 modprobe br_netfilter
+ip link del lxdbr0unmanaged || true
 ip link add lxdbr0unmanaged type bridge
 
 firewallTests() {
