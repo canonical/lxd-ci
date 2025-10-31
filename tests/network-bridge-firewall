@@ -234,13 +234,13 @@ networkLimitsPriorityNftablesTest() {
     lxc config device override c1 eth0 limits.priority=$prio
     sleep 5
 
-    packetsBefore=$(nft list table netdev "${tempNftTableName}" | grep meta | awk '{ print $6 }')
+    packetsBefore=$(nft list table netdev "${tempNftTableName}" | awk '/meta/ { print $6 }')
 
     packetsToSend=14
     # generate some network packets
     lxc exec c1 -- ping -nc"${packetsToSend}" -i0.1 192.0.2.1
 
-    packetsAfter=$(nft list table netdev "${tempNftTableName}" | grep meta | awk '{ print $6 }')
+    packetsAfter=$(nft list table netdev "${tempNftTableName}" | awk '/meta/ { print $6 }')
     packetsDiff=$((packetsAfter - packetsBefore))
 
     [ "${packetsDiff}" -ge "${packetsToSend}" ]
