@@ -353,8 +353,7 @@ for poolDriver in $poolDriverList; do
                 fi
         fi
 
-        lxc init "${IMAGE}" v1 --vm -s "${poolName}"
-        lxc start v1
+        lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
         waitInstanceReady v1
         lxc info v1
 
@@ -591,8 +590,7 @@ for poolDriver in $poolDriverList; do
 
         echo "==> Check VM create succeeds when no volume.size set"
         lxc storage unset "${poolName}" volume.size
-        lxc init vmbig v1 --vm -s "${poolName}"
-        lxc start v1
+        lxc launch vmbig v1 --vm -s "${poolName}"
         waitInstanceReady v1
         lxc info v1
 
