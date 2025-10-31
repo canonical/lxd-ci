@@ -615,7 +615,7 @@ for poolDriver in $poolDriverList; do
         lxc image delete vmbig
 
         echo "==> Checking VM Generation UUID with QEMU"
-        lxc launch "${IMAGE}" v1 --vm -s "${poolName}" -p vmsmall
+        lxc launch --empty v1 --vm -s "${poolName}" -p vmsmall
         lxc info v1
 
         # Check that the volatile.uuid.generation setting is applied to the QEMU process.
