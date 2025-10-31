@@ -55,7 +55,7 @@ ip link add lxdbr0unmanaged type bridge
 
 firewallTests() {
     lxc launch "${IMAGE}" c1
-    sleep 10
+    waitInstanceReady c1
 
     managed=0
 
@@ -119,7 +119,7 @@ firewallTests() {
     fi
 
     lxc start c1
-    sleep 10
+    waitInstanceReady c1
     lxc exec c1 -- sysctl net.ipv6.conf.eth0.accept_ra=0
     lxc exec c1 -- ip a flush dev eth0
     lxc exec c1 -- ip link set dev eth0 address 00:11:22:33:44:56 up
@@ -152,7 +152,8 @@ firewallTests() {
 
         lxc launch "${IMAGE}" c1
         lxc launch "${IMAGE}" c2 -n lxdbr1
-        sleep 10
+        waitInstanceReady c1
+        waitInstanceReady c2
 
         lxc exec c2 -- ip a add 192.0.3.254/24 dev eth0
         lxc exec c2 -- ip a add 2001:db9::254/64 dev eth0 nodad
@@ -170,14 +171,14 @@ firewallTests() {
             # Check if multicast traffic is returned too and not mangled.
             # Launch a server in the same network that responds on datagrams under a specific multicast group with its hostname.
             lxc launch "${IMAGE}" c3 -n lxdbr1
-            sleep 10
             lxc exec c2 -- apt-get install --no-install-recommends --yes socat
-            lxc exec c3 -- apt-get install --no-install-recommends --yes socat
             lxc exec c2 -- socat udp4-recvfrom:1234,ip-add-membership=239.0.0.1:192.0.3.254,fork exec:hostname &
             server_process="$!"
             sleep 1 # wait for the multicast server to settle.
 
             # Check if multicast traffic passes within the same network.
+            waitInstanceReady c3
+            lxc exec c3 -- apt-get install --no-install-recommends --yes socat
             lxc exec c3 -- socat stdio udp4-datagram:239.0.0.1:1234 <<< "" | grep -q c2
             kill "${server_process}"
         fi
@@ -217,7 +218,7 @@ firewallTests() {
 
 networkLimitsPriorityNftablesTest() {
     lxc launch "${IMAGE}" c1
-    sleep 10
+    waitInstanceReady c1
 
     prio=7
     ctEth0Hostname=$(lxc config get "c1" volatile.eth0.host_name)
