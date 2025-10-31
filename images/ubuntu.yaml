@@ -3,14 +3,15 @@ image:
 
 simplestream:
   release_aliases:
-    focal: 20.04
     jammy: 22.04
     noble: 24.04
+    questing: 25.10
   requirements:
   - requirements:
       cgroup: v2
     releases:
     - noble
+    - questing
 
 source:
   downloader: debootstrap
@@ -429,42 +430,12 @@ packages:
   cleanup: true
   sets:
   - packages:
-    - fuse
-    releases:
-    - focal
-    action: install
-
-  - packages:
     - fuse3
-    releases:
-    - jammy
-    - noble
-    action: install
-
-  - packages:
+    - language-pack-en
     - openssh-client
     - sudo
     - vim
     action: install
-
-  - packages:
-    - language-pack-en
-    action: install
-    architectures:
-    - amd64
-    - arm64
-    - armhf
-    - powerpc
-    - powerpc64
-
-  - packages:
-    - language-pack-en
-    action: install
-    architectures:
-    - ppc64el
-    releases:
-    - jammy
-    - noble
 
   - packages:
     - cloud-init
@@ -475,6 +446,7 @@ packages:
     action: install
     releases:
     - noble
+    - questing
 
   - packages:
     - grub-efi-amd64-signed
@@ -487,13 +459,6 @@ packages:
 
   - packages:
     - grub-efi-arm64-signed
-    action: install
-    architectures:
-    - arm64
-    types:
-    - vm
-
-  - packages:
     - shim-signed
     action: install
     architectures:
@@ -580,7 +545,6 @@ actions:
     # Enable systemd-networkd
     systemctl enable systemd-networkd
   releases:
-  - focal
   - jammy
 
 - trigger: post-packages
@@ -592,6 +556,7 @@ actions:
     ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
   releases:
   - noble
+  - questing
 
 - trigger: post-packages
   action: |-
@@ -652,9 +617,6 @@ actions:
     systemctl enable lxd-growpart
   types:
   - vm
-  variants:
-  - default
-  - desktop
 
 - trigger: post-packages
   action: |-
