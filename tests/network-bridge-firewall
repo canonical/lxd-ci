@@ -141,8 +141,7 @@ firewallTests() {
     # Perform NAT tests for managed bridges only.
     if [ $managed -eq 1 ]; then
         echo "=> Performing NAT tests with masquerading"
-        lxc network set lxdbr0 ipv4.nat true
-        lxc network set lxdbr0 ipv6.nat true
+        lxc network set lxdbr0 ipv4.nat=true ipv6.nat=true
         lxc network create lxdbr1 \
             ipv4.address=192.0.3.1/24 \
             ipv6.address=2001:db9::1/64 \
@@ -186,8 +185,7 @@ firewallTests() {
         fi
 
         echo "=> Performing NAT tests with explicit SNAT address"
-        lxc network set lxdbr0 ipv4.nat.address 192.0.2.10
-        lxc network set lxdbr0 ipv6.nat.address 2001:db8::10
+        lxc network set lxdbr0 ipv4.nat.address=192.0.2.10 ipv6.nat.address=2001:db8::10
 
         # Check if regular traffic passes between different networks and is masqueraded with the SNAT IP.
         lxc exec c1 -T -n -- ping -n -4 -w5 192.0.3.254 || true &
@@ -211,10 +209,7 @@ firewallTests() {
 
         lxc delete -f c1 c2
         lxc network delete lxdbr1
-        lxc network unset lxdbr0 ipv4.nat.address
-        lxc network unset lxdbr0 ipv6.nat.address
-        lxc network unset lxdbr0 ipv4.nat
-        lxc network unset lxdbr0 ipv6.nat
+        lxc network set lxdbr0 ipv4.nat.address= ipv6.nat.address= ipv4.nat= ipv6.nat=
     fi
 }
 
