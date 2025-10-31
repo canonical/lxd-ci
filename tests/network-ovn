@@ -2322,11 +2322,10 @@ ovn_vlan_uplink_tests() {
 
     echo "==> Create OVN network"
     lxc network create ovn-virtual-network --type=ovn network=UPLINK
-    sleep 2
 
     echo "==> Set up containers"
-    lxc launch "${IMAGE}" c1-ovn -n ovn-virtual-network -s default
     lxc launch "${IMAGE}" c1-lxdbr0 -n lxdbr0 -s default --device eth0,vlan=10
+    lxc launch "${IMAGE}" c1-ovn -n ovn-virtual-network -s default
     sleep 2
 
     lxc exec c1-lxdbr0 -- ip addr add 10.10.10.100/24 dev eth0
