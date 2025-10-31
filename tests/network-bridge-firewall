@@ -2,7 +2,7 @@
 set -eu
 
 # Install dependencies
-install_deps nftables iptables ebtables
+install_deps nftables iptables ebtables tcpdump
 
 # Install LXD
 install_lxd
