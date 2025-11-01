@@ -8,6 +8,10 @@ if command -v cloud-init > /dev/null; then
     echo "Done"
 fi
 
+# Set ulimit to ensure core dump is outputted.
+ulimit -c unlimited
+echo '|/bin/sh -c $@ -- eval exec gzip --fast > /var/crash/core-%e.%p.gz' > /proc/sys/kernel/core_pattern
+
 script="${1}"
 lxd_snap_channel="${2}"
 shift 2
