@@ -796,8 +796,8 @@ EOF
 
     echo "==> Check stopping the DNS service and checking we get no connection using default target rule"
     lxc exec u1 -- systemctl stop dnsmasq
-    ! dig a +tcp @192.0.2.1 u1.lxd || false
-    ! dig aaaa +tcp @2001:db8:1:2::1 u1.lxd || false
+    ! dig a +tcp +timeout=1 @192.0.2.1 u1.lxd || false
+    ! dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 u1.lxd || false
 
     echo "==> Check TCP port forward of port 53 to a different host"
     lxc launch "${IMAGE}" u2 -n ovn-virtual-network -s default
@@ -830,8 +830,8 @@ EOF
     echo "==> Remove port forward and check it reverts to default forward rule (which shouldn't work as dnsmasq is off)"
     lxc network forward port remove ovn-virtual-network 192.0.2.1 tcp 53
     lxc network forward port remove ovn-virtual-network 2001:db8:1:2::1 tcp 53
-    ! dig a +tcp @192.0.2.1 u1.lxd || false
-    ! dig aaaa +tcp @2001:db8:1:2::1 u1.lxd || false
+    ! dig a +tcp +timeout=1 @192.0.2.1 u1.lxd || false
+    ! dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 u1.lxd || false
 
     echo "==> Check starting dnsmasq allows the default forward rule to work to u1"
     lxc exec u1 -- systemctl start dnsmasq
@@ -850,8 +850,8 @@ EOF
     lxc exec u2 -- systemctl stop dnsmasq
     dig a @192.0.2.1 u1.lxd
     dig aaaa @2001:db8:1:2::1 u1.lxd
-    ! dig a +tcp @192.0.2.1 u2.lxd || false
-    ! dig aaaa +tcp @2001:db8:1:2::1 u2.lxd || false
+    ! dig a +tcp +timeout=1 @192.0.2.1 u2.lxd || false
+    ! dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 u2.lxd || false
 
     echo "==> Check TCP port forwarding on same listen port as UDP port is working by starting dnsmasq on u2"
     lxc exec u2 -- systemctl start dnsmasq
@@ -887,8 +887,8 @@ EOF
         [ "$(ovn-nbctl list load_balancer | grep -cF name)" = 6 ]
 
         echo "==> Check we get no connection outside of the OVN network"
-        ! dig a +tcp "@${ip4AddressPrefix}.10" u1.lxd || false
-        ! dig aaaa +tcp "@${ip6AddressPrefix}::10" u1.lxd || false
+        ! dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" u1.lxd || false
+        ! dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" u1.lxd || false
 
         echo "==> Check accessing forwards's listen address inside the u1"
         [ "$(lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.1" ]
@@ -1089,11 +1089,11 @@ EOF
 
     echo "==> Check stopping the DNS service and checking we get no connection"
     lxc exec u1 -- systemctl stop dnsmasq
-    ! dig a +tcp @192.0.2.1 u1.lxd || false
-    ! dig aaaa +tcp @2001:db8:1:2::1 u1.lxd || false
+    ! dig a +tcp +timeout=1 @192.0.2.1 u1.lxd || false
+    ! dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 u1.lxd || false
     lxc exec u1 -- systemctl stop dnsmasq
-    ! lxc exec u1 -- dig a +tcp @192.0.2.1 lxd.localdomain +short || false
-    ! lxc exec u1 -- dig aaaa +tcp @2001:db8:1:2::1 lxd.localdomain +short || false
+    ! lxc exec u1 -- dig a +tcp +timeout=1 @192.0.2.1 lxd.localdomain +short || false
+    ! lxc exec u1 -- dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 lxd.localdomain +short || false
 
     echo "==> Check changing DNS TCP forwarding towards u2"
     lxc launch "${IMAGE}" u2 -n ovn-virtual-network -s default
@@ -1161,12 +1161,12 @@ EOF
     lxc exec u2 -- systemctl stop dnsmasq
 
     for _ in $(seq 5); do
-        ! dig a +tcp @192.0.2.1 lxd.localdomain || false
-        ! dig aaaa +tcp @2001:db8:1:2::1 lxd.localdomain || false
-        ! lxc exec u1 -- dig a +tcp @192.0.2.1 lxd.localdomain +short || false
-        ! lxc exec u1 -- dig aaaa +tcp @2001:db8:1:2::1 lxd.localdomain +short || false
-        ! lxc exec u2 -- dig a +tcp @192.0.2.1 lxd.localdomain +short || false
-        ! lxc exec u2 -- dig aaaa +tcp @2001:db8:1:2::1 lxd.localdomain +short || false
+        ! dig a +tcp +timeout=1 @192.0.2.1 lxd.localdomain || false
+        ! dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 lxd.localdomain || false
+        ! lxc exec u1 -- dig a +tcp +timeout=1 @192.0.2.1 lxd.localdomain +short || false
+        ! lxc exec u1 -- dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 lxd.localdomain +short || false
+        ! lxc exec u2 -- dig a +tcp +timeout=1 @192.0.2.1 lxd.localdomain +short || false
+        ! lxc exec u2 -- dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 lxd.localdomain +short || false
     done
 
     if hasNeededAPIExtension ovn_internal_load_balancer; then
@@ -1197,8 +1197,8 @@ EOF
         ovn-nbctl list load_balancer | grep -F "{\"[${ip6AddressPrefix}::10]:53\"=\"[${U1_IPV6}]:53,[${U2_IPV6}]:53\"}"
 
         echo "==> Check load balancers are not accessible from outside of the OVN network"
-        ! dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
-        ! dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+        ! dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
 
         echo "==> Check DNS load balancing is working and is accessible from u1 and u2"
         u1_ip4_seen=0
@@ -1225,12 +1225,12 @@ EOF
         lxc exec u1 -- systemctl stop dnsmasq
         lxc exec u2 -- systemctl stop dnsmasq
 
-        ! dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
-        ! dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
-        ! lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
-        ! lxc exec u1 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
-        ! lxc exec u2 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
-        ! lxc exec u2 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+        ! dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+        ! lxc exec u1 -- dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! lxc exec u1 -- dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+        ! lxc exec u2 -- dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! lxc exec u2 -- dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
 
         echo "==> Change load balancer ports towards u2 only"
         lxc network load-balancer port remove ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53
@@ -1241,10 +1241,10 @@ EOF
         echo "==> Check accessing load balancer inside the u1 and u2"
         lxc exec u2 -- systemctl start dnsmasq
         for _ in $(seq 5); do
-            [ "$(lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ]
-            [ "$(lxc exec u1 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
-            [ "$(lxc exec u2 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ]
-            [ "$(lxc exec u2 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
+            [ "$(lxc exec u1 -- dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ]
+            [ "$(lxc exec u1 -- dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
+            [ "$(lxc exec u2 -- dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ]
+            [ "$(lxc exec u2 -- dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
         done
     fi
 
