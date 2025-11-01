@@ -1427,12 +1427,12 @@ ovn_peering_tests() {
 
     echo "==> Check we can detect ICMP packets coming to the ovn2 instance from ovn1 instance when"
     echo "==> pinging the allowed addresses"
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
-    lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -4 "${ovn2NICIPv4}" || true &
+    lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
-    lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -6 "${ovn2NICIPv6}" || true &
+    lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null
     wait
 
     echo "==> Now reconfigure ovn1's IP address inside the instance to an unknown IP and try pinging ovn2"
@@ -1457,12 +1457,12 @@ ovn_peering_tests() {
     lxc exec ovn1 --project=ovn1 -- ip -4 r
     lxc exec ovn1 --project=ovn1 -- ip -6 r
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
-    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null || false
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -4 "${ovn2NICIPv4}" || true &
+    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null || false
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
-    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null || false
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -6 "${ovn2NICIPv6}" || true &
+    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null || false
     wait
 
     echo "==> Clear all security rules and check spoofed packets are received to prove the security rules were working"
@@ -1473,12 +1473,12 @@ ovn_peering_tests() {
     ovn-nbctl lr-policy-del "lxd-net${ovn1NetID}-lr"
     ovn-nbctl lr-policy-del "lxd-net${ovn2NetID}-lr"
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
-    lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -4 "${ovn2NICIPv4}" || true &
+    lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
-    lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -6 "${ovn2NICIPv6}" || true &
+    lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null
     wait
 
     echo "==> Check changing the network's subnet is reflected in the address sets and peering routes and the old subnets"
@@ -1505,9 +1505,11 @@ ovn_peering_tests() {
 
     ping -n -i0.1 -w2 -W2 -4 "${ovn2NICIPv4}" || true &
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null || false
+    wait
 
     ping -n -i0.1 -w2 -W2 -6 "${ovn2NICIPv6}" || true &
     ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null || false
+    wait
 
     echo "==> Remove spoofed IPs and routes, and check can ping the instance NIC externally using non-spoofed IP"
     ip a del "${ovn1NICIPv4}/32" dev lxdbr0
