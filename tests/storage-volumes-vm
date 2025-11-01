@@ -24,13 +24,13 @@ for poolDriver in $poolDriverList
 do
 	echo "==> Create storage pool using driver ${poolDriver}"
 	if [ "${poolDriver}" = "dir" ]; then
-		lxc storage create "${poolName}" "${poolDriver}" volume.size=5GB
+		lxc storage create "${poolName}" "${poolDriver}" volume.size=3584MiB
 	elif [ "${poolDriver}" = "ceph" ]; then
-		lxc storage create "${poolName}" "${poolDriver}" source="${poolName}" volume.size=5GB
+		lxc storage create "${poolName}" "${poolDriver}" source="${poolName}" volume.size=3584MiB
 	elif [ "${poolDriver}" = "lvm" ]; then
-		lxc storage create "${poolName}" "${poolDriver}" size=40GiB lvm.use_thinpool=false volume.size=5GB
+		lxc storage create "${poolName}" "${poolDriver}" size=40GiB lvm.use_thinpool=false volume.size=3584MiB
 	elif [ "${poolDriver}" = "lvm-thin" ]; then
-		lxc storage create "${poolName}" lvm size=20GiB volume.size=5GB
+		lxc storage create "${poolName}" lvm size=20GiB volume.size=3584MiB
 	elif [ "${poolDriver}" = "powerflex" ]; then
 		createPowerFlexPool "${poolName}"
 	elif [ "${poolDriver}" = "pure" ]; then
@@ -38,7 +38,7 @@ do
 	elif [ "${poolDriver}" = "alletra" ]; then
 		createAlletraStoragePool "${poolName}"
 	else
-		lxc storage create "${poolName}" "${poolDriver}" size=20GB volume.size=5GB
+		lxc storage create "${poolName}" "${poolDriver}" size=20GiB volume.size=3584MiB
 	fi
 
 	echo "==> Create VM"
@@ -47,7 +47,7 @@ do
 
 	echo "==> Create custom block volume and attach it to VM"
 	if [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "alletra" ]; then
-		lxc storage volume create "${poolName}" vol1 --type=block size=10MB
+		lxc storage volume create "${poolName}" vol1 --type=block size=4MiB
 	else
 		lxc storage volume create "${poolName}" vol1 --type=block size=8GiB
 	fi
@@ -55,7 +55,7 @@ do
 
 	echo "==> Create custom volume and attach it to VM"
 	if [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "alletra" ]; then
-		lxc storage volume create "${poolName}" vol4 size=10MB
+		lxc storage volume create "${poolName}" vol4 size=4MiB
 	else
 		lxc storage volume create "${poolName}" vol4 size=8GiB
 	fi
@@ -187,7 +187,7 @@ do
     fi
 
 	echo "==> Readonly custom block volumes are readonly"
-	lxc storage volume create "${poolName}" volblro --type block
+	lxc storage volume create "${poolName}" volblro --type block size=4MiB
 
 	lxc config device add v1 volblro disk pool="${poolName}" source=volblro readonly=true
 
@@ -340,7 +340,7 @@ do
 
 		echo "==> Create custom volume and attach it to VM"
 		if [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "alletra" ]; then
-			lxc storage volume create "${poolName}" vol7 size=10MiB
+			lxc storage volume create "${poolName}" vol7 size=4MiB
 		else
 			lxc storage volume create "${poolName}" vol7 size=8GiB
 		fi
