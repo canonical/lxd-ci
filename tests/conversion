@@ -406,7 +406,7 @@ if hasNeededAPIExtension instance_import_conversion; then
 
         # Ensure instance does not boot without virtio_scsi drivers.
         lxc start v1
-        ! waitInstanceReady v1 || { echo "Instance booted without SCSI drivers!"; false; }
+        ! MAX_WAIT_SECONDS=90 waitInstanceReady v1 || { echo "Instance booted without SCSI drivers!"; false; }
         lxc delete -f v1
 
         # Ensure that virtio conversion adds the needed virtio_scsi module back into the initramfs.
