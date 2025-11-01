@@ -179,6 +179,7 @@ do
 	  lxc exec v1 -- /bin/sh -c 'mount /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_vol5 /mnt && [ $(cat /mnt/foo) = foo ] && ! touch /mnt/foo'
 	  # shellcheck disable=2016
 	  lxc exec v2 -- /bin/sh -c 'mount /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_vol5 /mnt && [ $(cat /mnt/foo) = foo ] && ! touch /mnt/foo'
+	  # umount'ing last to ensure both are mounted at the same time
 	  lxc exec v1 -- umount /mnt
 	  lxc exec v2 -- umount /mnt
     else
