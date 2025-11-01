@@ -242,7 +242,7 @@ conversion() {
 # Test container migration using conversion mode. If server does not
 # support conversion API extension, lxd-migrate must fallback to
 # migration mode and successfully transfer the rootfs.
-lxc launch ubuntu-minimal-daily:24.04 c1 --device root,size=4GiB
+lxc launch ubuntu-minimal-daily:24.04 c1 --device root,size=512MiB
 conversion_container "c1"
 lxc delete -f c1
 
