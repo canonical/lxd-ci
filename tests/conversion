@@ -31,10 +31,7 @@ fi
 export PATH="${HOME}/go/bin:${PATH}"
 
 # Install latest lxd-migrate binary tool.
-# XXX: temporary workaround for lack of Go 1.25 (see https://github.com/canonical/lxd/pull/16575)
-git clone --depth=1 --single-branch --branch main https://github.com/canonical/lxd.git
-cd lxd && CGO_ENABLED=0 go install ./lxd-migrate && cd ..
-rm -rf lxd
+CGO_ENABLED=0 go install github.com/canonical/lxd/lxd-migrate@latest
 # Make it smaller
 strip --strip-all "$(command -v lxd-migrate)"
 
