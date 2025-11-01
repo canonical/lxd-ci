@@ -40,8 +40,8 @@ ovn_basic_tests() {
     lxc network info ovn-virtual-network | grep -P "Chassis: $(hostname)"
 
     echo "==> Check host connectivity to lxdbr0 gateway"
-    ping -nc1 -4 -w5 10.10.10.1
-    ping -nc1 -6 -w5 fd42:4242:4242:1010::1
+    ping -nc1 -i0.1 -w2 -4 10.10.10.1
+    ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1010::1
 
     echo "==> Launching a test container on lxdbr0"
     lxc init "${IMAGE}" u1 -s default
@@ -80,34 +80,34 @@ ovn_basic_tests() {
     U3_IPV6="$(lxc list u3 -c6 --format=csv | cut -d' ' -f1)"
 
     echo "==> lxdbr0 to lxdbr0 gateway"
-    lxc exec u1 -- ping -nc1 -4 -w5 10.10.10.1
-    lxc exec u1 -- ping -nc1 -6 -w5 fd42:4242:4242:1010::1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -4 10.10.10.1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1010::1
 
     echo "==> lxdbr0 to OVN gateway"
-    lxc exec u1 -- ping -nc1 -4 -w5 10.10.10.200
-    lxc exec u1 -- ping -nc1 -6 -w5 fd42:4242:4242:1010::200
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -4 10.10.10.200
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1010::200
 
     echo "==> OVN to OVN"
-    lxc exec u2 -- ping -nc1 -4 -w5 "${U3_IPV4}"
-    lxc exec u2 -- ping -nc1 -6 -w5 "${U3_IPV6}"
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 -4 "${U3_IPV4}"
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 -6 "${U3_IPV6}"
 
     echo "==> OVN to lxdbr0 instance"
-    lxc exec u3 -- ping -nc1 -4 -w5 "${U1_IPV4}"
-    lxc exec u3 -- ping -nc1 -6 -w5 "${U1_IPV6}"
+    lxc exec u3 -- ping -nc1 -i0.1 -w2 -4 "${U1_IPV4}"
+    lxc exec u3 -- ping -nc1 -i0.1 -w2 -6 "${U1_IPV6}"
 
     echo "==> DNS resolution on OVN"
-    lxc exec u3 -- ping -nc1 -4 -w5 u2.lxd
-    lxc exec u3 -- ping -nc1 -6 -w5 u2.lxd
-    lxc exec u3 -- ping -nc1 -4 -w5 4u.lxd
-    lxc exec u3 -- ping -nc1 -6 -w5 4u.lxd
+    lxc exec u3 -- ping -nc1 -i0.1 -w2 -4 u2.lxd
+    lxc exec u3 -- ping -nc1 -i0.1 -w2 -6 u2.lxd
+    lxc exec u3 -- ping -nc1 -i0.1 -w2 -4 4u.lxd
+    lxc exec u3 -- ping -nc1 -i0.1 -w2 -6 4u.lxd
 
     echo "==> OVN to lxdbr0 gateway"
-    lxc exec u2 -- ping -nc1 -w5 10.10.10.1
-    lxc exec u2 -- ping -nc1 -w5 fd42:4242:4242:1010::1
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 10.10.10.1
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 fd42:4242:4242:1010::1
 
     echo "==> OVN to lxdbr0"
-    lxc exec 4u -- ping -nc1 -w5 u1.lxd
-    lxc exec 4u -- ping -nc1 -w5 u1.lxd
+    lxc exec 4u -- ping -nc1 -i0.1 -w2 u1.lxd
+    lxc exec 4u -- ping -nc1 -i0.1 -w2 u1.lxd
 
     lxc delete -f 4u
 
@@ -446,24 +446,24 @@ ovn_basic_tests() {
     U3_IPV6="$(lxc list u3 -c6 --format=csv | cut -d' ' -f1)"
 
     echo "==> lxdbr0 to OVN gateway in project testovn"
-    lxc exec u1 --project default -- ping -nc1 -w5 -4 10.10.10.201
-    lxc exec u1 --project default -- ping -nc1 -w5 -6 fd42:4242:4242:1010::201
+    lxc exec u1 --project default -- ping -nc1 -i0.1 -w2 -4 10.10.10.201
+    lxc exec u1 --project default -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1010::201
 
     echo "==> OVN to OVN in project testovn"
-    lxc exec u2 -- ping -nc1 -w5 -4 "${U3_IPV4}"
-    lxc exec u2 -- ping -nc1 -w5 -6 "${U3_IPV6}"
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 -4 "${U3_IPV4}"
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 -6 "${U3_IPV6}"
 
     echo "==> OVN to lxdbr0 instance in project testovn"
-    lxc exec u3 -- ping -nc1 -w5 -4 "${U1_IPV4}"
-    lxc exec u3 -- ping -nc1 -w5 -6 "${U1_IPV6}"
+    lxc exec u3 -- ping -nc1 -i0.1 -w2 -4 "${U1_IPV4}"
+    lxc exec u3 -- ping -nc1 -i0.1 -w2 -6 "${U1_IPV6}"
 
     echo "==> DNS resolution on OVN in project testovn"
-    lxc exec u3 -- ping -nc1 -w5 -4 u2.lxd
-    lxc exec u3 -- ping -nc1 -w5 -6 u2.lxd
+    lxc exec u3 -- ping -nc1 -i0.1 -w2 -4 u2.lxd
+    lxc exec u3 -- ping -nc1 -i0.1 -w2 -6 u2.lxd
 
     echo "==> OVN to lxdbr0 gateway in project testovn"
-    lxc exec u2 -- ping -nc1 -w5 -4 10.10.10.1
-    lxc exec u2 -- ping -nc1 -w5 -6 fd42:4242:4242:1010::1
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 -4 10.10.10.1
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1010::1
 
     echo "===> Check network in use protection from deletion"
     echo "==> Delete instances in default project first"
@@ -553,8 +553,8 @@ ovn_basic_tests() {
     echo "==> Check connectivity back to uplink bridge without SNAT address specified"
     lxc launch "${IMAGE}" u1 -n ovn-virtual-network -s default
     waitInstanceBooted u1
-    lxc exec u1 -- ping -nc1 -w5 192.0.2.1
-    lxc exec u1 -- ping -nc1 -w5 2001:db8:1:1::1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 192.0.2.1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 2001:db8:1:1::1
 
     echo "==> Set external SNAT address on OVN network (and check it only is allowed with uplink routed ingress mode)"
     ! lxc network set ovn-virtual-network ipv4.nat.address=198.51.100.1 || false
@@ -572,14 +572,14 @@ ovn_basic_tests() {
     ip r add 2001:db8:1:2::1/128 via "${ovnIPv6}" dev dummybr0
 
     echo "==> Check connectivity back to uplink bridge with SNAT address specified"
-    lxc exec u1 -- ping -nc1 -w5 192.0.2.1
-    lxc exec u1 -- ping -nc1 -w5 2001:db8:1:1::1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 192.0.2.1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 2001:db8:1:1::1
 
     echo "==> Remove the routes and check that connectivity fails (indicating that SNAT is indeed rewriting packet source)"
     ip r del 198.51.100.1/32 via "${ovnIPv4}" dev dummybr0
     ip r del 2001:db8:1:2::1/128 via "${ovnIPv6}" dev dummybr0
-    ! lxc exec u1 -- ping -nc1 -w5 192.0.2.1 || false
-    ! lxc exec u1 -- ping -nc1 -w5 2001:db8:1:1::1 || false
+    ! lxc exec u1 -- ping -nc1 -i0.1 -w2 192.0.2.1 || false
+    ! lxc exec u1 -- ping -nc1 -i0.1 -w2 2001:db8:1:1::1 || false
 
     echo "==> Check a NIC in the same OVN network can use a subnet containing the SNAT address in its external routes"
     lxc config device set u1 eth0 ipv4.routes.external=198.51.100.0/24
@@ -597,8 +597,8 @@ ovn_basic_tests() {
     lxc network unset ovn-virtual-network ipv4.nat.address
     lxc network unset ovn-virtual-network ipv6.nat.address
     sleep 2
-    lxc exec u1 -- ping -nc1 -w5 192.0.2.1
-    lxc exec u1 -- ping -nc1 -w5 2001:db8:1:1::1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 192.0.2.1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 2001:db8:1:1::1
 
     lxc delete -f u1
     lxc network delete ovn-virtual-network
@@ -755,8 +755,8 @@ ovn_forward_tests() {
     lxc network forward delete ovn-virtual-network 2001:db8:1:2::1
 
     echo "==> Check IP is unused and not working"
-    ! ping -nc1 -4 -w5 192.0.2.1 || false
-    ! ping -nc1 -6 -w5 2001:db8:1:2::1 || false
+    ! ping -nc1 -i0.1 -w2 -4 192.0.2.1 || false
+    ! ping -nc1 -i0.1 -w2 -6 2001:db8:1:2::1 || false
 
     echo "==> Add forward to u1 and test working"
     lxc network forward create ovn-virtual-network 192.0.2.1 target_address="${U1_IPV4}"
@@ -770,8 +770,8 @@ ovn_forward_tests() {
 
     echo "==> Check forward is working by pinging it"
     # XXX: ping used to work but doesn't anymore due to a regression in OVN in Jammy (22.03.3-0ubuntu0.22.04.1?)
-    #ping -nc1 -w5 192.0.2.1
-    #ping -nc1 -w5 2001:db8:1:2::1
+    #ping -nc1 -i0.1 -w2 192.0.2.1
+    #ping -nc1 -i0.1 -w2 2001:db8:1:2::1
 
     echo "==> Check DNS TCP forwarding using default target rule"
     lxc exec u1 -- systemctl mask dnsmasq
@@ -796,8 +796,8 @@ EOF
 
     echo "==> Check stopping the DNS service and checking we get no connection using default target rule"
     lxc exec u1 -- systemctl stop dnsmasq
-    ! dig a +tcp @192.0.2.1 u1.lxd || false
-    ! dig aaaa +tcp @2001:db8:1:2::1 u1.lxd || false
+    ! dig a +tcp +timeout=1 @192.0.2.1 u1.lxd || false
+    ! dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 u1.lxd || false
 
     echo "==> Check TCP port forward of port 53 to a different host"
     lxc launch "${IMAGE}" u2 -n ovn-virtual-network -s default
@@ -830,8 +830,8 @@ EOF
     echo "==> Remove port forward and check it reverts to default forward rule (which shouldn't work as dnsmasq is off)"
     lxc network forward port remove ovn-virtual-network 192.0.2.1 tcp 53
     lxc network forward port remove ovn-virtual-network 2001:db8:1:2::1 tcp 53
-    ! dig a +tcp @192.0.2.1 u1.lxd || false
-    ! dig aaaa +tcp @2001:db8:1:2::1 u1.lxd || false
+    ! dig a +tcp +timeout=1 @192.0.2.1 u1.lxd || false
+    ! dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 u1.lxd || false
 
     echo "==> Check starting dnsmasq allows the default forward rule to work to u1"
     lxc exec u1 -- systemctl start dnsmasq
@@ -850,8 +850,8 @@ EOF
     lxc exec u2 -- systemctl stop dnsmasq
     dig a @192.0.2.1 u1.lxd
     dig aaaa @2001:db8:1:2::1 u1.lxd
-    ! dig a +tcp @192.0.2.1 u2.lxd || false
-    ! dig aaaa +tcp @2001:db8:1:2::1 u2.lxd || false
+    ! dig a +tcp +timeout=1 @192.0.2.1 u2.lxd || false
+    ! dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 u2.lxd || false
 
     echo "==> Check TCP port forwarding on same listen port as UDP port is working by starting dnsmasq on u2"
     lxc exec u2 -- systemctl start dnsmasq
@@ -887,8 +887,8 @@ EOF
         [ "$(ovn-nbctl list load_balancer | grep -cF name)" = 6 ]
 
         echo "==> Check we get no connection outside of the OVN network"
-        ! dig a +tcp "@${ip4AddressPrefix}.10" u1.lxd || false
-        ! dig aaaa +tcp "@${ip6AddressPrefix}::10" u1.lxd || false
+        ! dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" u1.lxd || false
+        ! dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" u1.lxd || false
 
         echo "==> Check accessing forwards's listen address inside the u1"
         [ "$(lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.1" ]
@@ -1034,8 +1034,8 @@ ovn_load_balancer_tests() {
     U1_IPV6="$(lxc list u1 -c6 --format=csv | cut -d' ' -f1)"
 
     echo "==> Check IP is unused and not working"
-    ! ping -nc1 -4 -w5 192.0.2.1 || false
-    ! ping -nc1 -6 -w5 2001:db8:1:2::1 || false
+    ! ping -nc1 -i0.1 -w2 -4 192.0.2.1 || false
+    ! ping -nc1 -i0.1 -w2 -6 2001:db8:1:2::1 || false
 
     echo "==> Add incompatible load balancer backend for u1"
     lxc network load-balancer backend add ovn-virtual-network 192.0.2.1 u1 "${U1_IPV4}" 53-63,80
@@ -1089,11 +1089,11 @@ EOF
 
     echo "==> Check stopping the DNS service and checking we get no connection"
     lxc exec u1 -- systemctl stop dnsmasq
-    ! dig a +tcp @192.0.2.1 u1.lxd || false
-    ! dig aaaa +tcp @2001:db8:1:2::1 u1.lxd || false
+    ! dig a +tcp +timeout=1 @192.0.2.1 u1.lxd || false
+    ! dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 u1.lxd || false
     lxc exec u1 -- systemctl stop dnsmasq
-    ! lxc exec u1 -- dig a +tcp @192.0.2.1 lxd.localdomain +short || false
-    ! lxc exec u1 -- dig aaaa +tcp @2001:db8:1:2::1 lxd.localdomain +short || false
+    ! lxc exec u1 -- dig a +tcp +timeout=1 @192.0.2.1 lxd.localdomain +short || false
+    ! lxc exec u1 -- dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 lxd.localdomain +short || false
 
     echo "==> Check changing DNS TCP forwarding towards u2"
     lxc launch "${IMAGE}" u2 -n ovn-virtual-network -s default
@@ -1161,12 +1161,12 @@ EOF
     lxc exec u2 -- systemctl stop dnsmasq
 
     for _ in $(seq 5); do
-        ! dig a +tcp @192.0.2.1 lxd.localdomain || false
-        ! dig aaaa +tcp @2001:db8:1:2::1 lxd.localdomain || false
-        ! lxc exec u1 -- dig a +tcp @192.0.2.1 lxd.localdomain +short || false
-        ! lxc exec u1 -- dig aaaa +tcp @2001:db8:1:2::1 lxd.localdomain +short || false
-        ! lxc exec u2 -- dig a +tcp @192.0.2.1 lxd.localdomain +short || false
-        ! lxc exec u2 -- dig aaaa +tcp @2001:db8:1:2::1 lxd.localdomain +short || false
+        ! dig a +tcp +timeout=1 @192.0.2.1 lxd.localdomain || false
+        ! dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 lxd.localdomain || false
+        ! lxc exec u1 -- dig a +tcp +timeout=1 @192.0.2.1 lxd.localdomain +short || false
+        ! lxc exec u1 -- dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 lxd.localdomain +short || false
+        ! lxc exec u2 -- dig a +tcp +timeout=1 @192.0.2.1 lxd.localdomain +short || false
+        ! lxc exec u2 -- dig aaaa +tcp +timeout=1 @2001:db8:1:2::1 lxd.localdomain +short || false
     done
 
     if hasNeededAPIExtension ovn_internal_load_balancer; then
@@ -1197,8 +1197,8 @@ EOF
         ovn-nbctl list load_balancer | grep -F "{\"[${ip6AddressPrefix}::10]:53\"=\"[${U1_IPV6}]:53,[${U2_IPV6}]:53\"}"
 
         echo "==> Check load balancers are not accessible from outside of the OVN network"
-        ! dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
-        ! dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+        ! dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
 
         echo "==> Check DNS load balancing is working and is accessible from u1 and u2"
         u1_ip4_seen=0
@@ -1225,12 +1225,12 @@ EOF
         lxc exec u1 -- systemctl stop dnsmasq
         lxc exec u2 -- systemctl stop dnsmasq
 
-        ! dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
-        ! dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
-        ! lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
-        ! lxc exec u1 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
-        ! lxc exec u2 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
-        ! lxc exec u2 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+        ! dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+        ! lxc exec u1 -- dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! lxc exec u1 -- dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
+        ! lxc exec u2 -- dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short || false
+        ! lxc exec u2 -- dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short || false
 
         echo "==> Change load balancer ports towards u2 only"
         lxc network load-balancer port remove ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53
@@ -1241,10 +1241,10 @@ EOF
         echo "==> Check accessing load balancer inside the u1 and u2"
         lxc exec u2 -- systemctl start dnsmasq
         for _ in $(seq 5); do
-            [ "$(lxc exec u1 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ]
-            [ "$(lxc exec u1 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
-            [ "$(lxc exec u2 -- dig a +tcp "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ]
-            [ "$(lxc exec u2 -- dig aaaa +tcp "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
+            [ "$(lxc exec u1 -- dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ]
+            [ "$(lxc exec u1 -- dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
+            [ "$(lxc exec u2 -- dig a +tcp +timeout=1 "@${ip4AddressPrefix}.10" lxd.localdomain +short)" = "127.0.0.2" ]
+            [ "$(lxc exec u2 -- dig aaaa +tcp +timeout=1 "@${ip6AddressPrefix}::10" lxd.localdomain +short)" = "::2" ]
         done
     fi
 
@@ -1341,16 +1341,16 @@ ovn_peering_tests() {
 
     echo "==> Test that pinging internal addresses between networks doesn't work without peering"
     sleep 20
-    ! lxc exec ovn1 --project=ovn1 -- ping -nc1 -4 -w5 "${ovn2NetIPv4}" || false
-    ! lxc exec ovn1 --project=ovn1 -- ping -nc1 -6 -w5 "${ovn2NetIPv6}" || false
-    ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 198.51.100.1 || false
-    ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 2001:db8:1:2::1 || false
+    ! lxc exec ovn1 --project=ovn1 -- ping -nc1 -i0.1 -w2 -4 "${ovn2NetIPv4}" || false
+    ! lxc exec ovn1 --project=ovn1 -- ping -nc1 -i0.1 -w2 -6 "${ovn2NetIPv6}" || false
+    ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -4 198.51.100.1 || false
+    ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -6 2001:db8:1:2::1 || false
 
     echo "==> Test that pinging external addresses between networks does work without peering (goes via uplink)"
     # XXX: Temporarily disable NAT to workaround Azure kernel issue (see https://github.com/canonical/lxd-ci/issues/91)
     lxc network set lxdbr0 ipv4.nat=false ipv6.nat=false
-    lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 198.51.100.2
-    lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 2001:db8:1:2::2
+    lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -4 198.51.100.2
+    lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -6 2001:db8:1:2::2
     lxc network set lxdbr0 ipv4.nat=true ipv6.nat=true
 
     echo "==> Remove routes on uplink manually to purposefully break uplink routing of external routes"
@@ -1358,8 +1358,8 @@ ovn_peering_tests() {
     ip -6 r del 2001:db8:1:2::/64 dev lxdbr0
 
     echo "==> Test that pinging external addresses between networks doesn't work via uplink with removed routes"
-    ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 198.51.100.2 || false
-    ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 2001:db8:1:2::2 || false
+    ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -4 198.51.100.2 || false
+    ! lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -6 2001:db8:1:2::2 || false
 
     echo "==> Now setup peering again"
     lxc network peer create ovn1 ovn1foo ovn2/ovn2 --project=ovn1
@@ -1372,16 +1372,16 @@ ovn_peering_tests() {
     sleep 5
 
     echo "==> Ping gateways on each peer endpoint"
-    lxc exec ovn1 --project=ovn1 -- ping -nc1 -4 -w5 "${ovn2NetIPv4}"
-    lxc exec ovn1 --project=ovn1 -- ping -nc1 -6 -w5 "${ovn2NetIPv6}"
-    lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 "${ovn1NetIPv4}"
-    lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 "${ovn1NetIPv6}"
+    lxc exec ovn1 --project=ovn1 -- ping -nc1 -i0.1 -w2 -4 "${ovn2NetIPv4}"
+    lxc exec ovn1 --project=ovn1 -- ping -nc1 -i0.1 -w2 -6 "${ovn2NetIPv6}"
+    lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -4 "${ovn1NetIPv4}"
+    lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -6 "${ovn1NetIPv6}"
 
     echo "==> Ping internal and external NIC route addresses over peer connection"
-    lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 198.51.100.1
-    lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 2001:db8:1:2::1
-    lxc exec ovn2 --project=ovn2 -- ping -nc1 -4 -w5 198.51.100.2
-    lxc exec ovn2 --project=ovn2 -- ping -nc1 -6 -w5 2001:db8:1:2::2
+    lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -4 198.51.100.1
+    lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -6 2001:db8:1:2::1
+    lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -4 198.51.100.2
+    lxc exec ovn2 --project=ovn2 -- ping -nc1 -i0.1 -w2 -6 2001:db8:1:2::2
 
     echo "==> Check address set entries added for running instances"
     ovn-nbctl list address_set | grep -F 198.51.100.1/32
@@ -1427,12 +1427,12 @@ ovn_peering_tests() {
 
     echo "==> Check we can detect ICMP packets coming to the ovn2 instance from ovn1 instance when"
     echo "==> pinging the allowed addresses"
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
-    lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -4 "${ovn2NICIPv4}" || true &
+    lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
-    lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -6 "${ovn2NICIPv6}" || true &
+    lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null
     wait
 
     echo "==> Now reconfigure ovn1's IP address inside the instance to an unknown IP and try pinging ovn2"
@@ -1457,12 +1457,12 @@ ovn_peering_tests() {
     lxc exec ovn1 --project=ovn1 -- ip -4 r
     lxc exec ovn1 --project=ovn1 -- ip -6 r
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
-    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null || false
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -4 "${ovn2NICIPv4}" || true &
+    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null || false
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
-    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null || false
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -6 "${ovn2NICIPv6}" || true &
+    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null || false
     wait
 
     echo "==> Clear all security rules and check spoofed packets are received to prove the security rules were working"
@@ -1473,12 +1473,12 @@ ovn_peering_tests() {
     ovn-nbctl lr-policy-del "lxd-net${ovn1NetID}-lr"
     ovn-nbctl lr-policy-del "lxd-net${ovn2NetID}-lr"
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -4 -w5 "${ovn2NICIPv4}" || true &
-    lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -4 "${ovn2NICIPv4}" || true &
+    lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp and src 198.51.100.3 -q -c 1 > /dev/null
     wait
 
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -6 -w5 "${ovn2NICIPv6}" || true &
-    lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -n -i0.1 -w2 -W2 -6 "${ovn2NICIPv6}" || true &
+    lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp6 and src 2001:db8:1:2::3 -q -c 1 > /dev/null
     wait
 
     echo "==> Check changing the network's subnet is reflected in the address sets and peering routes and the old subnets"
@@ -1489,8 +1489,8 @@ ovn_peering_tests() {
     waitInstanceBooted ovn1 ovn1
     ovn1NICIPv4="$(lxc list ovn1 -c4 --format=csv --project=ovn1 | cut -d' ' -f1)"
     ovn1NICIPv6="$(lxc list ovn1 -c6 --format=csv --project=ovn1 | cut -d' ' -f1)"
-    lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -4 -w5 "${ovn1NICIPv4}"
-    lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -6 -w5 "${ovn1NICIPv6}"
+    lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -i0.1 -w2 -4 "${ovn1NICIPv4}"
+    lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -i0.1 -w2 -6 "${ovn1NICIPv6}"
 
     echo "==> Check external ingress spoof protection"
     echo "==> Setup ovn1's IP on the external bridge, with a spoofed route source address and confirm no spoofed packets"
@@ -1503,12 +1503,12 @@ ovn_peering_tests() {
     ip -4 r add "${ovn2NICIPv4}/32" via "${ovn2IPv4}" dev lxdbr0 src "${ovn1NICIPv4}"
     ip -6 r add "${ovn2NICIPv6}/128" via "${ovn2IPv6}" dev lxdbr0 src "${ovn1NICIPv6}"
 
-    ping -n -4 -w5 "${ovn2NICIPv4}" || true &
-    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null || false
+    ping -n -i0.1 -w2 -W2 -4 "${ovn2NICIPv4}" || true &
+    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp and src "${ovn1NICIPv4}" -q -c 1 > /dev/null || false
     wait
 
-    ping -n -6 -w5 "${ovn2NICIPv6}" || true &
-    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 5s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null || false
+    ping -n -i0.1 -w2 -W2 -6 "${ovn2NICIPv6}" || true &
+    ! lxc exec ovn2 -T -n --project=ovn2 -- timeout 2s tcpdump -i eth0 -nn icmp6 and src "${ovn1NICIPv6}" -q -c 1 > /dev/null || false
     wait
 
     echo "==> Remove spoofed IPs and routes, and check can ping the instance NIC externally using non-spoofed IP"
@@ -1516,30 +1516,30 @@ ovn_peering_tests() {
     ip a del "${ovn1NICIPv6}/128" dev lxdbr0
     ip -4 r replace "${ovn2NICIPv4}/32" via "${ovn2IPv4}" dev lxdbr0
     ip -6 r replace "${ovn2NICIPv6}/128" via "${ovn2IPv6}" dev lxdbr0
-    ping -nc1 -4 -w5 "${ovn2NICIPv4}"
-    ping -nc1 -6 -w5 "${ovn2NICIPv6}"
+    ping -nc1 -i0.1 -w2 -4 "${ovn2NICIPv4}"
+    ping -nc1 -i0.1 -w2 -6 "${ovn2NICIPv6}"
     ip -4 r del "${ovn2NICIPv4}/32" via "${ovn2IPv4}" dev lxdbr0
     ip -6 r del "${ovn2NICIPv6}/128" via "${ovn2IPv6}" dev lxdbr0
 
     echo "==> ACLs referencing peers"
     lxc network acl create ovn1 --project=ovn1
     lxc config device set ovn1 eth0 security.acls=ovn1 --project=ovn1
-    ! lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -4 -w5 "${ovn2NICIPv4}" || false
-    ! lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -6 -w5 "${ovn2NICIPv6}" || false
-    ! lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -4 -w5 "${ovn1NICIPv4}" || false
-    ! lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -6 -w5 "${ovn1NICIPv6}" || false
+    ! lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -i0.1 -w2 -4 "${ovn2NICIPv4}" || false
+    ! lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -i0.1 -w2 -6 "${ovn2NICIPv6}" || false
+    ! lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -i0.1 -w2 -4 "${ovn1NICIPv4}" || false
+    ! lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -i0.1 -w2 -6 "${ovn1NICIPv6}" || false
 
     lxc network acl rule add ovn1 egress destination=@ovn1/ovn1foo action=allow --project=ovn1
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -4 -w5 "${ovn2NICIPv4}"
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -6 -w5 "${ovn2NICIPv6}"
-    ! lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -4 -w5 "${ovn1NICIPv4}" || false
-    ! lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -6 -w5 "${ovn1NICIPv6}" || false
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -i0.1 -w2 -4 "${ovn2NICIPv4}"
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -i0.1 -w2 -6 "${ovn2NICIPv6}"
+    ! lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -i0.1 -w2 -4 "${ovn1NICIPv4}" || false
+    ! lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -i0.1 -w2 -6 "${ovn1NICIPv6}" || false
 
     lxc network acl rule add ovn1 ingress source=@ovn1/ovn1foo action=allow state=logged --project=ovn1
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -4 -w5 "${ovn2NICIPv4}"
-    lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -6 -w5 "${ovn2NICIPv6}"
-    lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -4 -w5 "${ovn1NICIPv4}"
-    lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -6 -w5 "${ovn1NICIPv6}"
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -i0.1 -w2 -4 "${ovn2NICIPv4}"
+    lxc exec ovn1 -T -n --project=ovn1 -- ping -nc1 -i0.1 -w2 -6 "${ovn2NICIPv6}"
+    lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -i0.1 -w2 -4 "${ovn1NICIPv4}"
+    lxc exec ovn2 -T -n --project=ovn2 -- ping -nc1 -i0.1 -w2 -6 "${ovn1NICIPv6}"
 
     echo "==> Check that acl rule for ovn ingress has all the expected values"
     ovn_logs="$(lxc network acl show-log ovn1 --project=ovn1)"
@@ -1738,20 +1738,20 @@ ovn_nested_vlan_tests() {
     lxc exec u1 -- ip netns exec vlan_nesting2 ip address
 
     echo "==> Check nested VLAN NICs are pingable from parent instance"
-    lxc exec u1 -- ping -nc1 -4 -w5 10.10.11.10
-    lxc exec u1 -- ping -nc1 -6 -w5 fd42:4242:4242:1011::10
-    lxc exec u1 -- ping -nc1 -4 -w5 10.10.11.11
-    lxc exec u1 -- ping -nc1 -6 -w5 fd42:4242:4242:1011::11
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -4 10.10.11.10
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1011::10
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -4 10.10.11.11
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1011::11
 
     echo "==> Check nested VLAN 2 NIC is pingable from VLAN 1 namespace"
-    lxc exec u1 -- ip netns exec vlan_nesting1 ping -nc1 -4 -w5 10.10.11.11
-    lxc exec u1 -- ip netns exec vlan_nesting1 ping -nc1 -6 -w5 fd42:4242:4242:1011::11
+    lxc exec u1 -- ip netns exec vlan_nesting1 ping -nc1 -i0.1 -w2 -4 10.10.11.11
+    lxc exec u1 -- ip netns exec vlan_nesting1 ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1011::11
 
     echo "==> Check nested VLAN NICs are pingable from a different instance on the same network"
-    lxc exec u2 -- ping -nc1 -4 -w5 10.10.11.10
-    lxc exec u2 -- ping -nc1 -6 -w5 fd42:4242:4242:1011::10
-    lxc exec u2 -- ping -nc1 -4 -w5 10.10.11.11
-    lxc exec u2 -- ping -nc1 -6 -w5 fd42:4242:4242:1011::11
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 -4 10.10.11.10
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1011::10
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 -4 10.10.11.11
+    lxc exec u2 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1011::11
 
     lxc delete -f u1 u2
     lxc network delete ovn1
@@ -1821,26 +1821,26 @@ ovn_acl_tests() {
     [ "$(ovn-nbctl list acl | grep -c 'match.*instance.*eth0')" = "4" ]
 
     echo "==> Test ping to OVN router (baseline rules)"
-    lxc exec c1 -- ping -nc1 -w5 -4 10.10.11.1
-    lxc exec c1 -- ping -nc1 -w5 -6 fd42:4242:4242:1011::1
+    lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 10.10.11.1
+    lxc exec c1 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1011::1
 
     echo "==> Test ping to lxdbr0 IPs via DNS (baseline rules for DNS) and lxdbr0-ping ACL tests"
-    lxc exec c1 -- ping -nc1 -w5 -4 lxdbr0.test
-    lxc exec c1 -- ping -nc1 -w5 -6 lxdbr0.test
+    lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 lxdbr0.test
+    lxc exec c1 -- ping -nc1 -i0.1 -w2 -6 lxdbr0.test
 
     echo "==> Add additional IPs to lxdbr0"
     ip a add 10.10.11.3/32 dev lxdbr0
     ip a add fd42:4242:4242:1010::2/128 dev lxdbr0 nodad
-    ping -nc1 -w5 -4 10.10.11.3
-    ping -nc1 -w5 -6 fd42:4242:4242:1010::2
+    ping -nc1 -i0.1 -w2 -4 10.10.11.3
+    ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1010::2
 
     echo "==> Ping to additional IPs should be blocked"
-    ! lxc exec c1 -- ping -nc1 -w5 -4 10.10.11.3 || false
-    ! lxc exec c1 -- ping -nc1 -w5 -6 fd42:4242:4242:1010::2 || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 10.10.11.3 || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1010::2 || false
 
     echo "==> Ping to other instance should be blocked"
-    ! lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd || false
-    ! lxc exec c1 -- ping -nc1 -w5 -6 c2.lxd || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 c2.lxd || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -6 c2.lxd || false
 
     echo "==> Check default rule action is reject (disable acl, install dig in c1, then re-enable acl)"
     lxc network unset ovn0 security.acls
@@ -1852,9 +1852,9 @@ ovn_acl_tests() {
     echo "${OUTPUT}" | grep -wF "refused"
     OUTPUT="$(! lxc exec c1 -- dig @fd42:4242:4242:1010::2 +tcp +timeout=1 lxdbr0.test || false)"
     echo "${OUTPUT}" | grep -wF "refused"
-    OUTPUT="$(! lxc exec c1 -- ping -nc1 -w5 -4 10.10.11.3 || false)"
+    OUTPUT="$(! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 10.10.11.3 || false)"
     echo "${OUTPUT}" | grep -F "Host Unreachable"
-    OUTPUT="$(! lxc exec c1 -- ping -nc1 -w5 -6 fd42:4242:4242:1010::2 || false)"
+    OUTPUT="$(! lxc exec c1 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1010::2 || false)"
     echo "${OUTPUT}" | grep -F "Administratively prohibited"
 
     echo "==> Check setting default rule action to drop takes effect"
@@ -1863,8 +1863,8 @@ ovn_acl_tests() {
     echo "${OUTPUT}" | grep -F "timed out"
     OUTPUT="$(! lxc exec c1 -- dig @fd42:4242:4242:1010::2 +tcp +timeout=1 lxdbr0.test || false)"
     echo "${OUTPUT}" | grep -F "timed out"
-    ! lxc exec c1 -- ping -nc1 -w5 -4 10.10.11.3 || false
-    ! lxc exec c1 -- ping -nc1 -w5 -6 fd42:4242:4242:1010::2 || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 10.10.11.3 || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1010::2 || false
 
     # Check setting default rule action to reject takes effect. Same as if unspecified.
     lxc network set ovn0 security.acls.default.egress.action=reject
@@ -1873,9 +1873,9 @@ ovn_acl_tests() {
     echo "${OUTPUT}" | grep -wF "refused"
     OUTPUT="$(! lxc exec c1 -- dig @fd42:4242:4242:1010::2 +tcp +timeout=1 -p 5053 lxdbr0.test || false)"
     echo "${OUTPUT}" | grep -wF "refused"
-    OUTPUT="$(! lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd || false)"
+    OUTPUT="$(! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 c2.lxd || false)"
     echo "${OUTPUT}" | grep -F "Host Unreachable"
-    OUTPUT="$(! lxc exec c1 -- ping -nc1 -w5 -6 c2.lxd || false)"
+    OUTPUT="$(! lxc exec c1 -- ping -nc1 -i0.1 -w2 -6 c2.lxd || false)"
     echo "${OUTPUT}" | grep -F "Administratively prohibited"
 
     echo "==> Test assigning same ACL to NIC directly and unassigning from network"
@@ -1932,9 +1932,9 @@ ovn_acl_tests() {
     echo "${OUTPUT}" | grep -wF "refused"
     OUTPUT="$(! lxc exec c2 -- dig @c1.lxd -6 +tcp +timeout=1 -p 5053 lxdbr0.test || false)"
     echo "${OUTPUT}" | grep -wF "refused"
-    OUTPUT="$(! lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd || false)"
+    OUTPUT="$(! lxc exec c2 -- ping -nc1 -i0.1 -w2 -4 c1.lxd || false)"
     echo "${OUTPUT}" | grep -F "Host Unreachable"
-    OUTPUT="$(! lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd || false)"
+    OUTPUT="$(! lxc exec c2 -- ping -nc1 -i0.1 -w2 -6 c1.lxd || false)"
     echo  "${OUTPUT}" | grep -F "Administratively prohibited"
 
     echo "==> Test c1's default ingress rule drop by querying from c2 (which now has no ACLs applied)"
@@ -1943,8 +1943,8 @@ ovn_acl_tests() {
     echo "${OUTPUT}" | grep -F "timed out"
     OUTPUT="$(! lxc exec c2 -- dig @c1.lxd -6 +tcp +timeout=1 -p 5053 lxdbr0.test || false)"
     echo "${OUTPUT}" | grep -F "timed out"
-    ! lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd || false
-    ! lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd || false
+    ! lxc exec c2 -- ping -nc1 -i0.1 -w2 -4 c1.lxd || false
+    ! lxc exec c2 -- ping -nc1 -i0.1 -w2 -6 c1.lxd || false
 
     echo "==> Test unassigning ACL from NIC and check OVN port group is cleaned up"
     lxc config device unset c1 eth0 security.acls
@@ -1986,8 +1986,8 @@ ovn_acl_tests() {
 
     echo "==> Ping to c1 instance from c2 should be blocked"
     lxc exec c2 -- resolvectl flush-caches # c1 has changed its address since last test.
-    ! lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd || false
-    ! lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd || false
+    ! lxc exec c2 -- ping -nc1 -i0.1 -w2 -4 c1.lxd || false
+    ! lxc exec c2 -- ping -nc1 -i0.1 -w2 -6 c1.lxd || false
 
     echo "==> Create new ACL to allow ingress ping, assign to NIC and test pinging static assigned IPs"
     lxc network acl create 0ingress-ping
@@ -2004,17 +2004,17 @@ ovn_acl_tests() {
     echo "==> Expect 5 LXD related port group to exist now new ACL is assigned (will add new ACL port group and new per-ACL-per-network port group)"
     [ "$(ovn-nbctl --bare --column=name --format=csv find port_group | grep -c ^lxd_)" = "5" ]
 
-    lxc exec c2 -- ping -nc1 -w5 -4 10.10.11.2
-    lxc exec c2 -- ping -nc1 -w5 -6 fd42:4242:4242:1011::2
+    lxc exec c2 -- ping -nc3 -i0.1 -w5 -4 10.10.11.2
+    lxc exec c2 -- ping -nc3 -i0.1 -w5 -6 fd42:4242:4242:1011::2
 
     echo "==> Test IP range rule"
     lxc network acl rule remove 0ingress-ping ingress action=allow protocol=icmp4
-    ! lxc exec c2 -- ping -nc1 -w5 -4 10.10.11.2 || false
+    ! lxc exec c2 -- ping -nc1 -i0.1 -w2 -4 10.10.11.2 || false
     lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.2
-    lxc exec c2 -- ping -nc1 -w5 -4 10.10.11.2
+    lxc exec c2 -- ping -nc1 -i0.1 -w2 -4 10.10.11.2
     lxc network acl rule remove 0ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.2
     lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.1
-    ! lxc exec c2 -- ping -nc1 -w5 -4 10.10.11.2 || false
+    ! lxc exec c2 -- ping -nc1 -i0.1 -w2 -4 10.10.11.2 || false
 
     echo "==> Test ACL rule referencing our own ACL name as source in rule"
     lxc network acl rule remove 0ingress-ping ingress action=allow protocol=icmp4 destination=10.10.10.1-10.10.11.1
@@ -2022,14 +2022,14 @@ ovn_acl_tests() {
     lxc network acl rule remove 0ingress-ping ingress action=allow protocol=icmp6
     lxc network acl rule add 0ingress-ping ingress action=allow protocol=icmp6 source=0ingress-ping
 
-    ! lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd || false # Expect to fail as c2 isn't part of 0ingress-ping ACL group yet.
-    ! lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd || false # Expect to fail as c2 isn't part of 0ingress-ping ACL group yet.
+    ! lxc exec c2 -- ping -nc1 -i0.1 -w2 -4 c1.lxd || false # Expect to fail as c2 isn't part of 0ingress-ping ACL group yet.
+    ! lxc exec c2 -- ping -nc1 -i0.1 -w2 -6 c1.lxd || false # Expect to fail as c2 isn't part of 0ingress-ping ACL group yet.
 
     lxc config device set c2 eth0 security.acls=0ingress-ping # Add c2 to ACL group.
-    lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd
-    lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd
-    lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd
-    lxc exec c1 -- ping -nc1 -w5 -6 c2.lxd
+    lxc exec c2 -- ping -nc3 -i0.1 -w5 -4 c1.lxd
+    lxc exec c2 -- ping -nc3 -i0.1 -w5 -6 c1.lxd
+    lxc exec c1 -- ping -nc3 -i0.1 -w5 -4 c2.lxd
+    lxc exec c1 -- ping -nc3 -i0.1 -w5 -6 c2.lxd
 
     echo "==> Create empty ACL group and then update existing rule to reference that as source to check ping stops working"
     lxc network acl create test-empty-group
@@ -2045,10 +2045,10 @@ ovn_acl_tests() {
     echo "==> Expect 6 LXD related port groups to exist as new one now used by ACL that is assigned"
     [ "$(ovn-nbctl --bare --column=name --format=csv find port_group | grep -c ^lxd_)" = "6" ]
 
-    ! lxc exec c2 -- ping -nc1 -w5 -4 c1.lxd || false
-    ! lxc exec c2 -- ping -nc1 -w5 -6 c1.lxd || false
-    ! lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd || false
-    ! lxc exec c1 -- ping -nc1 -w5 -6 c2.lxd || false
+    ! lxc exec c2 -- ping -nc1 -i0.1 -w2 -4 c1.lxd || false
+    ! lxc exec c2 -- ping -nc1 -i0.1 -w2 -6 c1.lxd || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 c2.lxd || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -6 c2.lxd || false
 
     echo "==> Clean up existing ACLs"
     lxc network unset ovn0 security.acls
@@ -2067,35 +2067,35 @@ ovn_acl_tests() {
     [ "$(ovn-nbctl --bare --column=name --format=csv find port_group | grep -c ^lxd_)" = "3" ]
 
     echo "==> Test can't ping external uplink router IP or internal IPs"
-    ! lxc exec c1 -- ping -nc1 -w5 -4 10.10.10.1 || false
-    ! lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 10.10.10.1 || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 c2.lxd || false
 
     echo "==> Allow external pings and test works and that internal ping still blocked (using deprecated subject)"
     lxc network acl rule add icmp egress destination='#external' action=allow protocol=icmp4
-    lxc exec c1 -- ping -nc1 -w5 -4 10.10.10.1
-    ! lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd || false
+    lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 10.10.10.1
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 c2.lxd || false
     lxc network acl rule remove icmp egress destination='#external' action=allow protocol=icmp4
 
     echo "==> Allow external pings and test works and that internal ping still blocked (using current subject)"
     lxc network acl rule add icmp egress destination='@external' action=allow protocol=icmp4
-    lxc exec c1 -- ping -nc1 -w5 -4 10.10.10.1
-    ! lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd || false
+    lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 10.10.10.1
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 c2.lxd || false
 
     echo "==> Allow egress internal pings and test works (using deprecated subject)"
     lxc network acl rule add icmp egress destination='#internal' action=allow protocol=icmp4
-    lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd
+    lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 c2.lxd
     lxc network acl rule remove icmp egress destination='#internal' action=allow protocol=icmp4
 
     echo "==> Allow egress internal pings and test works (using current subject)"
     lxc network acl rule add icmp egress destination='@internal' action=allow protocol=icmp4
-    lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd
+    lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 c2.lxd
 
     lxc network acl rule remove icmp egress destination='@internal' action=allow protocol=icmp4
-    ! lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd || false
+    ! lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 c2.lxd || false
 
     echo "==> Allow ingress internal pings and test works"
     lxc network acl rule add icmp ingress source='@internal' action=allow protocol=icmp4
-    lxc exec c1 -- ping -nc1 -w5 -4 c2.lxd
+    lxc exec c1 -- ping -nc1 -i0.1 -w2 -4 c2.lxd
 
     echo "==> Create new network with ingress ACL and check network port grpup and per-ACL-per-network are created"
     lxc network create ovn1 --type=ovn \
@@ -2126,10 +2126,10 @@ ovn_acl_tests() {
     lxc list
 
     echo "==> Check c2 can ping external"
-    lxc exec c2 -- ping -w5 -nc1 -4 10.10.10.1
+    lxc exec c2 -- ping -i0.1 -w2 -nc1 -4 10.10.10.1
 
     echo "==> Check c1 can ping c2 even though its not part of the ACL (should be classified as internal anyway)"
-    lxc exec c1 -- ping -w5 -nc1 -4 c2.lxd
+    lxc exec c1 -- ping -i0.1 -w2 -nc1 -4 c2.lxd
 
     echo "==> Cleanup"
     lxc delete -f c1
@@ -2194,16 +2194,16 @@ ovn_l3only_tests() {
     lxc exec u1 -- ip -6 address show dev eth0 | grep -F "${U1_IPV6}/128"
 
     echo "==> Check connectivity to other instance"
-    lxc exec u1 -- ping -nc1 -w5 -4 "${U2_IPV4}"
-    lxc exec u1 -- ping -nc1 -w5 -6 "${U2_IPV6}"
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -4 "${U2_IPV4}"
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -6 "${U2_IPV6}"
 
     echo "==> Check connectivity to router gateway"
-    lxc exec u1 -- ping -nc1 -w5 -4 10.10.11.1
-    lxc exec u1 -- ping -nc1 -w5 -6 fd42:4242:4242:1011::1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -4 10.10.11.1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1011::1
 
     echo "==> Check connectivity to uplink gateway"
-    lxc exec u1 -- ping -nc1 -4 -w5 10.10.10.1
-    lxc exec u1 -- ping -nc1 -6 -w5 fd42:4242:4242:1010::1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -4 10.10.10.1
+    lxc exec u1 -- ping -nc1 -i0.1 -w2 -6 fd42:4242:4242:1010::1
 
     lxc delete -f u1 u2
     lxc network delete ovn1
@@ -2322,11 +2322,10 @@ ovn_vlan_uplink_tests() {
 
     echo "==> Create OVN network"
     lxc network create ovn-virtual-network --type=ovn network=UPLINK
-    sleep 2
 
     echo "==> Set up containers"
-    lxc launch "${IMAGE}" c1-ovn -n ovn-virtual-network -s default
     lxc launch "${IMAGE}" c1-lxdbr0 -n lxdbr0 -s default --device eth0,vlan=10
+    lxc launch "${IMAGE}" c1-ovn -n ovn-virtual-network -s default
     sleep 2
 
     lxc exec c1-lxdbr0 -- ip addr add 10.10.10.100/24 dev eth0
@@ -2334,10 +2333,10 @@ ovn_vlan_uplink_tests() {
 
     echo "==> Ensure containers on VLAN can reach OVN network"
     ovn_address=$(lxc network get ovn-virtual-network volatile.network.ipv4.address)
-    lxc exec c1-lxdbr0 -- ping -nc1 -4 -w5 "${ovn_address}"
+    lxc exec c1-lxdbr0 -- ping -nc1 -i0.1 -w2 -4 "${ovn_address}"
 
     echo "==> Ensure OVN network can reach containers on the configured VLAN"
-    lxc exec c1-ovn -- ping -nc1 -4 -w5 10.10.10.100
+    lxc exec c1-ovn -- ping -nc1 -i0.1 -w2 -4 10.10.10.100
 
     echo "==> Cleanup"
     lxc delete -f c1-lxdbr0 c1-ovn
