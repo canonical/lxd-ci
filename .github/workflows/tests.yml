@@ -367,6 +367,12 @@ jobs:
         run: |
           set -eux
 
+          # Check if there are existing coredumps
+          if [ -n "$(ls -A /var/crash/)" ]; then
+            echo "WARNING: coredumps found before running the system tests, removing them"
+            sudo rm /var/crash/*
+          fi
+
           # XXX: prevent accidental usage of `images:` in CI test jobs.
           #      All tests should be done using officially supported images.
           echo '127.0.0.1 images.lxd.canonical.com' | sudo tee /etc/hosts

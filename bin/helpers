@@ -463,6 +463,12 @@ teardown_swap() {
 cleanup() {
     set +e
     echo ""
+
+    if [ -n "$(ls -A /var/crash/)" ]; then
+        echo "CORE: coredump found during cleanup, forcing failure"
+        FAIL=1
+    fi
+
     if [ "${FAIL}" = "1" ]; then
         echo "Test failed"
 
