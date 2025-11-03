@@ -227,8 +227,7 @@ if [ "${TEST_RESTRICTED}" = "1" ]; then
 fi
 
 echo "==> Check container can be stopped after upgrade (checks for stop hook notification functionality)"
-lxc exec m1 -- lxc stop --force u1
-lxc exec m1 -- lxc stop --force u2
+lxc exec m1 -- lxc stop --force u1 u2
 
 echo "==> Deleting the cluster"
 for i in $(seq "${SIZE}"); do
