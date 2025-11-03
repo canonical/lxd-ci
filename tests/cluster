@@ -32,8 +32,8 @@ instance_connectivity_checks() {
     lxc exec m1 -- lxc list --fast
     U2_IPV4="$(lxc exec m1 -- lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
     # XXX: replace ping (not on -minimal images) by a TCP probe on ssh port
-    lxc exec m1 -- lxc exec u1 -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
-    lxc exec m1 -- timeout 30s bash -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
+    lxc exec m1 -- lxc exec u1 -- timeout 30s bash -eu -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
+    lxc exec m1 -- timeout 30s bash -eu -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
 }
 
 wait_for_online_cluster() {
