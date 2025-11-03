@@ -77,8 +77,7 @@ for i in $(seq "${SIZE}"); do
     # Configure the cluster
     if [ "$i" = "1" ]; then
         CLUSTER_IP=$(lxc exec "m${i}" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
-        lxc exec "m${i}" -- lxc config set core.https_address "${CLUSTER_IP}:8443"
-        lxc exec "m${i}" -- lxc config set cluster.https_address "${CLUSTER_IP}:8443"
+        lxc exec "m${i}" -- lxc config set core.https_address="${CLUSTER_IP}:8443" cluster.https_address="${CLUSTER_IP}:8443"
         lxc exec "m${i}" -- lxc cluster enable "m${i}"
         lxc exec "m${i}" -- lxc network create lxdfan0 bridge.mode=fan
         lxc exec "m${i}" -- lxc storage create default dir
