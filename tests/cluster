@@ -63,6 +63,10 @@ lxc pause m1
 for i in $(seq 2 "${SIZE}"); do
     lxc copy m1 "m${i}"
     lxc start "m${i}"
+done
+
+# Wait for cluster members to be fully booted
+for i in $(seq 2 "${SIZE}"); do
     waitInstanceBooted "m${i}"
 done
 lxc start m1
