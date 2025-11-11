@@ -119,6 +119,7 @@ jobs:
           - cpu-vm
           - devlxd-container
           - devlxd-vm
+          - docker
           - efi-vars-editor-vm
           - lxd-installer
           - lxd-user
@@ -159,6 +160,10 @@ jobs:
           - test: cpu-vm
             track: "4.0/candidate"
           - test: devlxd-vm
+            track: "4.0/candidate"
+          - test: docker
+            track: "4.0/edge"
+          - test: docker
             track: "4.0/candidate"
           - test: efi-vars-editor-vm
             track: "4.0/candidate"
@@ -257,6 +262,10 @@ jobs:
             track: "5.0/candidate"
           - test: cloud-init
             track: "5.0/edge"
+          - test: docker
+            track: "5.0/edge"
+          - test: docker
+            track: "5.0/candidate"
           - test: efi-vars-editor-vm
             track: "5.0/candidate"
           - test: efi-vars-editor-vm
