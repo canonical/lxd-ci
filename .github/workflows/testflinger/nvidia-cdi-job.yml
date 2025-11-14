@@ -27,6 +27,28 @@ test_data:
     retry -- _run "timeout 5 sudo snap wait system seed.loaded"
     wait_for_snap_changes
 
+    GRUB_FILE="/etc/default/grub"
+    NOUVEAU_BLACKLIST="module_blacklist=nouveau"
+
+    if [ -f "/etc/default/grub.d/50-cloudimg-settings.cfg" ]; then
+      GRUB_FILE="/etc/default/grub.d/50-cloudimg-settings.cfg"
+    fi
+
+    # Idempotent command to blacklist nouveau module from loading:
+    if ! grep -q "${NOUVEAU_BLACKLIST}" "${GRUB_FILE}"; then
+      _run sudo sed -i.bak "'s|^\(GRUB_CMDLINE_LINUX_DEFAULT=\"[^\"]*\)\"$|\1 ${NOUVEAU_BLACKLIST}\"|'" "${GRUB_FILE}"
+    fi
+
+    # Apply the changes to the bootloader
+    _run sudo update-grub
+
+    # Reboot and wait for machine to get back
+    _run sudo reboot
+    wait_for_ssh --allow-degraded
+
+    # Show kernel boot arguments for debugging
+    _run cat /proc/cmdline
+
     # install NVIDIA drivers and user space utilities
     _run install_packages ubuntu-drivers-common
     _run sudo ubuntu-drivers install --gpgpu nvidia:570-server-open
