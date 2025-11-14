@@ -214,6 +214,7 @@ if ! { runsMinimumKernel 6.9 && hasNeededAPIExtension container_bpf_delegation; 
         lxc init "${IMAGE}" c1
         lxc config set c1 security.delegate_bpf=true
         ! lxc start c1 || false
+        lxc config unset c1 security.delegate_bpf
     fi
 
     echo "Skipping unprivileged container bpf delegation test as the kernel is too old or LXD support missing"
@@ -231,6 +232,52 @@ else
     waitInstanceBooted c1
 
     lxc exec c1 -- grep -F "delegate_cmds=map_create:prog_load,delegate_maps=ringbuf,delegate_progs=socket_filter,delegate_attachs=cgroup_inet_ingress" /proc/self/mountinfo
+
+	lxc stop -f c1
+fi
+
+echo "==> Test running miscellaneous binary formats with binfmt_misc in unprivileged container"
+if lxc info | grep -F 'unpriv_binfmt: "true"'; then
+	lxc start c1
+	waitInstanceBooted c1
+
+	echo "Enabling binfmt_misc in unprivileged container"
+	lxc exec c1 -- mount binfmt_misc -t binfmt_misc /proc/sys/fs/binfmt_misc
+    [ "$(lxc exec c1 -- cat /proc/sys/fs/binfmt_misc/status)" = "enabled" ]
+
+	echo "Installing required packages"
+    lxc exec c1 -- apt-get update
+    lxc exec c1 -- apt-get install --no-install-recommends -y qemu-user-static binfmt-support
+    lxc exec c1 -- systemctl restart systemd-binfmt # Restart systemd-binfmt service to pick up new binary types provided by qemu-user
+
+	echo "Compiling aarch64 Go test binary on host"
+    cat > hello.go << 'EOF'
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello, World!")
+}
+EOF
+
+    GOOS=linux GOARCH=arm64 go build -o hello hello.go
+
+    echo "Pushing binary to container"
+    lxc file push --quiet hello c1/root/hello
+    rm hello.go hello
+
+    echo "Running aarch64 test binary"
+    lxc exec c1 -- test -f /proc/sys/fs/binfmt_misc/qemu-aarch64
+    [ "$(lxc exec c1 -- /root/hello)" = "Hello, World!" ]
+
+	echo "Unmounting binfmt_misc in unprivileged container"
+	lxc exec c1 -- umount /proc/sys/fs/binfmt_misc
+
+	echo "Checking that running aarch64 test binary now fails"
+	! lxc exec c1 -- /root/hello || false
+else
+	echo "Skipping unprivileged container binfmt_misc test as the kernel is too old or LXD support missing"
 fi
 
 # Cleanup
