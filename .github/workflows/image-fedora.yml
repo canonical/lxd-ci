@@ -19,7 +19,6 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 41 # EOL: 2025-11-19
           - 42 # EOL: 2026-05-13
           - 43 # EOL: 2026-12-09
         variant:
