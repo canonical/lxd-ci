@@ -322,15 +322,6 @@ actions:
   action: |-
     #!/bin/sh
     systemctl enable systemd-networkd
-  variants:
-  - default
-
-- trigger: post-packages
-  action: |-
-    #!/bin/sh
-    systemctl enable systemd-networkd
-  variants:
-  - cloud
 
 - trigger: post-packages
   action: |-
