@@ -27,8 +27,12 @@ fi
 
 # Install dependencies
 install_deps jq ubuntu-drivers-common
-RECOMMENDED_DRIVER="$(ubuntu-drivers devices 2>/dev/null | awk '/nvidia-driver-.*recommended$/ {print $3}')"
+RECOMMENDED_DRIVER="$(ubuntu-drivers --gpgpu devices | awk '/-server-open/ {print $3}' | sort -V -r | head -n1)"
 INSTALL_RECOMMENDS=yes install_deps "${RECOMMENDED_DRIVER}"
+
+# Reload nvidia kernel module
+modprobe -r --remove-holders nvidia
+modprobe nvidia
 
 # Install LXD
 install_lxd
