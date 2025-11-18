@@ -42,13 +42,6 @@ test_data:
     # Apply the changes to the bootloader
     _run sudo update-grub
 
-    # Reboot and wait for machine to get back
-    _run sudo reboot
-    wait_for_ssh --allow-degraded
-
-    # Show kernel boot arguments for debugging
-    _run cat /proc/cmdline
-
     # install NVIDIA drivers and user space utilities
     _run install_packages ubuntu-drivers-common
     _run sudo ubuntu-drivers install --gpgpu nvidia:570-server-open
@@ -74,6 +67,9 @@ test_data:
     # reboot and wait for machine to get back
     _run sudo reboot
     wait_for_ssh --allow-degraded
+
+    # Show kernel boot arguments for debugging
+    _run cat /proc/cmdline
 
     # verify that our drivers and tools work properly
     _run lspci -k
