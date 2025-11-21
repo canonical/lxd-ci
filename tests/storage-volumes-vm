@@ -341,10 +341,13 @@ do
 		echo "==> Create custom volume and attach it to VM"
 		if [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "alletra" ]; then
 			lxc storage volume create "${poolName}" vol7 size=4MiB
+			lxc storage volume create "${poolName}" vol8 --type=block size=4MiB
 		else
 			lxc storage volume create "${poolName}" vol7 size=8GiB
+			lxc storage volume create "${poolName}" vol8 --type=block size=8GiB
 		fi
 		lxc storage volume attach "${poolName}" vol7 v1 /mnt/vol7
+		lxc storage volume attach "${poolName}" vol8 v1 customblock
 
 		echo "==> Start VM"
 		lxc start v1
@@ -352,6 +355,7 @@ do
 
 		echo "==> Create test files"
 		lxc exec v1 -- touch /mnt/vol7/snap1 snap1
+		echo foo | lxc file push - v1/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_customblock
         lxc exec v1 -- sync
 
 		echo "==> Check multi-volume snapshot"
@@ -359,8 +363,10 @@ do
 
 		echo "==> Check attached volume snapshots inherit expiry from instance snapshot"
 		[ "$(lxc storage volume get "${poolName}" vol7/snap0 expires_at --property)" = "$(lxc config get v1/v1-snap1 expires_at --property)" ]
+		[ "$(lxc storage volume get "${poolName}" vol8/snap0 expires_at --property)" = "$(lxc config get v1/v1-snap1 expires_at --property)" ]
 
 		lxc exec v1 -- rm /mnt/vol7/snap1 snap1
+		echo bar | lxc file push - v1/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_customblock
         lxc exec v1 -- sync
 
 		echo "==> Check root volume restore"
@@ -368,6 +374,7 @@ do
 		waitInstanceReady v1
 		lxc exec v1 -- test -f snap1
 		! lxc exec v1 -- test -f /mnt/vol7/snap1 || false
+        lxc exec v1 -- grep -Fxm1 bar /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_customblock
 
 		lxc exec v1 -- rm snap1
         lxc exec v1 -- sync
@@ -377,9 +384,11 @@ do
 		waitInstanceReady v1
 		lxc exec v1 -- test -f snap1
 		lxc exec v1 -- test -f /mnt/vol7/snap1
+        lxc exec v1 -- grep -Fxm1 foo /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_customblock
+
 
 		echo "==> Check deleting multi-volume snapshot also deletes attached volume snapshots when requested"
-		[ "$(lxc storage volume list -f csv | grep -cF "Created alongside virtual-machine v1/v1-snap1 snapshot in project test")" = 1 ]
+		[ "$(lxc storage volume list -f csv | grep -cF "Created alongside virtual-machine v1/v1-snap1 snapshot in project test")" = 2 ]
 		lxc delete v1/v1-snap1 --disk-volumes=all-exclusive
 		[ "$(lxc storage volume list -f csv | grep -cF "Created alongside virtual-machine v1/v1-snap1 snapshot in project test")" = 0 ]
 
@@ -399,7 +408,8 @@ do
 	lxc storage volume rm "${poolName}" vol5 || true  # optional ISO
 	lxc storage volume rm "${poolName}" vol6 || true  # optional ISO
 	lxc storage volume rm "${poolName}" volblro
-	lxc storage volume rm "${poolName}" vol7 || true
+	lxc storage volume rm "${poolName}" vol7 || true  # optional multi-volume
+	lxc storage volume rm "${poolName}" vol8 || true  # optional multi-volume
 	lxc storage rm "${poolName}"
 done
 
