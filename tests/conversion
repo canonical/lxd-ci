@@ -262,7 +262,8 @@ IMAGE_PATH="${tmpdir}/backup/virtual-machine.img"
 # Test VM migration using conversion mode. If server does not support
 # conversion API extension, lxd-migrate must fallback to migration
 # mode and successfully transfer the VM disk.
-for driver in btrfs ceph dir lvm zfs; do
+# Note: testing lvm first as it often fails
+for driver in lvm btrfs ceph dir zfs; do
     conversion_vm alpine-raw "${driver}" "${IMAGE_PATH}" "no"
 done
 
@@ -369,8 +370,8 @@ if hasNeededAPIExtension instance_import_conversion; then
     # Test VMDK image.
     wget -q -O "${IMAGE_PATH}" https://cloud-images.ubuntu.com/releases/24.04/release/ubuntu-24.04-server-cloudimg-amd64.vmdk
 
-    conversion_vm u24-vmdk dir "${IMAGE_PATH}" "yes"
     conversion_vm u24-vmdk lvm "${IMAGE_PATH}" "yes"
+    conversion_vm u24-vmdk dir "${IMAGE_PATH}" "yes"
 
     # Use custom volume for backups. Images for conversion will be uploaded here.
     lxc storage create backups-pool zfs
