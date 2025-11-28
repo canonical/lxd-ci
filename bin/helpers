@@ -357,13 +357,11 @@ install_snapd() (
 )
 
 # hasNeededAPIExtension: check if LXD supports the needed extension.
-hasNeededAPIExtension() (
-    { set +x; } 2>/dev/null
-
-    needed_extension="${1}"
-
-    lxc info | grep -qxFm1 -- "- ${needed_extension}"
-)
+hasNeededAPIExtension() {
+    local lxc_info_out
+    lxc_info_out="$(lxc info)" || exit 1
+    grep -qxFm1 -- "- ${1}" <<< "${lxc_info_out}"
+}
 
 # runsMinimumKernel: check if the running kernel is at least the minimum version.
 runsMinimumKernel() (
