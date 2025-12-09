@@ -462,6 +462,12 @@ cleanup() {
     set +e
     echo ""
 
+    # XXX: Ignore qemu core dumps
+    if [ -n "$(ls /var/crash/core-qemu-system-x86.*.gz 2>/dev/null)" ]; then
+      echo "CORE: Ignoring qemu core dumps"
+      rm -f /var/crash/core-qemu-system-x86.*.gz
+    fi
+
     if [ -n "$(ls -A /var/crash/)" ]; then
         echo "CORE: coredump found during cleanup, forcing failure"
         FAIL=1
