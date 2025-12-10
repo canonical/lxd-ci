@@ -130,6 +130,20 @@ if hasNeededAPIExtension "gpu_cdi"; then
     lxc start c1
     [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ]
     lxc exec c1 -- nvidia-smi
+
+    echo "==> Testing running nested Docker container with nvidia runtime"
+
+    lxc stop --force c1
+
+    lxc config set c1 security.nesting=true nvidia.driver.capabilities=all
+    lxc start c1
+    waitInstanceReady c1
+
+    lxc exec c1 -- nvidia-smi
+
+    lxc exec c1 -- snap install docker
+    lxc exec c1 -- docker info | grep "Runtimes:.*nvidia"
+    lxc exec c1 -- docker run --rm --runtime=nvidia --gpus all ubuntu:24.04 nvidia-smi
 fi
 
 echo "==> Cleaning up"
