@@ -19,7 +19,7 @@ set -x
 
 # XXX: only testing 24.04 onward because prior versions either had LXD snap
 # pre-seeded or had an lxd-installer always installing from the default channel.
-RELEASES="${RELEASES:-"24.04 25.04 25.10"}"
+RELEASES="${RELEASES:-"24.04 25.10 26.04"}"
 
 test_lxd_installer() {
     local instance="${1}"
