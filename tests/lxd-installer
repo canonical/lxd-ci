@@ -53,7 +53,8 @@ test_lxd_installer() {
     # check the LXD version matches what we expect
     LXD_VERSION="$(lxc exec "${instance}" -- lxd --version)"
     LXD_EXPECTED_VERSION="5.21"
-    [[ "${LXD_VERSION}" =~ ${LXD_EXPECTED_VERSION}.* ]]
+    [ "${release}" = "26.04" ] && LXD_EXPECTED_VERSION="6"
+    [[ "${LXD_VERSION}" =~ ^${LXD_EXPECTED_VERSION}\..* ]]
 
     # check the LXD channel matches what we expect
     SNAP_CHANNEL="$(lxc exec "${instance}" -- snap info lxd | awk '/^tracking:/ {print $2}')"
