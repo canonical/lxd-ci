@@ -19,7 +19,26 @@ set -x
 
 # XXX: only testing 24.04 onward because prior versions either had LXD snap
 # pre-seeded or had an lxd-installer always installing from the default channel.
-RELEASES="${RELEASES:-"24.04 25.04 25.10"}"
+RELEASES="${RELEASES:-"24.04 25.10 26.04"}"
+
+# Install lxd-installer from `-proposed` pocket
+install_lxd_installer_from_proposed() {
+    local instance="${1}"
+    local VERSION_CODENAME=""
+    # shellcheck disable=SC2016
+    VERSION_CODENAME="$(lxc exec "${instance}" -- awk -F= '/VERSION_CODENAME=/ {print $2}' /etc/os-release)"
+
+    lxc file push - "${instance}"/etc/apt/sources.list.d/proposed.sources << EOF
+Types: deb
+URIs: http://archive.ubuntu.com/ubuntu
+Suites: ${VERSION_CODENAME}-proposed
+Components: main universe restricted multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+EOF
+
+    lxc exec "${instance}" -- apt-get update
+    lxc exec "${instance}" -- apt-get install -y -t "${VERSION_CODENAME}-proposed" lxd-installer
+}
 
 test_lxd_installer() {
     local instance="${1}"
@@ -39,6 +58,12 @@ test_lxd_installer() {
     # report on lxd-installer version
     lxc exec "${instance}" -- dpkg -l | grep -wF lxd-installer
 
+    # Quirk for 26.04 until lxd-installer 14ubuntu0 migrates out of -proposed
+    # shellcheck disable=SC2016
+    if [ "${release}" = "26.04" ] && [ "$(lxc exec "${instance}" -- dpkg-query -f='${Version}' -W lxd-installer)" = "13ubuntu0" ]; then
+        install_lxd_installer_from_proposed "${instance}"
+    fi
+
     # list snaps (should be empty)
     lxc exec "${instance}" -- snap list
     [ "$(lxc exec "${instance}" -- snap list lxd 2>/dev/null)" = "" ]
@@ -53,7 +78,8 @@ test_lxd_installer() {
     # check the LXD version matches what we expect
     LXD_VERSION="$(lxc exec "${instance}" -- lxd --version)"
     LXD_EXPECTED_VERSION="5.21"
-    [[ "${LXD_VERSION}" =~ ${LXD_EXPECTED_VERSION}.* ]]
+    [ "${release}" = "26.04" ] && LXD_EXPECTED_VERSION="6"
+    [[ "${LXD_VERSION}" =~ ^${LXD_EXPECTED_VERSION}\..* ]]
 
     # check the LXD channel matches what we expect
     SNAP_CHANNEL="$(lxc exec "${instance}" -- snap info lxd | awk '/^tracking:/ {print $2}')"
