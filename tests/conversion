@@ -30,10 +30,22 @@ fi
 
 export PATH="${HOME}/go/bin:${PATH}"
 
-# Install latest lxd-migrate binary tool.
-CGO_ENABLED=0 go install github.com/canonical/lxd/lxd-migrate@latest
-# Make it smaller
-strip --strip-all "$(command -v lxd-migrate)"
+# Install lxd conversion tool based on LXD version
+# Default to lxd-convert (LXD 6+)
+LXD_CONVERT_TOOL="lxd-convert"
+LXD_CONVERT_TOOL_FLAG="--options"
+GIT_BRANCH="main"
+
+# Legacy versions have `lxd-migrate`
+if [[ ${LXD_SNAP_CHANNEL:-latest/stable} =~ ^[45]\. ]]; then
+    LXD_CONVERT_TOOL="lxd-migrate"
+    LXD_CONVERT_TOOL_FLAG="--conversion"
+    # Using the tool from 5.21 even on older releases
+    GIT_BRANCH="stable-5.21"
+fi
+
+CGO_ENABLED=0 go install "github.com/canonical/lxd/${LXD_CONVERT_TOOL}@${GIT_BRANCH}"
+strip --strip-all "$(command -v "${LXD_CONVERT_TOOL}")"
 
 # Configure LXD
 lxd init --auto --network-address "[::]" --network-port "8443"
@@ -140,8 +152,8 @@ conversion_container() {
     conversion container "$1" "" "/" "no" ""
 }
 
-# conversion runs lxd-migrate for the given image path. For virtual machine, lxd-migrate is
-# executed on the localhost. For container, lxd-migrate will be installed and executed from
+# conversion runs lxd-convert/lxd-migrate for the given image path. For virtual machine, the tool is
+# executed on the localhost. For container, the conversion tool will be installed and executed from
 # an existing container.
 conversion() {
     instType=$1
@@ -159,7 +171,7 @@ conversion() {
         hostAddr="127.0.0.1"
         instTypeCode="2" # VM in migration questioneer.
 
-        lxdMigrateCmd="lxd-migrate --conversion=${conversionOptions}"
+        lxdMigrateCmd="${LXD_CONVERT_TOOL} ${LXD_CONVERT_TOOL_FLAG}=${conversionOptions}"
 
         # Create storage pool.
         if [ "$poolType" = "ceph" ] || [ "$poolType" = "dir" ]; then
@@ -175,12 +187,12 @@ conversion() {
         hostAddr=$(lxc network get lxdbr0 ipv4.address | cut -d/ -f1)
         instTypeCode="1" # Container.
 
-        lxdMigrateCmd="lxc exec ${instName} -- /root/go/bin/lxd-migrate"
+        lxdMigrateCmd="lxc exec ${instName} -- /root/go/bin/${LXD_CONVERT_TOOL}"
 
-        # Install rsync and lxd-migrate.
+        # Install rsync and conversion tool.
         lxc exec "${instName}" -- apt-get update
         lxc exec "${instName}" -- apt-get install --no-install-recommends -y rsync file
-        lxc file push --create-dirs --mode 0755 --quiet "$(command -v lxd-migrate)" "${instName}"/root/go/bin/lxd-migrate
+        lxc file push --create-dirs --mode 0755 --quiet "$(command -v ${LXD_CONVERT_TOOL})" "${instName}"/root/go/bin/${LXD_CONVERT_TOOL}
 
         # Set instName to the name of the new container that will be created
         # from the existing one.
@@ -240,7 +252,7 @@ conversion() {
 }
 
 # Test container migration using conversion mode. If server does not
-# support conversion API extension, lxd-migrate must fallback to
+# support conversion API extension, the conversion tool must fallback to
 # migration mode and successfully transfer the rootfs.
 lxc launch ubuntu-minimal-daily:24.04 c1 --device root,size=512MiB
 conversion_container "c1"
@@ -260,7 +272,7 @@ lxc delete tmp
 IMAGE_PATH="${tmpdir}/backup/virtual-machine.img"
 
 # Test VM migration using conversion mode. If server does not support
-# conversion API extension, lxd-migrate must fallback to migration
+# conversion API extension, the conversion tool must fallback to migration
 # mode and successfully transfer the VM disk.
 # Note: testing lvm first as it often fails
 for driver in lvm btrfs ceph dir zfs; do
@@ -276,7 +288,7 @@ if [ -z "${token}" ]; then
 fi
 
 # Test VM import with no target server - local unix server is used by default.
-lxd-migrate --non-interactive --type vm --source "${IMAGE_PATH}" \
+${LXD_CONVERT_TOOL} --non-interactive --type vm --source "${IMAGE_PATH}" \
     --name vm-ni-unix-default \
     --config security.secureboot=false
 query="$(lxc query /1.0/instances/vm-ni-unix-default)"
@@ -286,14 +298,14 @@ query="$(lxc query /1.0/instances/vm-ni-unix-default)"
 testImportedInstance vm-ni-unix-default
 
 # Test VM import to local unix server.
-lxd-migrate --non-interactive --type vm --source "${IMAGE_PATH}" \
+${LXD_CONVERT_TOOL} --non-interactive --type vm --source "${IMAGE_PATH}" \
     --name vm-ni-unix \
     --config security.secureboot=false \
     --server unix://
 testImportedInstance vm-ni-unix
 
 # Test VM import to remote HTTPS server.
-lxd-migrate --non-interactive --type vm --source "${IMAGE_PATH}" \
+${LXD_CONVERT_TOOL} --non-interactive --type vm --source "${IMAGE_PATH}" \
     --name vm-ni-https \
     --server https://127.0.0.1:8443 \
     --token "${token}" \
@@ -302,7 +314,7 @@ testImportedInstance vm-ni-https
 
 # Custom configuration with no profiles.
 # Ensure that custom configuration is applied and no profiles are attached.
-lxd-migrate --non-interactive --type vm --source "${IMAGE_PATH}" \
+${LXD_CONVERT_TOOL} --non-interactive --type vm --source "${IMAGE_PATH}" \
     --name vm-ni-custom-config \
     --no-profiles \
     --network lxdbr0 \
@@ -321,35 +333,35 @@ query="$(lxc query /1.0/instances/vm-ni-custom-config)"
 testImportedInstance vm-ni-custom-config
 
 # Ensure invalid instance name is rejected.
-! lxd-migrate --non-interactive --type vm --name vm-ni-invalid/name --source "${IMAGE_PATH}" || false
+! ${LXD_CONVERT_TOOL} --non-interactive --type vm --name vm-ni-invalid/name --source "${IMAGE_PATH}" || false
 
 # Ensure no-profiles and profiles flags are mutually exclusive.
-! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --no-profiles --profiles default || false
+! ${LXD_CONVERT_TOOL} --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --no-profiles --profiles default || false
 
 # Invalid instance config entry.
-! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --config invalid || false
+! ${LXD_CONVERT_TOOL} --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --config invalid || false
 
 # Invalid instance type.
-! lxd-migrate --non-interactive --name vm-ni-invalid-flags --source "${IMAGE_PATH}" || false
-! lxd-migrate --non-interactive --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --type invalid || false
+! ${LXD_CONVERT_TOOL} --non-interactive --name vm-ni-invalid-flags --source "${IMAGE_PATH}" || false
+! ${LXD_CONVERT_TOOL} --non-interactive --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --type invalid || false
 
 # Invalid source path (VM).
-! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source /invalid/file/path || false
+! ${LXD_CONVERT_TOOL} --non-interactive --type vm --name vm-ni-invalid-flags --source /invalid/file/path || false
 
 # Invalid config key.
-! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --config invalid || false
+! ${LXD_CONVERT_TOOL} --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --config invalid || false
 
 # Non-existing profile.
-! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --profiles invalid || false
+! ${LXD_CONVERT_TOOL} --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --profiles invalid || false
 
 # Non-existing storage pool.
-! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --storage invalid || false
+! ${LXD_CONVERT_TOOL} --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --storage invalid || false
 
 # Invalid storage pool size.
-! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --storage invalid --storage-size 15Gibibytes || false
+! ${LXD_CONVERT_TOOL} --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --storage invalid --storage-size 15Gibibytes || false
 
 # Non-existing network.
-! lxd-migrate --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --network invalid || false
+! ${LXD_CONVERT_TOOL} --non-interactive --type vm --name vm-ni-invalid-flags --source "${IMAGE_PATH}" --network invalid || false
 
 rm -rf "${tmpdir}/backup"
 
