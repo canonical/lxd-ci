@@ -58,7 +58,7 @@ jobs:
               -o image.architecture="${IMAGE_ARCH}" \
               -o image.release=${{ matrix.release }} \
               -o image.variant=${{ matrix.variant }} \
-              -o source.url=https://mirrors.ocf.berkeley.edu/openeuler
+              -o source.url=https://mirrors.huaweicloud.com/openeuler
 
       - name: Print build artifacts
         run: ls -lah "${{ env.target }}"
