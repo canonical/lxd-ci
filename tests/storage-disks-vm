@@ -111,6 +111,14 @@ else
   ! lxc exec v1 -- mount -t 9p lxd_dir1ro /srv/ro9p || false
   ! lxc exec v1 -- mount -t 9p -o ro lxd_dir1ro /srv/ro9p || false
 fi
+# Check that the config disk is mountable as virtiofs and 9p
+lxc exec v1 -- mkdir /mnt/config
+lxc exec v1 -- mount -t virtiofs config /mnt/config
+! lxc exec v1 -- touch /mnt/config/lxd-test-ro || false
+lxc exec v1 -- umount /mnt/config
+lxc exec v1 -- mount -t 9p config /mnt/config
+! lxc exec v1 -- touch /mnt/config/lxd-test-ro || false
+lxc exec v1 -- umount /mnt/config
 
 # Check writable disk is writable.
 lxc exec v1 -- touch /srv/rw/lxd-test-rw
