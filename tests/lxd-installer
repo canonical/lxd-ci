@@ -28,9 +28,6 @@ test_lxd_installer() {
 
     echo "==> ${instance} (${release})"
 
-    # workaround for https://bugs.launchpad.net/snapd/+bug/2104066
-    lxc exec "${instance}" -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
-
     if [ -n "${snapd_channel}" ]; then
         echo "==> Installing snapd from ${snapd_channel}"
         lxc exec "${instance}" -- sh -c "$(declare -f waitSnapdSeed install_snapd); install_snapd ${snapd_channel}"
