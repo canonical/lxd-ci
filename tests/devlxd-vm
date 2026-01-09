@@ -114,6 +114,9 @@ fi
 # Wait for boot to be completed to interact with snap/snapd
 waitInstanceBooted v1
 
+# workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+lxc exec v1 -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
+
 # Test nested VM functionality.
 lxc exec v1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 lxc exec v1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
