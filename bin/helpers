@@ -263,9 +263,9 @@ install_lxd() (
         # Make sure LXD is started at least
         systemctl start snap.lxd.daemon.service
     else
-        # If installing LXD from an edge channel, also pull snapd from candidate channel to catch regressions early
+        # If installing LXD from an edge channel, also pull snapd from beta channel to catch regressions early
         if [[ $LXD_SNAP_CHANNEL =~ /edge$ ]]; then
-          install_snapd "latest/candidate"
+          install_snapd "latest/beta"
         else
           # Wait for snapd seeding
           waitSnapdSeed
