@@ -122,6 +122,9 @@ if echo "${LXD_SNAP_CHANNEL}" | grep -E '^([45]\.0)/'; then
   exit
 fi
 
+# Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+lxc exec c1 -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
+
 # We need snapd to be ready before the next tests.
 lxc exec c1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 lxc exec c1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
