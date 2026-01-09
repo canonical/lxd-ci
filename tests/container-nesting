@@ -77,9 +77,6 @@ for poolDriver in ${poolDriverList}; do
     lxc launch "${IMAGE}" "${instName}" --profile default --profile container-nesting --storage "${poolName}"
     waitInstanceReady "${instName}"
 
-    # workaround for https://bugs.launchpad.net/snapd/+bug/2104066
-    lxc exec "${instName}" -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
-
     # Ensure snapd is ready.
     lxc exec "${instName}" -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
