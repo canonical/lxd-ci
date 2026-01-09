@@ -24,14 +24,11 @@ RELEASES="${RELEASES:-"24.04 25.10 26.04"}"
 test_lxd_installer() {
     local instance="${1}"
     local release="${2}"
-    local snapd_channel="${3:-}"
 
     echo "==> ${instance} (${release})"
 
-    if [ -n "${snapd_channel}" ]; then
-        echo "==> Installing snapd from ${snapd_channel}"
-        lxc exec "${instance}" -- sh -c "$(declare -f waitSnapdSeed install_snapd); install_snapd ${snapd_channel}"
-    fi
+    # prepare to install snaps
+    lxc exec "${instance}" -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
     # report on lxd-installer version
     lxc exec "${instance}" -- dpkg -l | grep -wF lxd-installer
