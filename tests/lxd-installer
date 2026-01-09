@@ -24,17 +24,11 @@ RELEASES="${RELEASES:-"24.04 25.10 26.04"}"
 test_lxd_installer() {
     local instance="${1}"
     local release="${2}"
-    local snapd_channel="${3:-}"
 
     echo "==> ${instance} (${release})"
 
-    # workaround for https://bugs.launchpad.net/snapd/+bug/2104066
-    lxc exec "${instance}" -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
-
-    if [ -n "${snapd_channel}" ]; then
-        echo "==> Installing snapd from ${snapd_channel}"
-        lxc exec "${instance}" -- sh -c "$(declare -f waitSnapdSeed install_snapd); install_snapd ${snapd_channel}"
-    fi
+    # prepare to install snaps
+    lxc exec "${instance}" -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 
     # report on lxd-installer version
     lxc exec "${instance}" -- dpkg -l | grep -wF lxd-installer
@@ -80,28 +74,21 @@ test_lxd() {
 # Silence GH warnings in isSystemdClean
 export WARNING_PREFIX="false"
 for remote in ubuntu-minimal-daily ubuntu-daily; do
-    for snapd_channel in "" "latest/candidate"; do
-        # On regular releases, only test with default snapd
-        if [ "${remote}" = "ubuntu-daily" ] && [ "${snapd_channel}" != "" ]; then
-            continue
-        fi
+    for release in $RELEASES; do
+        IMAGE="${remote}:${release}"
 
-        for release in $RELEASES; do
-            IMAGE="${remote}:${release}"
+        echo "==> container (${IMAGE})"
+        lxc launch "${IMAGE}" c1
+        waitInstanceBooted c1
+        test_lxd_installer c1 "${release}"
+        lxc delete -f c1
 
-            echo "==> container (${IMAGE})"
-            lxc launch "${IMAGE}" c1
-            waitInstanceBooted c1
-            test_lxd_installer c1 "${release}" "${snapd_channel}"
-            lxc delete -f c1
-
-            echo "==> VM (${IMAGE})"
-            lxc launch "${IMAGE}" v1 --vm -c security.devlxd.images=true
-            isSystemdClean v1  # for VM: require systemd --fail to be empty
-            test_lxd_installer v1 "${release}" "${snapd_channel}"
-            test_lxd v1 "${release}"
-            lxc delete -f v1
-        done
+        echo "==> VM (${IMAGE})"
+        lxc launch "${IMAGE}" v1 --vm -c security.devlxd.images=true
+        isSystemdClean v1  # for VM: require systemd --fail to be empty
+        test_lxd_installer v1 "${release}"
+        test_lxd v1 "${release}"
+        lxc delete -f v1
     done
 done
 unset WARNING_PREFIX
