@@ -23,6 +23,7 @@ set -x
 
 if ! command -v go; then
     # Install go from Snap.
+    snapdWorkaround
     waitSnapdSeed
     snap install go --classic
 fi
