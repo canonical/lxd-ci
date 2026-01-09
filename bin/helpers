@@ -1,11 +1,19 @@
 # shellcheck shell=bash
 
-# waitSnapdSeed: wait for snapd to be seeded.
-# Optional argument: timeout in seconds, defaults to 60.
+# waitSnapdSeed: wait for snapd to be seeded and installed/refreshed.
+# Optional argument: snapd channel to install from (default: latest/beta).
 waitSnapdSeed() (
   { set +x; } 2>/dev/null
-  waitSecs="${1:-60}"
+  local waitSecs=60
+  local SNAPD_SNAP_CHANNEL="${1:-"latest/beta"}"
+
   if timeout "${waitSecs}" snap wait system seed.loaded; then
+    local action="install"
+    # check if snapd is already installed
+    if snap list snapd 2>/dev/null; then
+        action="refresh"
+    fi
+    snap "${action}" snapd --channel "${SNAPD_SNAP_CHANNEL}" --cohort=+
     return 0 # Success.
   fi
   echo "snapd not seeded after ${waitSecs}s"
