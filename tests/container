@@ -144,6 +144,8 @@ for release in $RELEASES; do
     echo "==> nested container (${release})"
     lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
     isSystemdClean n1 || ignore_known_issues n1 nesting
+    # Workaround for https://bugs.launchpad.net/snapd/+bug/2104066
+    lxc exec n1 -- sh -c "$(declare -f snapdWorkaround); snapdWorkaround"
     lxc exec n1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
     lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
     lxc exec n1 -- lxd init --auto
