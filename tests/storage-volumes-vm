@@ -187,7 +187,11 @@ do
     fi
 
 	echo "==> Readonly custom block volumes are readonly"
-	lxc storage volume create "${poolName}" volblro --type block size=4MiB
+	if [ "${poolDriver}" != "powerflex" ] && [ "${poolDriver}" != "alletra" ]; then
+		lxc storage volume create "${poolName}" volblro --type block size=4MiB
+	else
+		lxc storage volume create "${poolName}" volblro --type block size=8GiB
+	fi
 
 	lxc config device add v1 volblro disk pool="${poolName}" source=volblro readonly=true
 
