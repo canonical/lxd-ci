@@ -94,14 +94,14 @@ lxc exec member1 -- lxc storage create ceph ceph
 lxc exec member1 -- lxc storage volume create ceph vol1 --type=block size=4MiB
 
 # Create a VM in the cluster, on member1.
-lxc exec member1 -- lxc init "${TEST_IMG:-ubuntu-minimal-daily:24.04}" v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=512MiB -d root,size=3584MiB
+lxc exec member1 -- lxc init --empty v1 --vm --storage ceph --target member1 -c migration.stateful=true -c limits.memory=512MiB -d root,size=4MiB
 
 # Add vol1 as a disk device to the VM.
 lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol1
 
 # Start the VM.
 lxc exec member1 -- lxc start v1
-sleep 60
+sleep 10
 
 # Ascertain that the VM is indeed on member1.
 [ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member1" ]
