@@ -3,7 +3,7 @@ name: GPU passthrough
 on:
   pull_request:
     paths:
-      - '.github/workflows/nvidia-test.yml'
+      - '.github/workflows/gpu-passthrough-tests.yml'
       - '.github/workflows/testflinger/**'
   schedule:
     - cron: '38 6 */5 * *'
@@ -132,3 +132,35 @@ jobs:
         with:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/nvidia-legacy-runtime-job.yml
+  amd-cdi:
+    runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
+    strategy:
+      matrix:
+        track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
+        os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
+    env:
+      TESTFLINGER_DIR: .github/workflows/testflinger
+      SNAP_CHANNEL: ${{ matrix.track }}
+    steps:
+      - name: Event data
+        run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
+
+      - name: Checkout code
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Create Testflinger job
+        env:
+          JOB_QUEUE: lxd-amd
+          DISTRO: ${{ matrix.os }}
+        run: |
+          # Prepare job
+          envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' \
+            < $TESTFLINGER_DIR/amd-cdi-job.yaml \
+            > $TESTFLINGER_DIR/amd-cdi-job.temp
+          mv $TESTFLINGER_DIR/amd-cdi-job.temp $TESTFLINGER_DIR/amd-cdi-job.yaml
+
+      - name: Run tests
+        uses: canonical/testflinger/.github/actions/submit@main
+        with:
+          poll: true
+          job-path: ${{ env.TESTFLINGER_DIR }}/amd-cdi-job.yaml
