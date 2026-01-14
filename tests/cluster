@@ -5,7 +5,7 @@ set -eux
 install_lxd
 
 # Configure LXD
-lxd init --auto --storage-backend=btrfs
+lxd init --auto --storage-backend btrfs --storage-create-loop 5
 
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 SIZE="$1"
