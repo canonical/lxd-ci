@@ -275,6 +275,13 @@ IMAGE_PATH="${tmpdir}/backup/virtual-machine.img"
 # mode and successfully transfer the VM disk.
 # Note: testing lvm first as it often fails
 for driver in lvm btrfs ceph dir zfs; do
+    if [ "${driver}" = "lvm" ]; then
+        # For LVM thin use external LVM tools to avoid errors like:
+        # Failed to run: lvcreate --yes --wipesignatures y --thinpool --extents 100%FREE: Device or resource busy
+        snap set lxd lvm.external=true
+        systemctl reload snap.lxd.daemon.service
+    fi
+
     conversion_vm alpine-raw "${driver}" "${IMAGE_PATH}" "no"
 done
 

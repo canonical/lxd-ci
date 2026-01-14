@@ -67,6 +67,10 @@ for poolDriver in $poolDriverList; do
                 ! lxc storage set "${poolName}" size=58GiB || false
                 [ "$(lxc storage get "${poolName}" size)" = "60GiB" ]
         elif [ "${poolDriver}" = "lvm-thin" ]; then
+                # For LVM thin use external LVM tools to avoid errors like:
+                # Failed to run: lvcreate --yes --wipesignatures y --thinpool --extents 100%FREE: Device or resource busy
+                snap set lxd lvm.external=true
+                systemctl reload snap.lxd.daemon.service
                 lxc storage create "${poolName}" lvm size=19GiB
                 lxc storage set "${poolName}" size=20GiB
                 ! lxc storage set "${poolName}" size=18GiB || false
