@@ -1,4 +1,4 @@
-name: NVIDIA GPU passthrough
+name: GPU passthrough
 
 on:
   pull_request:
@@ -33,7 +33,7 @@ on:
           - '["5.21/stable"]'
 
 jobs:
-  uc-cdi:
+  uc-nvidia-cdi:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
@@ -67,7 +67,7 @@ jobs:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/uc-nvidia-cdi-job.yml
 
-  cdi:
+  nvidia-cdi:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
@@ -100,7 +100,7 @@ jobs:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/nvidia-cdi-job.yml
 
-  legacy-runtime:
+  nvidia-legacy-runtime:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
