@@ -40,12 +40,6 @@ jobs:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os:
           - core24-latest
-        exclude:
-          # skip tracks without CDI support
-          - track: "4.0/candidate"
-          - track: "4.0/edge"
-          - track: "5.0/candidate"
-          - track: "5.0/edge"
     env:
       TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
@@ -79,21 +73,6 @@ jobs:
       matrix:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
-        exclude:
-          # skip tracks without CDI support
-          - track: "4.0/candidate"
-          - track: "4.0/edge"
-          - track: "5.0/candidate"
-          - track: "5.0/edge"
-          # skip track/os combinations that are too far appart
-          - os: noble
-            track: "4.0/candidate"
-          - os: noble
-            track: "4.0/edge"
-          - os: noble
-            track: "5.0/candidate"
-          - os: noble
-            track: "5.0/edge"
     env:
       TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
@@ -127,16 +106,6 @@ jobs:
       matrix:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
-        exclude:
-          # skip track/os combinations that are too far appart
-          - os: noble
-            track: "4.0/candidate"
-          - os: noble
-            track: "4.0/edge"
-          - os: noble
-            track: "5.0/candidate"
-          - os: noble
-            track: "5.0/edge"
     env:
       TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
