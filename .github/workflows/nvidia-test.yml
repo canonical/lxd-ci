@@ -18,7 +18,7 @@ on:
           - '["jammy"]'
           - '["noble"]'
       snap-track:
-        description: Snap track to run the tests i.e. '["latest/edge", "5.0/candidate"]'.
+        description: Snap track to run the tests i.e. '["latest/edge", "6/candidate"]'.
         type: choice
         default: '["latest/edge"]'
         options:
@@ -30,12 +30,7 @@ on:
           - '["6/stable"]'
           - '["5.21/edge"]'
           - '["5.21/candidate"]'
-          - '["5.0/edge"]'
-          - '["5.0/candidate"]'
-          - '["5.0/stable"]'
-          - '["4.0/edge"]'
-          - '["4.0/candidate"]'
-          - '["4.0/stable"]'
+          - '["5.21/stable"]'
 
 jobs:
   uc24-cdi-test:
