@@ -1,8 +1,8 @@
 # CI status
 
-Tests | NVIDIA | Lint
+Tests | GPU Passthrough | Lint
 :---: | :---: | :---:
-[![Tests](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml) | [![NVIDIA](https://github.com/canonical/lxd-ci/actions/workflows/nvidia-test.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/nvidia-test.yml) | [![Lint](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml)
+[![Tests](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/tests.yml) | [![GPU Passthrough](https://github.com/canonical/lxd-ci/actions/workflows/gpu-passthrough-tests.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/gpu-passthrough-tests.yml) | [![Lint](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml/badge.svg)](https://github.com/canonical/lxd-ci/actions/workflows/lint.yml)
 
 ## Images
 
