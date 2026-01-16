@@ -107,7 +107,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJSON(inputs.ubuntu-releases || '["22.04", "24.04"]') }}
-        track: ${{ fromJSON(inputs.snap-track || '["latest/edge", "5.21/edge", "5.0/edge", "4.0/edge"]') }}
+        track: ${{ fromJSON(inputs.snap-track || '["latest/edge", "6/edge", "5.21/edge", "5.0/edge"]') }}
         test:
           - cgroup
           - cloud-init
