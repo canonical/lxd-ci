@@ -1,4 +1,4 @@
-name: NVIDIA GPU passthrough (containers)
+name: GPU passthrough
 
 on:
   pull_request:
@@ -18,7 +18,7 @@ on:
           - '["jammy"]'
           - '["noble"]'
       snap-track:
-        description: Snap track to run the tests i.e. '["latest/edge", "5.0/candidate"]'.
+        description: Snap track to run the tests i.e. '["latest/edge", "6/candidate"]'.
         type: choice
         default: '["latest/edge"]'
         options:
@@ -30,27 +30,16 @@ on:
           - '["6/stable"]'
           - '["5.21/edge"]'
           - '["5.21/candidate"]'
-          - '["5.0/edge"]'
-          - '["5.0/candidate"]'
-          - '["5.0/stable"]'
-          - '["4.0/edge"]'
-          - '["4.0/candidate"]'
-          - '["4.0/stable"]'
+          - '["5.21/stable"]'
 
 jobs:
-  uc24-cdi-test:
+  uc-nvidia-cdi:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os:
           - core24-latest
-        exclude:
-          # skip tracks without CDI support
-          - track: "4.0/candidate"
-          - track: "4.0/edge"
-          - track: "5.0/candidate"
-          - track: "5.0/edge"
     env:
       TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
@@ -78,27 +67,12 @@ jobs:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/uc-nvidia-cdi-job.yml
 
-  cdi-test:
+  nvidia-cdi:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
-        exclude:
-          # skip tracks without CDI support
-          - track: "4.0/candidate"
-          - track: "4.0/edge"
-          - track: "5.0/candidate"
-          - track: "5.0/edge"
-          # skip track/os combinations that are too far appart
-          - os: noble
-            track: "4.0/candidate"
-          - os: noble
-            track: "4.0/edge"
-          - os: noble
-            track: "5.0/candidate"
-          - os: noble
-            track: "5.0/edge"
     env:
       TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
@@ -126,22 +100,12 @@ jobs:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/nvidia-cdi-job.yml
 
-  nvidia-runtime-test:
+  nvidia-legacy-runtime:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
-        exclude:
-          # skip track/os combinations that are too far appart
-          - os: noble
-            track: "4.0/candidate"
-          - os: noble
-            track: "4.0/edge"
-          - os: noble
-            track: "5.0/candidate"
-          - os: noble
-            track: "5.0/edge"
     env:
       TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
