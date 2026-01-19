@@ -71,10 +71,18 @@ do
 	lxc storage volume detach "${poolName}" vol1 v1
 	lxc storage volume detach "${poolName}" vol4 v1
 
+	echo "==> Snapshot custom volume"
+	lxc storage volume snapshot "${poolName}" vol4
+
 	echo "==> Test custom block volume hotplugging"
 	lxc start v1
 	waitInstanceReady v1
 	lxc storage volume attach "${poolName}" vol1 v1
+	echo "==> Test snapshot read-only attach"
+	lxc storage volume attach "${poolName}" vol4/snap0 v1 /foo-snap
+	lxc exec v1 -- mountpoint -q /foo-snap
+	! lxc exec v1 -- touch /foo-snap/should-fail || false
+	lxc storage volume detach "${poolName}" vol4/snap0 v1
 	sleep 3
 	BLOCK_SPECIAL_FILE="$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_vol1)"
 	lxc exec v1 -- test -b "$BLOCK_SPECIAL_FILE"
