@@ -43,7 +43,10 @@ jobs:
       - name: Determine image types
         run: |
           ARCH="${{ matrix.architecture }}"
-          if [ "${ARCH}" = "amd64" ]; then
+          # XXX: Sid VMs on amd64 are known to be broken
+          # (https://github.com/canonical/lxd/issues/17424) so temporarily skip
+          # VM builds for that combination.
+          if [ "${ARCH}" = "amd64" ] && [ "${{ matrix.release }}" != "sid" ]; then
               echo "type=container,vm" >> $GITHUB_ENV
           fi
 
