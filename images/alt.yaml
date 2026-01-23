@@ -188,5 +188,12 @@ actions:
   variants:
   - cloud
 
+- trigger: post-packages
+  action: |-
+    #!/bin/sh
+    systemctl mask systemd-nsresourced.service systemd-nsresourced.socket
+  types:
+  - container
+
 mappings:
   architecture_map: altlinux
