@@ -83,6 +83,13 @@ for remote in ubuntu-minimal-daily ubuntu-daily; do
         test_lxd_installer c1 "${release}"
         lxc delete -f c1
 
+        # ubuntu-minimal-daily:26.04 images have a race that leads cloud-init to fail detecting it's executing in a LXD VM
+        # https://github.com/canonical/lxd/issues/14605
+        if [ "${release}" = "26.04" ] && [ "${remote}" = "ubuntu-minimal-daily" ]; then
+            echo "==> Skipping VM test for ${IMAGE} due to known cloud-init issue"
+            continue
+        fi
+
         echo "==> VM (${IMAGE})"
         lxc launch "${IMAGE}" v1 --vm -c security.devlxd.images=true
         isSystemdClean v1  # for VM: require systemd --fail to be empty
