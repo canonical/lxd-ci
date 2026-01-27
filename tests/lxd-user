@@ -2,7 +2,7 @@
 set -eux
 
 lxc_user() {
-    sudo -Hu testuser LXD_DIR=/var/snap/lxd/common/lxd-user lxc "${@}"
+    sudo -Hu testuser GOCOVERDIR="${GOCOVERDIR:-}" LXD_DIR=/var/snap/lxd/common/lxd-user lxc "${@}"
 }
 
 # Install lxd
