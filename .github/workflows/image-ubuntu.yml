@@ -52,6 +52,15 @@ jobs:
           TYPE="${{ env.type }}"
 
           ARCHIVE="http://archive.ubuntu.com/ubuntu"
+
+          # For LTS releases, try to use the Azure mirror (closer, faster and more reliable)
+          if [ "${{ matrix.release }}" = "noble" ] || [ "${{ matrix.release }}" = "jammy" ]; then
+            if [ -f /etc/apt/apt-mirrors.txt ]; then
+                cat /etc/apt/apt-mirrors.txt
+                ARCHIVE="$(awk '$2=="priority:1" && $1 ~ /^https?:\/\// {print $1}' /etc/apt/apt-mirrors.txt)"
+            fi
+          fi
+
           if [ "${ARCH}" != "amd64" ] && [ "${ARCH}" != "i386" ]; then
               ARCHIVE="http://ports.ubuntu.com/ubuntu-ports"
           fi
