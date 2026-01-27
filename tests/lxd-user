@@ -20,5 +20,9 @@ lxc_user project list -f csv | grep '^user-5000.*,"User restricted project for "
 lxc project delete user-5000
 userdel -r testuser 2>/dev/null || true
 
+# Try to gracefully stop lxd-user daemon which allows coverage data to be
+# saved if needed.
+pkill -x lxd-user || pkill -x lxd-user.debug || true
+
 # shellcheck disable=SC2034
 FAIL=0
