@@ -134,13 +134,12 @@ monitorPID="${!}"
 lxc exec c1 -- /snap/bin/lxc launch "${TEST_IMG:-ubuntu:24.04}" c1c1
 lxc exec c1 -- /snap/bin/lxc info c1c1 | grep -F RUNNING
 
-kill -9 "${monitorPID}"
+kill "${monitorPID}"
 
 # If the guest retrieved the image from the host, the host should emit an "image-retrieved" lifecycle event. The
 # requestor address tells us that this was definitely the guest.
 # Newer LXD versions use the protocol instead of the requestor address to distinguish devlxd requests
-[ "$(grep -wF 'image-retrieved' monitor.json | jq -r '.metadata.requestor.address')" = "@devlxd" ] || \
-  [ "$(grep -wF 'image-retrieved' monitor.json | jq -r '.metadata.requestor.protocol')" = "devlxd" ]
+grep -wF 'image-retrieved' monitor.json | jq --exit-status '.metadata.requestor | (.address == "@devlxd" or .protocol == "devlxd")'
 rm monitor.json
 
 echo "==> Deleting container"
