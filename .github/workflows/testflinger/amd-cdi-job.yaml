@@ -1,0 +1,69 @@
+job_queue: $JOB_QUEUE
+global_timeout: 3600
+output_timeout: 1800
+provision_data:
+  distro: $DISTRO
+
+test_data:
+  test_cmds: |
+    #!/bin/bash
+
+    set -xeuo pipefail
+
+    # This is used, along with DEVICE_IP, by all scriptlets to access the device
+    export DEVICE_USER="ubuntu"
+
+    # retrieve the tools installer
+    curl -Ls -o install_tools.sh https://raw.githubusercontent.com/canonical/hwcert-jenkins-tools/main/install_tools.sh
+
+    # install the scriptlets and other tools on the agent and the device, as necessary
+    export TOOLS_PATH=tools
+    source install_tools.sh $TOOLS_PATH
+
+    # ensure device is available before continuing
+    wait_for_ssh --allow-degraded
+
+    # Wait for snapd to become available
+    retry -- _run "timeout 5 sudo snap wait system seed.loaded"
+    wait_for_snap_changes
+
+    # Install AMD GPU drivers and utilities
+    _run install_packages mesa-utils libdrm-amdgpu1 radeontop
+
+    # Show kernel boot arguments for debugging
+    _run cat /proc/cmdline
+
+    # verify that AMD GPU devices are available
+    _run lspci -k | grep -A 3 -i "vga\|display\|3d"
+    _run ls -la /dev/dri/
+    _run ls -la /dev/kfd
+
+    # LXD working
+    _run sudo snap install lxd --channel=$SNAP_CHANNEL --no-wait
+    wait_for_snap_changes
+
+    _run sudo lxd init --auto
+    _run sudo usermod -G lxd ubuntu
+
+    _run lxc init ubuntu:noble c1 &
+    for i in $( seq 1 60 ); do
+      [ $i -lt 60 ]
+      _run lxc config device add c1 gpu0 gpu id=amd.com/gpu=0 && break || /bin/true
+      sleep 1
+    done
+
+    _run lxc start c1
+
+    # print out all mounts we have so we can compare it later if anything goes wrong
+    _run lxc exec c1 -- cat /proc/self/mountinfo
+
+    # check that AMD devices are accessible in the container
+    _run lxc exec c1 -- ls -la /dev/dri/
+    _run lxc exec c1 -- ls -la /dev/kfd
+
+    # Verify that card and renderD devices exist
+    _run lxc exec c1 -- test -e /dev/dri/card0
+    _run lxc exec c1 -- test -e /dev/dri/renderD128
+
+    # Check that KFD device is accessible
+    _run lxc exec c1 -- test -c /dev/kfd
