@@ -15,7 +15,7 @@ jobs:
       matrix:
         release:
           - virginia  # EOL: 2027-04-30
-          - xia       # EOL: 2029-04-30
+          - zena      # EOL: 2029-04-30
         variant:
           - default
           - cloud
