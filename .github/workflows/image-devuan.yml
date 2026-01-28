@@ -28,6 +28,9 @@ jobs:
           - cloud
         architecture:
           - ${{ (inputs.build-arm64 == true || github.event.schedule == '15 4 * * 1-5') && 'arm64' || 'amd64' }}
+        exclude:
+          - release: excalibur
+            variant: cloud  # cloud-init not working on this sysvinit based distro
     env:
       type: "container"
       distro: "${{ github.job }}"
