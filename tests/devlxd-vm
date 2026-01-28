@@ -143,8 +143,8 @@ if hasNeededAPIExtension devlxd_images_vm; then
 
   # If the guest retrieved the image from the host, the host should emit an "image-retrieved" lifecycle event. The
   # requestor address tells us that this was definitely the guest.
-  [ "$(grep -wF 'image-retrieved' monitor.json | jq -r '.metadata.requestor.address')" = "@devlxd" ] || \
-    [ "$(grep -wF 'image-retrieved' monitor.json | jq -r '.metadata.requestor.protocol')" = "devlxd" ]
+  # Newer LXD versions use the protocol instead of the requestor address to distinguish devlxd requests
+  grep -wF 'image-retrieved' monitor.json | jq --exit-status '.metadata.requestor | (.address == "@devlxd" or .protocol == "devlxd")'
   rm monitor.json
 fi
 
