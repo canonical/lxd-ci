@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 2023  # EOL: 2026-06-30
+          - 2023  # EOL: 2029-06-30
         variant:
           - default
         architecture:
