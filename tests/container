@@ -114,9 +114,11 @@ ignore_known_issues() {
 # Silence GH warnings in isSystemdClean
 export WARNING_PREFIX="false"
 for release in $RELEASES; do
-    if [ "${release}" = "24.04" ] && echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
-        echo "Skip 24.04 container tests on ${LXD_SNAP_CHANNEL}"
-        continue
+    if [[ "${LXD_SNAP_CHANNEL}" =~ ^4\.0/ ]]; then
+        if dpkg --compare-versions "${release}" ge "24.04"; then
+            echo "Skip ${release} container tests on ${LXD_SNAP_CHANNEL}"
+            continue
+        fi
     fi
 
     IMAGE="ubuntu-minimal-daily:${release}"
@@ -141,16 +143,28 @@ for release in $RELEASES; do
     isSystemdClean i1 || ignore_known_issues i1 isolated
     lxc delete -f i1
 
-    echo "==> nested container (${release})"
-    lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
-    isSystemdClean n1 || ignore_known_issues n1 nesting
-    lxc exec n1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
-    lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
-    lxc exec n1 -- lxd init --auto
-    lxc exec n1 -- lxc launch "${IMAGE}" n11
-    sleep 5
-    [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues n11 nested
-    lxc delete -f n1
+    testNested="true"
+    if [[ "${LXD_SNAP_CHANNEL}" =~ ^5\.0/ ]]; then
+        if dpkg --compare-versions "${release}" ge "26.04"; then
+            testNested="false"
+        fi
+    fi
+
+    if [ "${testNested}" = "true" ]; then
+        echo "==> nested container (${release})"
+        lxc launch "${IMAGE}" n1 -c security.nesting=true -c security.devlxd.images=true
+        isSystemdClean n1 || ignore_known_issues n1 nesting
+        lxc exec n1 -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
+        lxc exec n1 -- snap install lxd --channel="${LXD_SNAP_CHANNEL}" --cohort=+
+        lxc exec n1 -- lxd init --auto
+        lxc exec n1 -- lxc launch "${IMAGE}" n11
+        sleep 5
+        [ "$(lxc exec n1 -- lxc exec n11 -- systemctl --quiet --failed)" = "" ] || ignore_known_issues n11 nested
+        lxc delete -f n1
+    else
+        echo "Skip ${release} nested container tests on ${LXD_SNAP_CHANNEL}"
+        continue
+    fi
 
     # Expunge images that won't be reused (!= 24.04)
     for image in $(lxc image list -f csv | grep -vwF 24.04 | cut -d, -f2); do
