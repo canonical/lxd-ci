@@ -433,10 +433,14 @@ cleanup() {
       rm /var/crash/core-unattended-upgr*.gz
     fi
 
-    # XXX: Ignore qemu core dumps
-    if [ -n "$(ls /var/crash/core-qemu-system-x86.*.gz 2>/dev/null)" ]; then
-      echo "CORE: Ignoring qemu core dumps"
-      rm -f /var/crash/core-qemu-system-x86.*.gz
+    # XXX: Ignore qemu core dumps only for QEMU < 10.2.0 (some snap versions ship a newer version not affected by the bug)
+    if command -v qemu-system-x86_64 > /dev/null && compgen -G "/var/crash/core-qemu-system-x86.*.gz" > /dev/null 2>&1; then
+        local qemu_pkg_version
+        qemu_pkg_version="$(dpkg-query -W -f='${Version}' qemu-system-x86 2>/dev/null || true)"
+        if [ -n "${qemu_pkg_version}" ] && dpkg --compare-versions "${qemu_pkg_version}" lt "10.2.0"; then
+            echo "CORE: Ignoring qemu core dumps (qemu-system-x86 ${qemu_pkg_version})"
+            rm /var/crash/core-qemu-system-x86.*.gz
+        fi
     fi
 
     if [ -n "$(ls -A /var/crash/)" ]; then
