@@ -323,8 +323,7 @@ jobs:
 
       - name: Reclaim disk space
         # This can take multiple minutes if the runner is busy/slow so only run it when/where absolutely needed.
-        # Storage tests need it except when using ceph as it uses the ephemeral disk.
-        if: ${{ matrix.test == 'conversion' || matrix.test == 'vm-nesting' || (startsWith(matrix.test, 'storage-') && !contains(matrix.test, ' ceph')) }}
+        if: ${{ matrix.test == 'conversion' || matrix.test == 'vm-nesting' || startsWith(matrix.test, 'storage-') }}
         uses: canonical/lxd/.github/actions/reclaim-disk-space@main
 
       - name: Disable Docker
