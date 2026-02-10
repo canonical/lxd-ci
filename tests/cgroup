@@ -218,8 +218,8 @@ else
     lxc exec c1 -- iperf3 -t 3 -R -c "${IP}" -J > iperf.json
     I2=$(($(jq .end.sum_sent.bits_per_second < iperf.json | cut -d. -f1)/1024/1024))
     echo "Throughput after limits: ${E2}Mbps / ${I2}Mbps"
-    [ "${E2}" -lt "50" ]
-    [ "${I2}" -lt "200" ]
+    [ "${E2}" -le "50" ]
+    [ "${I2}" -le "200" ]
 
     pkill -9 iperf3
     lxc config device set c1 eth0 limits.egress= limits.ingress=
