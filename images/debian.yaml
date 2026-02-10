@@ -1113,7 +1113,6 @@ packages:
     - init
     - iproute2
     - iputils-ping
-    - isc-dhcp-client
     - locales
     - netbase
     - net-tools
@@ -1123,6 +1122,14 @@ packages:
     - udev
     - vim
     action: install
+
+  - packages:
+    - isc-dhcp-client
+    action: install
+    releases:
+    - bullseye
+    - bookworm
+    - trixie
 
   - packages:
     - dbus
