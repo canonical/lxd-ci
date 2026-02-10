@@ -358,10 +358,14 @@ waitInstanceReady v1
 [ "$(lxc exec v1  -- stat /mnt/foo1 -c '%u:%g')" = "1000:1000" ]
 [ "$(lxc exec v1  -- stat /mnt/foo2 -c '%u:%g')" = "65534:65534" ]
 
-# Check security.secureboot setting is applied to running VM at next start up.
+# Check secure boot setting is applied to running VM at next startup.
 if lxc exec v1 -- mount | grep -qwF /boot/efi; then
   lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot enabled"
-  lxc profile set default security.secureboot=false
+  if hasNeededAPIExtension instance_boot_mode; then
+    lxc profile set default boot.mode=uefi-nosecureboot
+  else
+    lxc profile set default security.secureboot=false
+  fi
   lxc restart -f v1
   waitInstanceReady v1
   lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot disabled"

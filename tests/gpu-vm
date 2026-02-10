@@ -26,9 +26,15 @@ fi
 # LXD resource API
 lxc info --resources
 
+# Select VM secure boot config syntax based on server API support.
+vm_secureboot_config="security.secureboot=false"
+if hasNeededAPIExtension instance_boot_mode; then
+	vm_secureboot_config="boot.mode=uefi-nosecureboot"
+fi
+
 # Launch test instances
 for i in $(seq 1 4); do
-	lxc init "${IMAGE}" "v${i}" --vm -c security.secureboot=false
+	lxc init "${IMAGE}" "v${i}" --vm -c "${vm_secureboot_config}"
 	if [ "${1}" = "nvidia" ]; then
 		lxc config device add "v${i}" vgpu gpu gputype=mdev pci=0000:07:00.0 mdev=nvidia-468
 	fi
