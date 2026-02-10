@@ -87,7 +87,7 @@ if [ "${TYPE}" = "vm" ]; then
     # Some distros don't support secure boot.
     case "${DISTRO}" in
         alpine|archlinux|gentoo|nixos|openeuler)
-            lxc config set "${TEST_INSTANCE}" security.secureboot=false
+            lxc config set "${TEST_INSTANCE}" boot.mode=uefi-nosecureboot
             ;;
     esac
 else
