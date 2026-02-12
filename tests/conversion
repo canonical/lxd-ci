@@ -49,6 +49,12 @@ strip --strip-all "$(command -v "${LXD_CONVERT_TOOL}")"
 # Configure LXD
 lxd init --auto --network-address "[::]" --network-port "8443"
 
+# Select VM secure boot config syntax based on server API support.
+vm_secureboot_config="security.secureboot=false"
+if hasNeededAPIExtension instance_boot_mode; then
+    vm_secureboot_config="boot.mode=uefi-nosecureboot"
+fi
+
 checkIPAddresses() {
     instName=$1
 
@@ -296,7 +302,7 @@ fi
 # Test VM import with no target server - local unix server is used by default.
 ${LXD_CONVERT_TOOL} --non-interactive --type vm --source "${IMAGE_PATH}" \
     --name vm-ni-unix-default \
-    --config security.secureboot=false
+    --config "${vm_secureboot_config}"
 query="$(lxc query /1.0/instances/vm-ni-unix-default)"
 [ "$(jq -r '.profiles[]' <<< "${query}")" = "default" ]       # Ensure default profile is applied.
 [ "$(jq -r .devices <<< "${query}")" = "{}" ]                 # Ensure no dierct devices.
@@ -306,7 +312,7 @@ testImportedInstance vm-ni-unix-default
 # Test VM import to local unix server.
 ${LXD_CONVERT_TOOL} --non-interactive --type vm --source "${IMAGE_PATH}" \
     --name vm-ni-unix \
-    --config security.secureboot=false \
+    --config "${vm_secureboot_config}" \
     --server unix://
 testImportedInstance vm-ni-unix
 
@@ -315,7 +321,7 @@ ${LXD_CONVERT_TOOL} --non-interactive --type vm --source "${IMAGE_PATH}" \
     --name vm-ni-https \
     --server https://127.0.0.1:8443 \
     --token "${token}" \
-    --config security.secureboot=false
+    --config "${vm_secureboot_config}"
 testImportedInstance vm-ni-https
 
 # Custom configuration with no profiles.
@@ -328,14 +334,14 @@ ${LXD_CONVERT_TOOL} --non-interactive --type vm --source "${IMAGE_PATH}" \
     --storage-size 5GiB \
     --config limits.cpu=2 \
     --config limits.memory=2GiB \
-    --config security.secureboot=false
+    --config "${vm_secureboot_config}"
 query="$(lxc query /1.0/instances/vm-ni-custom-config)"
 [ "$(jq -r .profiles <<< "${query}")" = "[]" ]                  # Ensure no profiles are applied.
 [ "$(jq -r .devices.root.pool <<< "${query}")" = "default" ]    # Ensure storage pool default is used.
 [ "$(jq -r .devices.eth0.network <<< "${query}")" = "lxdbr0" ]  # Ensure network lxdbr0 is used.
 [ "$(jq -r '.config["limits.cpu"]' <<< "${query}")" = "2" ]
 [ "$(jq -r '.config["limits.memory"]' <<< "${query}")" = "2GiB" ]
-[ "$(jq -r '.config["security.secureboot"]' <<< "${query}")" = "false" ]
+[ "$(jq -r --arg key "${vm_secureboot_config%%=*}" '.config[$key]' <<< "${query}")" = "${vm_secureboot_config#*=}" ]
 testImportedInstance vm-ni-custom-config
 
 # Ensure invalid instance name is rejected.
