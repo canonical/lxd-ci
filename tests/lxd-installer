@@ -70,6 +70,9 @@ test_lxd() {
     lxc exec "${instance}" -- lxc launch "ubuntu-minimal-daily:${release}" n1
     lxc exec "${instance}" -- lxc delete -f n1
 
+    # XXX: workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2141703
+    lxc exec "${instance}" -- modprobe vxlan
+
     # test the creation of a FAN bridge
     lxc exec "${instance}" -- lxc network create lxdfan0 bridge.mode=fan
 }
