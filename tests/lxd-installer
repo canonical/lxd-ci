@@ -61,6 +61,11 @@ test_lxd() {
 
     echo "==> ${instance} (${release})"
 
+    # XXX: Temporarily refresh to `latest/edge` if the automatically installed snap doesn't support ZFS 2.4
+    if [ "${release}" = "26.04" ] && ! lxc exec v1 -- test -d /snap/lxd/current/zfs-2.4; then
+      lxc exec "${instance}" -- snap refresh lxd --channel latest/edge
+    fi
+
     # check that ZFS is functional
     lxc exec "${instance}" -- lxd init --auto --storage-backend "zfs"
     lxc exec "${instance}" -- lxc storage show default | grep -xF 'driver: zfs'
@@ -69,6 +74,18 @@ test_lxd() {
     # use -minimal for a lighter nested instance
     lxc exec "${instance}" -- lxc launch "ubuntu-minimal-daily:${release}" n1
     lxc exec "${instance}" -- lxc delete -f n1
+
+    if [ "${release}" = "25.10" ]; then
+      # Known broken FAN on this non-LTS release
+      echo "==> Skipping FAN tests for ${instance} due to known broken FAN support in ${release}"
+      return
+    fi
+
+    # XXX: workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2141703
+    lxc exec "${instance}" -- modprobe vxlan
+
+    # test the creation of a FAN bridge
+    lxc exec "${instance}" -- lxc network create lxdfan0 bridge.mode=fan
 }
 
 # Silence GH warnings in isSystemdClean
