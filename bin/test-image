@@ -204,6 +204,11 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
         echo "===> SKIP: systemd clean: ${name}"
     fi
 
+    # cloud-init might reconfigure the network, so wait for it to complete before checking the network state.
+    if has_cloud_init; then
+        lxc exec "${name}" -- cloud-init status --wait --long
+    fi
+
     # Get the addresses.
     address=$(lxc query "${url}/state" | jq -r ".network.eth0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
     if [ -z "${address}" ]; then
