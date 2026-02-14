@@ -90,7 +90,7 @@ for i in $(seq "${SIZE}"); do
         lxc exec "m${i}" -- lxc profile device add default root disk path=/ pool=default
         lxc exec "m${i}" -- lxc profile device add default eth0 nic name=eth0 network=lxdbr0
         lxc exec "m${i}" -- lxc network show lxdbr0
-        CLUSTER_CRT=$(lxc file pull "m${i}"/var/snap/lxd/common/lxd/cluster.crt - | sed ':a;N;$!ba;s/\n/\n\n/g')
+        CLUSTER_CRT=$(lxc file pull "m${i}"/var/snap/lxd/common/lxd/cluster.crt - | sed 's/^/    /')
     else
         # Get a join token
         if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
@@ -106,9 +106,10 @@ cluster:
   enabled: true
   member_config: []
   cluster_address: ${CLUSTER_IP}:8443
-  cluster_certificate: "${CLUSTER_CRT}"
+  cluster_certificate: |
+${CLUSTER_CRT}
   server_address: ${MEMBER_IP}:8443
-  cluster_token: "${TOKEN}"
+  cluster_token: ${TOKEN}
 EOF
     fi
 
