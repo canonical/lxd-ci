@@ -23,14 +23,16 @@ print_log() {
     echo "<== End log file ${1}"
 }
 
-# wait for u1 and u2 to be booted and have u1 and m1 probe u2's IPv4
+# wait for u1 and u2 to be booted and have them both connect to the cluster member IPs
 instance_connectivity_checks() {
     lxc exec m1 -- sh -c "$(declare -f waitInstanceReady waitInstanceBooted); waitInstanceBooted u1; waitInstanceBooted u2"
     lxc exec m1 -- lxc list --fast
-    U2_IPV4="$(lxc exec m1 -- lxc list u2 -c4 --format=csv | cut -d' ' -f1)"
-    # XXX: replace ping (not on -minimal images) by a TCP probe on ssh port
-    lxc exec m1 -- lxc exec u1 -- timeout 30s bash -eu -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
-    lxc exec m1 -- timeout 30s bash -eu -c "grep -m1 ^SSH < /dev/tcp/${U2_IPV4}/22"
+
+    for ip in ${CLUSTER_MEMBER_IPS}; do
+        # XXX: replace ping (not on -minimal images) by a TCP probe on ssh port
+        lxc exec m1 -- lxc exec u1 -- timeout 30s bash -eu -c "grep -m1 ^SSH < /dev/tcp/${ip}/22"
+        lxc exec m1 -- lxc exec u2 -- timeout 30s bash -eu -c "grep -m1 ^SSH < /dev/tcp/${ip}/22"
+    done
 }
 
 wait_for_online_cluster() {
@@ -71,23 +73,25 @@ for i in $(seq 2 "${SIZE}"); do
 done
 lxc start m1
 
+CLUSTER_MEMBER_IPS=""
 for i in $(seq "${SIZE}"); do
     sleep 10
 
+    MEMBER_IP="$(lxc exec "m${i}" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)"
+    CLUSTER_MEMBER_IPS+=" ${MEMBER_IP}"
+
     # Configure the cluster
     if [ "$i" = "1" ]; then
-        CLUSTER_IP=$(lxc exec "m${i}" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
+        CLUSTER_IP="${MEMBER_IP}"
         lxc exec "m${i}" -- lxc config set core.https_address="${CLUSTER_IP}:8443" cluster.https_address="${CLUSTER_IP}:8443"
         lxc exec "m${i}" -- lxc cluster enable "m${i}"
-        lxc exec "m${i}" -- lxc network create lxdfan0 bridge.mode=fan
+        lxc exec "m${i}" -- lxc network create lxdbr0
         lxc exec "m${i}" -- lxc storage create default dir
         lxc exec "m${i}" -- lxc profile device add default root disk path=/ pool=default
-        lxc exec "m${i}" -- lxc profile device add default eth0 nic name=eth0 network=lxdfan0
-        lxc exec "m${i}" -- lxc network show lxdfan0
-        CLUSTER_CRT=$(lxc file pull "m${i}"/var/snap/lxd/common/lxd/cluster.crt - | sed ':a;N;$!ba;s/\n/\n\n/g')
+        lxc exec "m${i}" -- lxc profile device add default eth0 nic name=eth0 network=lxdbr0
+        lxc exec "m${i}" -- lxc network show lxdbr0
+        CLUSTER_CRT=$(lxc file pull "m${i}"/var/snap/lxd/common/lxd/cluster.crt - | sed 's/^/    /')
     else
-        MEMBER_IP=$(lxc exec "m${i}" -- ip -4 addr show dev eth0 scope global | grep inet | cut -d' ' -f6 | cut -d/ -f1)
-
         # Get a join token
         if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
             # 4.0 doesn't support --quiet
@@ -102,11 +106,13 @@ cluster:
   enabled: true
   member_config: []
   cluster_address: ${CLUSTER_IP}:8443
-  cluster_certificate: "${CLUSTER_CRT}"
+  cluster_certificate: |
+${CLUSTER_CRT}
   server_address: ${MEMBER_IP}:8443
-  cluster_token: "${TOKEN}"
+  cluster_token: ${TOKEN}
 EOF
     fi
+
 done
 
 echo "==> Wait for all members to be ONLINE"
