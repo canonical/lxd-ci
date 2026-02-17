@@ -187,7 +187,7 @@ fi
 
 echo "==> Upgrading the cluster"
 for i in $(seq "${SIZE}"); do
-    lxc exec "m${i}" -- snap wait system seed.loaded
+    lxc exec "m${i}" -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
     lxc exec "m${i}" -- snap refresh
     # XXX: there should be no refresh ongoing but we've seen races before so let's collect evidences
     lxc exec "m${i}" -- snap changes

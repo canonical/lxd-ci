@@ -14,6 +14,10 @@ waitSnapdSeed() (
         action="refresh"
     fi
     snap "${action}" snapd --channel "${SNAPD_SNAP_CHANNEL}" --cohort=+
+
+    # Disable automatic updates so we don't get unexpected refreshes during tests.
+    snap refresh --hold=8h
+
     return 0 # Success.
   fi
   echo "snapd not seeded after ${waitSecs}s"
