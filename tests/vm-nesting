@@ -8,7 +8,7 @@ install_lxd
 
 VM_IN_CTN=1
 VMs=10
-nestedVMs=5
+nestedVMs=3
 storageDriver="zfs"
 if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
     # VMs on 4.0 are more resource intensive and slower to boot
