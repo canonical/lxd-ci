@@ -322,11 +322,12 @@ install_lxd() (
 )
 
 # hasNeededAPIExtension: check if LXD supports the needed extension.
-hasNeededAPIExtension() {
+hasNeededAPIExtension() (
+    { set +x; } 2>/dev/null
     local lxc_info_out
     lxc_info_out="$(lxc info)" || exit 1
     grep -qxFm1 -- "- ${1}" <<< "${lxc_info_out}"
-}
+)
 
 # runsMinimumKernel: check if the running kernel is at least the minimum version.
 runsMinimumKernel() (
