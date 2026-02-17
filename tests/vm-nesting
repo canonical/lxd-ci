@@ -41,9 +41,9 @@ function init() {
 	vm="${2:-}"
 	if [ -z "${vm}" ]
 	then
-		parallel "$1" lxc init "${IMAGE}" "t{}" -s default -n lxdbr0
+		parallel "$1" lxc init "${IMAGE}" "t{}" -s default -n lxdbr0 --quiet
 	else
-		parallel "$1" lxc init "${IMAGE}" "t{}" "${vm}" -s default -n lxdbr0
+		parallel "$1" lxc init "${IMAGE}" "t{}" "${vm}" -s default -n lxdbr0 --quiet
 	fi
 }
 
@@ -111,7 +111,7 @@ wait "${nestedVMs}"
 cmd "${nestedVMs}" "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
 cmd "${nestedVMs}" "lxd init --auto"
 cmd "${nestedVMs}" "lxc profile device set default root size=3584MiB"
-cmd "${nestedVMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB"
+cmd "${nestedVMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB --quiet"
 delete "${nestedVMs}"
 
 if [ "${VM_IN_CTN}" = "1" ]; then
@@ -126,7 +126,7 @@ if [ "${VM_IN_CTN}" = "1" ]; then
     cmd "${nestedVMs}" "snap wait system seed.loaded && snap install lxd --channel ${LXD_SNAP_CHANNEL}"
     cmd "${nestedVMs}" "lxd init --auto"
     cmd "${nestedVMs}" "lxc profile device set default root size=3584MiB"
-    cmd "${nestedVMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=510MiB"
+    cmd "${nestedVMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=510MiB --quiet"
 else
     echo "Skipping VM in container tests on ${LXD_SNAP_CHANNEL}"
 fi
