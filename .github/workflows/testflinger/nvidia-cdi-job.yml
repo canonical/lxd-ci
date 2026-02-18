@@ -21,11 +21,13 @@ test_data:
     source install_tools.sh $TOOLS_PATH
 
     # ensure device is available before continuing
-    wait_for_ssh --allow-degraded
+    wait-for-ssh --allow-degraded
 
     # Wait for snapd to become available
     retry -- _run "timeout 5 sudo snap wait system seed.loaded"
-    wait_for_snap_changes
+    wait-for-snap-changes
+
+    _run sudo snap remove lxd --purge || true
 
     GRUB_FILE="/etc/default/grub"
     NOUVEAU_BLACKLIST="module_blacklist=nouveau"
@@ -66,7 +68,7 @@ test_data:
 
     # reboot and wait for machine to get back
     _run sudo reboot
-    wait_for_ssh --allow-degraded
+    wait-for-ssh --allow-degraded
 
     # Show kernel boot arguments for debugging
     _run cat /proc/cmdline
@@ -78,17 +80,16 @@ test_data:
 
     # LXD working
     _run sudo snap install lxd --channel=$SNAP_CHANNEL --no-wait
-    wait_for_snap_changes
+    wait-for-snap-changes
 
-    _run sudo lxd init --auto
-    _run sudo usermod -G lxd ubuntu
+    _run sudo usermod -aG lxd ubuntu
+    _run lxd init --auto
 
-    _run lxc init ubuntu:noble c1 &
-    for i in $( seq 1 60 ); do
-      [ $i -lt 60 ]
-      _run lxc config device add c1 gpu0 gpu gputype=physical id=nvidia.com/gpu=0 && break || /bin/true
-      sleep 1
-    done
+    # Check LXD is ready
+    _run lxd waitready --timeout=60
+
+    _run "lxc init ubuntu:noble c1 </dev/null"
+    _run lxc config device add c1 gpu0 gpu gputype=physical id=nvidia.com/gpu=0
 
     _run lxc start c1
 
