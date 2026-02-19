@@ -11,6 +11,14 @@ on:
         default: false
         description: Build arm64 images
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.ubuntu-releases }}-${{ inputs.snap-track }}
+  # XXX: scheduled runs should not cancel manually triggered ones
+  cancel-in-progress: ${{ !contains(github.event_name, 'schedule')}}
+
 jobs:
   archlinux:
     if: github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci'
