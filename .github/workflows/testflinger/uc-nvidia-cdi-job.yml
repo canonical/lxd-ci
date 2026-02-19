@@ -24,7 +24,7 @@ test_data:
     wait-for-ssh --allow-degraded
 
     # Wait for snapd to become available
-    retry -- _run "timeout 5 sudo snap wait system seed.loaded"
+    _run_retry "timeout 5 sudo snap wait system seed.loaded"
     wait-for-snap-changes
 
     # allow content on kernel snaps
