@@ -3,8 +3,6 @@ name: Ubuntu
 on:
   schedule:
     - cron: '45 8 * * 1-5'  # Build amd64
-  workflow_dispatch:
-    inputs:
 
 permissions:
   contents: read
