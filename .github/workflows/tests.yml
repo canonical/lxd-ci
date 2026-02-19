@@ -75,6 +75,7 @@ jobs:
         with:
           # A non-shallow clone is needed for the Differential ShellCheck
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Require GHA pinning
         uses: canonical/lxd/.github/actions/require-gha-pinning@main
@@ -342,6 +343,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       # needed for cache key
       - name: Get Date
@@ -402,9 +405,9 @@ jobs:
           TEST_SCRIPT="$(echo ${{ matrix.test }} | cut -d " " -f 1)"
           EXTRA_ARGS="$(echo ${{ matrix.test }} | cut -d " " -f 2- --only-delimited)"
           if [ "${TEST_SCRIPT}" = "cluster" ]; then
-            dst_track="${{ matrix.track }}"
+            dst_track="${MATRIX_TRACK}"
             src_track="$(echo "${dst_track}" | cut -d/ -f1)/stable"
-            EXTRA_ARGS="${EXTRA_ARGS:-3} ${src_track} ${{ matrix.track }}"
+            EXTRA_ARGS="${EXTRA_ARGS:-3} ${src_track} ${MATRIX_TRACK}"
           elif [ "${TEST_SCRIPT}" = "network-ovn" ]; then
             if [ -n "${EXTRA_ARGS}" ]; then
               # Strip the `ovn:` prefix
@@ -412,7 +415,9 @@ jobs:
               EXTRA_ARGS=""
             fi
           fi
-          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_STEP_SUMMARY,TEST_IMG,OVN_SOURCE ./bin/local-run "tests/${TEST_SCRIPT}" ${{ matrix.track }} ${EXTRA_ARGS:-}
+          sudo --preserve-env=GITHUB_ACTIONS,GITHUB_STEP_SUMMARY,TEST_IMG,OVN_SOURCE ./bin/local-run "tests/${TEST_SCRIPT}" ${MATRIX_TRACK} ${EXTRA_ARGS:-}
+        env:
+          MATRIX_TRACK: ${{ matrix.track }}
 
       # always update cache as we have our own logic of
       # cache invalidation and updates in addition to a date check
@@ -420,16 +425,19 @@ jobs:
         if: ${{ steps.cache-restore.outputs.cache-hit }}
         continue-on-error: true
         run: |
-          gh cache delete "cache-${{ steps.get-date.outputs.date }}"
+          gh cache delete "cache-${STEPS_GET_DATE_OUTPUTS_DATE}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STEPS_GET_DATE_OUTPUTS_DATE: ${{ steps.get-date.outputs.date }}
       - name: Set lxd channel env variable
         if: ${{ always() && startsWith(matrix.test, 'ui ') }}
         id: lxd-env
         run: |
           # need to change / to - in lxd channel string for report naming
-          LXD_CHANNEL=$(echo '${{ matrix.track }}' | sed 's#/#-#g')
+          LXD_CHANNEL=$(echo '${MATRIX_TRACK}' | sed 's#/#-#g')
           echo "LXD_CHANNEL=$LXD_CHANNEL" >> $GITHUB_OUTPUT
+        env:
+          MATRIX_TRACK: ${{ matrix.track }}
       - name: Upload ${{ matrix.test }}-${{ matrix.track }} test reports
         if: ${{ always() && startsWith(matrix.test, 'ui ') }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

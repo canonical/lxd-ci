@@ -3,8 +3,14 @@ name: Slackware
 on:
   schedule:
     - cron: '30 8 * * 1-5'  # Build amd64
-  workflow_dispatch:
-    inputs:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.ubuntu-releases }}-${{ inputs.snap-track }}
+  # XXX: scheduled runs should not cancel manually triggered ones
+  cancel-in-progress: ${{ !contains(github.event_name, 'schedule')}}
 
 jobs:
   slackware:
@@ -27,6 +33,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Setup environment
         uses: ./.github/actions/image-setup
