@@ -32,6 +32,14 @@ on:
           - '["5.21/candidate"]'
           - '["5.21/stable"]'
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.ubuntu-releases }}-${{ inputs.snap-track }}
+  # XXX: scheduled runs should not cancel manually triggered ones
+  cancel-in-progress: ${{ !contains(github.event_name, 'schedule')}}
+
 jobs:
   uc-nvidia-cdi:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
