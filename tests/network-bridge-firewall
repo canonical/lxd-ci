@@ -161,6 +161,7 @@ firewallTests() {
         sleep 2
 
         # Check if regular traffic passes between different networks and is masqueraded with the gateways IP.
+        lxc ls
         lxc exec c1 -T -n -- ping -n -i0.1 -w2 -W2 -4 192.0.3.254 || true &
         timeout 2s tcpdump -i lxdbr1 -nn icmp and src 192.0.3.1 -q -c 1 > /dev/null
         wait
