@@ -39,7 +39,7 @@ test_data:
     _run ls -la /dev/kfd
 
     # LXD working
-    _run sudo snap install lxd --channel=$SNAP_CHANNEL --no-wait
+    _run_retry sudo snap install lxd --channel=$SNAP_CHANNEL --no-wait --cohort=+
     wait-for-snap-changes
 
     _run sudo lxd init --auto
