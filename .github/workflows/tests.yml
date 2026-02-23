@@ -434,7 +434,7 @@ jobs:
         id: lxd-env
         run: |
           # need to change / to - in lxd channel string for report naming
-          LXD_CHANNEL=$(echo '${MATRIX_TRACK}' | sed 's#/#-#g')
+          LXD_CHANNEL=$(echo ${MATRIX_TRACK} | sed 's#/#-#g')
           echo "LXD_CHANNEL=$LXD_CHANNEL" >> $GITHUB_OUTPUT
         env:
           MATRIX_TRACK: ${{ matrix.track }}
