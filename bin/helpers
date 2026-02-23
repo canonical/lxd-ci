@@ -435,19 +435,19 @@ cleanup() {
     echo ""
 
     # Ignore unattended-upgrades core dumps (https://bugs.launchpad.net/ubuntu/+source/unattended-upgrades/+bug/2139433)
-    if compgen -G "/var/crash/core-unattended-upgr*.gz" > /dev/null 2>&1; then
+    if compgen -G "/var/crash/unattended-upgr*.gz" > /dev/null 2>&1; then
       echo "::notice::==> CORE: unattended-upgrades core dump ignored (LP: #2139433)"
-      rm /var/crash/core-unattended-upgr*.gz
+      rm /var/crash/unattended-upgr*.gz
     fi
 
     # XXX: Ignore qemu core dumps only for QEMU < 10.2.0
-    if compgen -G "/var/crash/core-qemu-system-x86.*.gz" > /dev/null 2>&1; then
+    if compgen -G "/var/crash/qemu-system-x86.*.gz" > /dev/null 2>&1; then
         local qemu_pkg_version
         qemu_pkg_version="$(lxc query /1.0 | jq --exit-status --raw-output '.environment.driver_version' | awk '{print $NF}')"
 
         if [ -n "${qemu_pkg_version}" ] && dpkg --compare-versions "${qemu_pkg_version}" lt "10.2.0"; then
             echo "CORE: Ignoring qemu core dumps (qemu-system-x86 ${qemu_pkg_version})"
-            rm /var/crash/core-qemu-system-x86.*.gz
+            rm /var/crash/qemu-system-x86.*.gz
         fi
     fi
 
