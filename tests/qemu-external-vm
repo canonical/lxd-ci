@@ -46,7 +46,7 @@ if [ "${LXD_QEMU_SNAP_CACHED_HASH_SUM}" != "${LXD_QEMU_SNAP_HASH_SUM}" ]; then
   # Install snapcraft (use latest/candidate to help catch regressions in LXD/snapcraft earlier)
   snap install snapcraft --classic --channel=latest/candidate
 
-  snapcraft -v # this should produce a qemu-for-lxd_1_amd64.snap file
+  snapcraft pack -v # this should produce a qemu-for-lxd_1_amd64.snap file
 
   # save to cache
   mv "${LXD_QEMU_SNAP_FILE_NAME}" "${CACHE_PATH}/"
