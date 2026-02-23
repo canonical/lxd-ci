@@ -242,6 +242,8 @@ install_ovn() (
         # Avoid clashing with the deb packages
         apt-get autopurge --yes ovn-host ovn-central || true
 
+        # XXX: microovn latest/edge now depends on core26 which is still `grade: devel` so it needs to be manually installed first.
+        snap install core26 --channel=latest/edge --cohort=+
         snap install microovn --channel="${OVN_SOURCE:-latest/edge}" --cohort=+
     fi
 )
