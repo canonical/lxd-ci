@@ -28,7 +28,7 @@ set -eux
 
 # Install distro docker
 apt-get update
-apt-get install --no-install-recommends --yes docker.io busybox-static
+apt-get install --no-install-recommends --yes docker.io docker-buildx busybox-static
 
 # Stop the distro docker
 systemctl stop docker.service docker.socket
@@ -66,7 +66,7 @@ ADD echo /
 ENTRYPOINT ["/echo", "Hello world"]
 EOD
 cp "\$(command -v busybox)" busybox/echo
-docker builder build --tag local:hello busybox/
+docker buildx build --load --tag local:hello busybox/
 
 # Run a basic hello-world
 docker run --rm local:hello
