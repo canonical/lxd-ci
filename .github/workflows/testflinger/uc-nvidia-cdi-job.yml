@@ -28,7 +28,7 @@ test_data:
     wait-for-snap-changes
 
     # allow content on kernel snaps
-    _run sudo snap refresh snapd --no-wait
+    _run sudo snap refresh snapd --channel=latest/beta --no-wait
     wait-for-snap-changes
 
     # get device nodes on module load
@@ -36,7 +36,7 @@ test_data:
     wait-for-snap-changes
 
     # refresh to the new kernel
-    _run sudo snap refresh pc-kernel --channel 24/stable --no-wait
+    _run sudo snap refresh pc-kernel --channel 24/candidate --no-wait
     # Add some extra time to ensure that machine has rebooted after updating the kernel
     sleep 30
     wait-for-snap-changes
@@ -48,7 +48,8 @@ test_data:
     _run sudo snap connections --all
 
     # install the module component
-    _run_retry sudo snap install pc-kernel+nvidia-570-erd-ko --no-wait
+    _run sudo snap components pc-kernel
+    _run sudo snap set pc-kernel nvidia-stream=580-erd
     wait-for-snap-changes
 
     # until kernel-module-load is autoconnected
@@ -56,17 +57,11 @@ test_data:
     _run_retry sudo modprobe nvidia_uvm
     _run ls /dev/nvidia*
 
-    # install the userspace component
-    _run_retry sudo snap install pc-kernel+nvidia-570-erd-user --no-wait
+    # install mesa snap
+    _run_retry sudo snap install mesa-2404 --channel latest/candidate --no-wait
     wait-for-snap-changes
 
-    # manual connection of the kernel-gpu-2404 interface
-    _run_retry sudo snap install mesa-2404 --channel latest/edge --no-wait --cohort=+
-    wait-for-snap-changes
-    _run sudo snap connect mesa-2404:kernel-gpu-2404 pc-kernel --no-wait
-    wait-for-snap-changes
-
-    # content interface being populated
+    # check for auto connection of kernel-gpu-2404 content interface being populated
     _run find /snap/mesa-2404/current/ -print
     _run find /var/snap/pc-kernel/common/kernel-gpu-2404/ -print
 
