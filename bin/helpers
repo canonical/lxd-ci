@@ -451,6 +451,12 @@ cleanup() {
         fi
     fi
 
+    # Ignore WGA (Windows Azure Guest Agent) crashes.
+    if compgen -G "/var/crash/*waagent*" > /dev/null 2>&1; then
+        echo "::notice::==> CORE: WGA (waagent) core dump ignored"
+        rm /var/crash/*waagent*
+    fi
+
     if [ -n "$(ls -A /var/crash/)" ]; then
         echo "CORE: coredump found during cleanup, forcing failure"
         FAIL=1
