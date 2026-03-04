@@ -469,3 +469,11 @@ jobs:
         if: ${{ failure() && inputs.tmate-debug && !inputs.self-hosted-runner }}
         uses: mxschmitt/action-tmate@c0afd6f790e3a5564914980036ebf83216678101 # v3.23
         timeout-minutes: ${{ fromJSON(inputs.tmate-timeout) }}
+
+  lxd-csi-e2e-tests:
+    if: ${{ github.event_name != 'schedule' && github.repository == 'canonical/lxd-ci' }}
+    uses: canonical/lxd-csi-driver/.github/workflows/e2e-tests.yml@main
+
+  lxd-csi-e2e-cluster-tests:
+    if: ${{ github.event_name != 'schedule' && github.repository == 'canonical/lxd-ci' }}
+    uses: canonical/lxd-csi-driver/.github/workflows/e2e-cluster-tests.yml@main
