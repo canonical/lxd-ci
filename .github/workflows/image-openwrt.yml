@@ -28,7 +28,7 @@ jobs:
       matrix:
         release:
           - snapshot  # EOL: never
-          - "24.10"   # EOL: 2026-02 (projected)
+          - "24.10"   # EOL: 2026-09
         variant:
           - default
         architecture:
