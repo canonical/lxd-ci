@@ -28,6 +28,16 @@ instance_connectivity_checks() {
     lxc exec m1 -- sh -c "$(declare -f waitInstanceReady waitInstanceBooted); waitInstanceBooted u1; waitInstanceBooted u2"
     lxc exec m1 -- lxc list --fast
 
+    # Debug failure to start the 2 instances
+    if [ "$(lxc exec m1 -- lxc list -f csv -c s | grep -cxF RUNNING || true)" != "2" ]; then
+        for m in $(seq "${SIZE}"); do
+            echo "::group::lxd logs for m${m}"
+            lxc exec "m${m}" -- journalctl --quiet --no-hostname --no-pager --boot=0 --lines=100 --unit=snap.lxd.daemon.service || true
+            echo "::endgroup::"
+        done
+        exit 1
+    fi
+
     for ip in ${CLUSTER_MEMBER_IPS}; do
         # XXX: replace ping (not on -minimal images) by a TCP probe on ssh port
         lxc exec m1 -- lxc exec u1 -- timeout 30s bash -eu -c "grep -m1 ^SSH < /dev/tcp/${ip}/22"
