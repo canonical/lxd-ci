@@ -28,6 +28,7 @@ jobs:
       matrix:
         release:
           - snapshot  # EOL: never
+          - "25.12"   # EOL: ??
           - "24.10"   # EOL: 2026-09
         variant:
           - default
