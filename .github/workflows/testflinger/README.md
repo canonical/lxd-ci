@@ -1,6 +1,6 @@
 # Testflinger scripts
 
-This directory contains the scripts used for Nvidia testing via Github actions and Testflinger.
+This directory contains the scripts used for GPU testing (NVIDIA and AMD) via Github actions and Testflinger.
 The tests run on devices within Canonical's test farm.
 
 ## Run locally
@@ -10,6 +10,12 @@ Tested distros:
 - `core24-latest`
 - `jammy`
 - `noble`
+
+Current queue/workflow combinations:
+- NVIDIA CDI: `JOB_QUEUE=lxd-nvidia`, `TFWORKFLOW=nvidia-cdi-job`
+- NVIDIA legacy runtime: `JOB_QUEUE=lxd-nvidia`, `TFWORKFLOW=nvidia-legacy-runtime-job`
+- Ubuntu Core + NVIDIA CDI: `JOB_QUEUE=lxd-nvidia`, `TFWORKFLOW=uc-nvidia-cdi-job`
+- AMD CDI: `JOB_QUEUE=lxd-amd`, `TFWORKFLOW=amd-cdi-job`
 
 Ensure `testflinger` is installed:
 ```
@@ -26,7 +32,7 @@ To prepare the scripts only but not submit the job, set the `--dryrun` flag.
 ## Examples
 
 Notice, that some Testflinger workflows are only compatible with `core24-latest`, while others only
-with a classic Ubuntu images.
+with classic Ubuntu images.
 
 To test Ubuntu Core + LXD + GPU passthrough in CDI mode:
 ```bash
@@ -41,4 +47,9 @@ JOB_QUEUE=lxd-nvidia SNAP_CHANNEL=latest/edge DISTRO=noble TFWORKFLOW=nvidia-cdi
 To test Ubuntu Noble + LXD + GPU passthrough using legacy nvidia runtime:
 ```bash
 JOB_QUEUE=lxd-nvidia SNAP_CHANNEL=latest/edge DISTRO=noble TFWORKFLOW=nvidia-legacy-runtime-job ./run.sh
+```
+
+To test Ubuntu Noble + LXD + AMD GPU passthrough in CDI mode:
+```bash
+JOB_QUEUE=lxd-amd SNAP_CHANNEL=latest/edge DISTRO=noble TFWORKFLOW=amd-cdi-job ./run.sh
 ```
