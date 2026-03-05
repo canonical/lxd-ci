@@ -59,7 +59,7 @@ jobs:
           [ "${ARCH}" = "arm64" ] && IMAGE_ARCH="aarch64"
 
           EXTRA_ARGS=""
-          if [ "${{ matrix.release }}" != "snapshot" ]; then
+          if [ "${{ matrix.release }}" = "24.10" ]; then
               EXTRA_ARGS="-o packages.manager=opkg"
           fi
 
