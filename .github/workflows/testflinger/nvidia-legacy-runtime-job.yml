@@ -93,6 +93,10 @@ test_data:
     # print out all mounts we have so we can compare it later if anything goes wrong
     _run lxc exec c1 -- cat /proc/self/mountinfo
 
+    # Verify that DRM card device(s) and a render node exist in the container
+    _run lxc exec c1 -- sh -c 'ls /dev/dri/card[0-9]*'
+    _run lxc exec c1 -- sh -c 'ls /dev/dri/renderD[0-9]*'
+
     # check that nvidia-smi works
     _run lxc exec c1 -- nvidia-smi
 
