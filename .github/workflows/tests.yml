@@ -89,7 +89,7 @@ jobs:
         if: github.event_name == 'pull_request'
 
       - name: Upload artifact with ShellCheck defects in SARIF format
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: Differential ShellCheck SARIF
           path: ${{ steps.ShellCheck.outputs.sarif }}
@@ -440,7 +440,7 @@ jobs:
           MATRIX_TRACK: ${{ matrix.track }}
       - name: Upload ${{ matrix.test }}-${{ matrix.track }} test reports
         if: ${{ always() && startsWith(matrix.test, 'ui ') }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: test-report-${{ matrix.test }}-lxd-${{ steps.lxd-env.outputs.LXD_CHANNEL }}-os-${{ matrix.os }}
           path: lxd-ui/test-results
@@ -453,7 +453,7 @@ jobs:
 
       - name: Upload crash dumps
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: crash-dumps-${{ steps.sanitize.outputs.artifact_name }}
           path: |
