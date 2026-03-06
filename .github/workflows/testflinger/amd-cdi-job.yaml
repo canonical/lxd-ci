@@ -60,9 +60,9 @@ test_data:
     _run lxc exec c1 -- ls -la /dev/dri/
     _run lxc exec c1 -- ls -la /dev/kfd
 
-    # Verify that card and renderD devices exist
-    _run lxc exec c1 -- test -e /dev/dri/card0
-    _run lxc exec c1 -- test -e /dev/dri/renderD128
+    # Verify that exactly one DRM card device and a render node exist in the container
+    _run "lxc exec c1 -- sh -c 'ls /dev/dri/card[0-9]* | wc -l | grep -qx 1'"
+    _run lxc exec c1 -- sh -c 'ls /dev/dri/renderD[0-9]*'
 
     # Check that KFD device is accessible
     _run lxc exec c1 -- test -c /dev/kfd
