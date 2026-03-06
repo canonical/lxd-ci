@@ -28,7 +28,8 @@ jobs:
       matrix:
         release:
           - snapshot  # EOL: never
-          - "24.10"   # EOL: 2026-02 (projected)
+          - "25.12"   # EOL: ??
+          - "24.10"   # EOL: 2026-09
         variant:
           - default
         architecture:
@@ -58,7 +59,7 @@ jobs:
           [ "${ARCH}" = "arm64" ] && IMAGE_ARCH="aarch64"
 
           EXTRA_ARGS=""
-          if [ "${{ matrix.release }}" != "snapshot" ]; then
+          if [ "${{ matrix.release }}" = "24.10" ]; then
               EXTRA_ARGS="-o packages.manager=opkg"
           fi
 
