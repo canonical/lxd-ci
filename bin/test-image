@@ -163,7 +163,7 @@ for i in ${INSTANCES}; do
 done
 
 # Give instances some extra time to boot properly.
-sleep 15
+sleep 20
 lxc list "${TEST_IMAGE}"
 
 # Check that all instances have an IPv4 and IPv6 address.
