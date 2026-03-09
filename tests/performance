@@ -76,7 +76,7 @@ mkdir -p /var/snap/lxd/common/lxd
 mount "${LXD_DEVICE}" /var/snap/lxd/common/lxd
 systemctl restart snap.lxd.daemon.unix.socket || true
 snap start lxd
-lxd waitready
+lxd waitready --timeout=300
 
 # Configure LXD
 ## Storage
