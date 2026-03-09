@@ -286,6 +286,7 @@ for driver in lvm btrfs ceph dir zfs; do
         # Failed to run: lvcreate --yes --wipesignatures y --thinpool --extents 100%FREE: Device or resource busy
         snap set lxd lvm.external=true
         systemctl reload snap.lxd.daemon.service
+        lxd waitready --timeout=300
     fi
 
     conversion_vm alpine-raw "${driver}" "${IMAGE_PATH}" "no"
