@@ -92,7 +92,14 @@ do
 	if [ "${poolDriver}" = "dir" ]; then
 		lxc storage create "${poolName}" "${poolDriver}" volume.size=3584MiB
 	elif [ "${poolDriver}" = "ceph" ]; then
-		lxc storage create "${poolName}" "${poolDriver}" source="${poolName}" volume.size=3584MiB
+		# In case the storage_remote_drop_source extension isn't present, set the pool name
+		# using the deprecated 'source' config key.
+		sourceKey="ceph.osd.pool_name"
+		if ! hasNeededAPIExtension storage_remote_drop_source; then
+			sourceKey="source"
+		fi
+
+		lxc storage create "${poolName}" "${poolDriver}" "${sourceKey}=${poolName}" volume.size=3584MiB
 	elif [ "${poolDriver}" = "lvm" ]; then
 		lxc storage create "${poolName}" "${poolDriver}" size=40GiB lvm.use_thinpool=false volume.size=3584MiB
 	elif [ "${poolDriver}" = "lvm-thin" ]; then
