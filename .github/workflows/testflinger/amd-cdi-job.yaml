@@ -48,15 +48,16 @@ test_data:
     # Check LXD is ready
     _run lxd waitready --timeout=60
 
+    # Check adding a GPU CDI devices works for stopped container
     _run "lxc init ubuntu:noble c1 </dev/null"
     _run lxc config device add c1 gpu0 gpu id=amd.com/gpu=0
 
     _run lxc start c1
 
-    # print out all mounts we have so we can compare it later if anything goes wrong
+    # Print out all mounts we have so we can compare it later if anything goes wrong
     _run lxc exec c1 -- cat /proc/self/mountinfo
 
-    # check that AMD devices are accessible in the container
+    # Check that AMD devices are accessible in the container
     _run lxc exec c1 -- ls -la /dev/dri/
     _run lxc exec c1 -- ls -la /dev/kfd
 
@@ -65,4 +66,13 @@ test_data:
     _run lxc exec c1 -- sh -c 'ls /dev/dri/renderD[0-9]*'
 
     # Check that KFD device is accessible
+    _run lxc exec c1 -- test -c /dev/kfd
+
+    # Check hotplugging of the CDI device
+    _run lxc delete -f c1
+    _run "lxc launch ubuntu:noble c1 </dev/null"
+    _run lxc config device add c1 gpu0 gpu id=amd.com/gpu=0
+    _run lxc exec c1 -- ls -la /dev/dri/
+    _run "lxc exec c1 -- sh -c 'ls /dev/dri/card[0-9]* | wc -l | grep -qx 1'"
+    _run lxc exec c1 -- sh -c 'ls /dev/dri/renderD[0-9]*'
     _run lxc exec c1 -- test -c /dev/kfd
