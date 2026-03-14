@@ -457,6 +457,14 @@ cleanup() {
         rm /var/crash/*waagent*
     fi
 
+    # Ignore dnsmasq core dumps when requested (e.g. nested cluster tests).
+    if [ -n "${IGNORE_DNSMASQ_COREDUMP:-}" ]; then
+        if compgen -G "/var/crash/*dnsmasq*" > /dev/null 2>&1; then
+            echo "::notice::==> CORE: dnsmasq core dump ignored"
+            rm /var/crash/*dnsmasq*
+        fi
+    fi
+
     if [ -n "$(ls -A /var/crash/)" ]; then
         echo "CORE: coredump found during cleanup, forcing failure"
         FAIL=1
