@@ -1,6 +1,9 @@
 #!/bin/bash
 set -eux
 
+# Ignore dnsmasq core dumps caused by nested cluster networking
+export IGNORE_DNSMASQ_COREDUMP=1
+
 # Install LXD
 install_lxd
 
