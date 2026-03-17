@@ -1050,6 +1050,7 @@ files:
   - vm
   releases:
   - sid
+  - forky
 
 - path: /etc/default/grub.d/50-lxd.cfg
   generator: dump
