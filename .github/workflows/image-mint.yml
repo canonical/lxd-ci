@@ -3,6 +3,7 @@ name: Linux Mint
 on:
   schedule:
     - cron: '30 5 * * 1-5'  # Build amd64
+  workflow_dispatch:
 
 permissions:
   contents: read
