@@ -3,6 +3,7 @@ name: Slackware
 on:
   schedule:
     - cron: '30 8 * * 1-5'  # Build amd64
+  workflow_dispatch:
 
 permissions:
   contents: read
