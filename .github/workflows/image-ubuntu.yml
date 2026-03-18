@@ -63,7 +63,7 @@ jobs:
           ARCHIVE="http://archive.ubuntu.com/ubuntu"
 
           # For LTS releases, try to use the Azure mirror (closer, faster and more reliable)
-          if [ "${{ matrix.release }}" = "noble" ] || [ "${{ matrix.release }}" = "jammy" ]; then
+          if [ "${{ matrix.release }}" = "noble" ] || [ "${{ matrix.release }}" = "jammy" ] || [ "${{ matrix.release }}" = "resolute" ]; then
             if [ -f /etc/apt/apt-mirrors.txt ]; then
                 cat /etc/apt/apt-mirrors.txt
                 ARCHIVE="$(awk '$2=="priority:1" && $1 ~ /^https?:\/\// {print $1}' /etc/apt/apt-mirrors.txt)"
