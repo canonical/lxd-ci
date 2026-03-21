@@ -101,7 +101,13 @@ lxc exec member1 -- lxc config device add v1 vol1-disk disk pool=ceph source=vol
 
 # Start the VM.
 lxc exec member1 -- lxc start v1
+
+# Give v1 time to boot undisturbed before polling. Polling too early may interfere with
+# the lxd-agent's vsock connection attempt, preventing it from ever connecting.
 sleep 60
+
+# Wait for v1's lxd-agent to connect. The connection happens after the 'config' drive is unmounted indicating the way is clear for the live-migration
+lxc exec member1 -- sh -c "$(declare -f waitInstanceReady); waitInstanceReady v1"
 
 # Ascertain that the VM is indeed on member1.
 [ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member1" ]

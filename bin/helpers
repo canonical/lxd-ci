@@ -26,7 +26,7 @@ waitSnapdSeed() (
 
 # waitInstanceReady: waits for the instance to be ready (processes count > 1).
 waitInstanceReady() (
-  { set +x; } 2>/dev/null
+  { set -x; } 2>/dev/null
   maxWait="${MAX_WAIT_SECONDS:-120}"
   instName="${1}"
   instProj="${2:-}"
