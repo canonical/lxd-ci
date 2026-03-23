@@ -31,8 +31,9 @@ RECOMMENDED_DRIVER="$(ubuntu-drivers --gpgpu devices | awk '/-server-open/ {prin
 INSTALL_RECOMMENDS=yes install_deps "${RECOMMENDED_DRIVER}"
 
 # Reload nvidia kernel module
-modprobe -r --remove-holders nvidia
-modprobe nvidia
+modprobe -r --remove-holders nvidia_drm || true
+modprobe -r --remove-holders nvidia || true
+modprobe --first-time nvidia
 
 # Install LXD
 install_lxd
