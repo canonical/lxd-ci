@@ -110,6 +110,56 @@ if [ "${boot_elapsed}" -gt $(( normal_boot_elapsed + 45 )) ]; then
     echo "::warning::NVRAM GC caused a slow boot (${boot_elapsed}s, +${boot_delta}s vs ${normal_boot_elapsed}s baseline)"
 fi
 
+echo "==> [Phase 2/2] In-guest timing loop: re-fill the NVRAM store to trigger in-guest GC"
+# After the Phase 1 boot-time GC, the store is compacted but all 50 host vars
+# written above remain as valid live entries. Writing a large number of additional
+# variables from the guest via SetVariable() will re-fill the store and trigger
+# another GC, this time visible as a stall inside the write loop.
+# OVMF's NV_VARIABLE_STORE partition is ~84 KB; system vars + the 50 host vars
+# consume ~23 KB, leaving ~61 KB free. At ~612 bytes per variable (with 512-byte
+# payload), ~100 writes exhaust that space; 150 gives a comfortable margin.
+#
+# A custom vendor GUID must be used: EDK2 rejects SetVariable() calls (with EINVAL) for
+# unrecognised names under EFI_GLOBAL_VARIABLE_GUID from the OS.
+# Using `>>` instead of `>` avoids O_TRUNC that's otherwise rejected by efivarfs.
+EFI_CI_TEST_GUID="a15a2fe6-d49e-4b8d-a5f3-3614a2ee3f3f"
+lxc exec v1 -- bash << GUEST_SCRIPT
+set -eu
+GUID="${EFI_CI_TEST_GUID}"
+GC_VAR_NUM=""
+NUM_GC_VARS=150
+total_elapsed=0
+normal_write_count=0
+
+# Build the variable payload once: 4-byte LE attributes (0x07 = NV|BS|RT) + 512 bytes of 0xFF.
+# A 512-byte payload costs ~612 bytes per variable in the NVRAM store (header + name + data),
+# so ~100 writes would exhaust the ~61 KB of free space after the Phase 1 boot-time GC;
+# NUM_GC_VARS=150 provides a comfortable safety margin.
+# The attributes and data must arrive in a single write() call (efivarfs requirement); cat
+# satisfies this for small files by issuing one read()+write() pair.
+printf '\x07\x00\x00\x00' > /tmp/efi_payload
+dd if=/dev/zero bs=512 count=1 2>/dev/null | tr '\000' '\377' >> /tmp/efi_payload
+
+for i in \$(seq 1 "\${NUM_GC_VARS}"); do
+    start=\$(date +%s%N)
+    cat /tmp/efi_payload >> /sys/firmware/efi/efivars/gctest-in-\${i}-\${GUID}
+    elapsed=\$(( (\$(date +%s%N) - start) / 1000000 ))
+    printf "  Write %\${#NUM_GC_VARS}d/\${NUM_GC_VARS}: \${elapsed}ms\n" "\${i}"
+    if [ -z "\${GC_VAR_NUM}" ] && [ "\${elapsed}" -gt 1000 ]; then
+        GC_VAR_NUM="\${i}"
+        avg_elapsed=\$(( normal_write_count > 0 ? total_elapsed / normal_write_count : elapsed ))
+        write_delta=\$(( elapsed - avg_elapsed ))
+        echo "::warning::NVRAM GC detected during in-guest write \${i}/\${NUM_GC_VARS} (\${elapsed}ms, +\${write_delta}ms vs \${avg_elapsed}ms avg)"
+    else
+        total_elapsed=\$(( total_elapsed + elapsed ))
+        normal_write_count=\$(( normal_write_count + 1 ))
+    fi
+done
+if [ -z "\${GC_VAR_NUM}" ]; then
+    echo "==> No slow in-guest writes detected (GC may not have kicked in yet)"
+fi
+GUEST_SCRIPT
+
 # Cleanup
 echo "==> Stopping and deleting VM"
 lxc delete -f v1
