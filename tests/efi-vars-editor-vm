@@ -75,6 +75,41 @@ lxc start v1
 waitInstanceReady v1
 ! lxc exec v1 -- test -e /sys/firmware/efi/efivars/"${EFI_VAR_FULL_NAME}" || false
 
+# Artificially reproduce https://github.com/canonical/lxd/issues/17729 without
+# needing multiple reboots to fill the NVRAM store and trigger GC.
+echo "==> [Phase 1/2] Pre-fill NVRAM store via host API to trigger GC at next boot"
+lxc exec v1 -- sync
+lxc stop -f v1
+
+echo "==> Start VM and establish baseline boot time before NVRAM GC"
+start=$(date +%s)
+lxc start v1
+waitInstanceReady v1
+normal_boot_elapsed=$(( $(date +%s) - start ))
+echo "Boot time (normal, baseline): ${normal_boot_elapsed}s"
+
+# Fill the NVRAM store with a large number of variables to trigger GC at next boot.
+# lxc config uefi set writes directly to the NVRAM backing file, bypassing EDK2
+# entirely. GC cannot trigger during these writes; any GC pressure will only
+# surface when EDK2 loads the bloated store on the next boot.
+lxc exec v1 -- sync
+lxc stop -f v1
+GC_FILL_VARS=50
+for i in $(seq 1 "${GC_FILL_VARS}"); do
+    lxc config uefi set v1 "gctest-host-${i}-${EFI_GLOBAL_VARIABLE_GUID}"="${EFI_VAR_VALUE}"
+done
+
+echo "==> Timing VM boot to observe NVRAM GC at startup"
+start=$(date +%s)
+lxc start v1
+waitInstanceReady v1
+boot_elapsed=$(( $(date +%s) - start ))
+echo "Boot time (Phase 1): ${boot_elapsed}s"
+if [ "${boot_elapsed}" -gt $(( normal_boot_elapsed + 45 )) ]; then
+    boot_delta=$(( boot_elapsed - normal_boot_elapsed ))
+    echo "::warning::NVRAM GC caused a slow boot (${boot_elapsed}s, +${boot_delta}s vs ${normal_boot_elapsed}s baseline)"
+fi
+
 # Cleanup
 echo "==> Stopping and deleting VM"
 lxc delete -f v1
