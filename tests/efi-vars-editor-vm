@@ -25,18 +25,52 @@ lxc profile device add default eth0 nic network=lxdbr0
 
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
+# Helper function to extract MTC value from UEFI config
+get_mtc_value() {
+  local mtc_hex
+  mtc_hex="$(lxc config uefi get v1 MTC-eb704011-1402-11d3-8e77-00a0c969723b 2>&1 || true)"
+
+  # Check if variable doesn't exist
+  if echo "${mtc_hex}" | grep -qF "Requested UEFI variable does not exist"; then
+    return 1
+  fi
+
+  if [ -z "${mtc_hex}" ]; then
+    echo "ERROR: Could not extract MTC value"
+    return 1
+  fi
+
+  # mtc_hex is little-endian (e.g., "01000000" for value 1)
+  # Reverse byte order to get big-endian
+  local mtc_be="${mtc_hex:6:2}${mtc_hex:4:2}${mtc_hex:2:2}${mtc_hex:0:2}"
+  # Convert hex to decimal
+  printf "%d" "0x${mtc_be}"
+}
+
 poolName="vmpool$$"
 poolDriver=dir
 
 echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 
-echo "==> Create VM and boot"
-lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
+echo "==> Create VM"
+lxc init "${IMAGE}" v1 --vm -s "${poolName}"
+
+echo "==> Boot the VM"
+lxc start v1
 
 # Wait for instance to be ready ensures LXD is done initializing the NVRAM
 waitInstanceReady v1
 lxc info v1
+
+echo "==> Checking MTC after first boot"
+mtc="$(get_mtc_value)"
+echo "Boot 1: MTC = ${mtc}"
+if [ "${mtc}" -lt 1 ]; then
+  echo "ERROR: Expected MTC>=1 after first boot, got ${mtc}"
+  exit 1
+fi
+first_boot_mtc="${mtc}"
 
 EFI_GLOBAL_VARIABLE_GUID="8be4df61-93ca-11d2-aa0d-00e098032b8c"
 EFI_VAR_NAME="testvar"
@@ -159,6 +193,14 @@ if [ -z "\${GC_VAR_NUM}" ]; then
     echo "==> No slow in-guest writes detected (GC may not have kicked in yet)"
 fi
 GUEST_SCRIPT
+
+echo "==> Checking final MTC value"
+mtc="$(get_mtc_value)"
+echo "Final MTC = ${mtc}"
+expected_final_mtc=$(( first_boot_mtc + 4 ))
+if [ "${mtc}" -ne "${expected_final_mtc}" ]; then
+  echo "WARNING: Expected MTC=${expected_final_mtc} (first_boot=${first_boot_mtc} + 4 subsequent boots), got ${mtc}"
+fi
 
 # Cleanup
 echo "==> Stopping and deleting VM"
