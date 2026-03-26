@@ -356,7 +356,7 @@ jobs:
 
       # for simplicity, just use one cache directory
       # and make it valid for one day
-      - uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      - uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         id: cache-restore
         if: ${{ matrix.test == 'qemu-external-vm' }}
         with:
@@ -445,7 +445,7 @@ jobs:
           name: test-report-${{ matrix.test }}-lxd-${{ steps.lxd-env.outputs.LXD_CHANNEL }}-os-${{ matrix.os }}
           path: lxd-ui/test-results
           retention-days: 1
-      - uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      - uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         if: ${{ matrix.test == 'qemu-external-vm' }}
         with:
           path: /home/runner/work/cache
