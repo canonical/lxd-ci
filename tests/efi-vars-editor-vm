@@ -25,18 +25,52 @@ lxc profile device add default eth0 nic network=lxdbr0
 
 IMAGE="${TEST_IMG:-ubuntu-minimal-daily:24.04}"
 
+# Helper function to extract MTC value from UEFI config
+get_mtc_value() {
+  local mtc_hex
+  mtc_hex="$(lxc config uefi get v1 MTC-eb704011-1402-11d3-8e77-00a0c969723b 2>&1 || true)"
+
+  # Check if variable doesn't exist
+  if echo "${mtc_hex}" | grep -qF "Requested UEFI variable does not exist"; then
+    return 1
+  fi
+
+  if [ -z "${mtc_hex}" ]; then
+    echo "ERROR: Could not extract MTC value"
+    return 1
+  fi
+
+  # mtc_hex is little-endian (e.g., "01000000" for value 1)
+  # Reverse byte order to get big-endian
+  local mtc_be="${mtc_hex:6:2}${mtc_hex:4:2}${mtc_hex:2:2}${mtc_hex:0:2}"
+  # Convert hex to decimal
+  printf "%d" "0x${mtc_be}"
+}
+
 poolName="vmpool$$"
 poolDriver=dir
 
 echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 
-echo "==> Create VM and boot"
-lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
+echo "==> Create VM"
+lxc init "${IMAGE}" v1 --vm -s "${poolName}"
+
+echo "==> Boot the VM"
+lxc start v1
 
 # Wait for instance to be ready ensures LXD is done initializing the NVRAM
 waitInstanceReady v1
 lxc info v1
+
+echo "==> Checking MTC after first boot"
+mtc="$(get_mtc_value)"
+echo "Boot 1: MTC = ${mtc}"
+if [ "${mtc}" -lt 1 ]; then
+  echo "ERROR: Expected MTC>=1 after first boot, got ${mtc}"
+  exit 1
+fi
+first_boot_mtc="${mtc}"
 
 EFI_GLOBAL_VARIABLE_GUID="8be4df61-93ca-11d2-aa0d-00e098032b8c"
 EFI_VAR_NAME="testvar"
@@ -74,6 +108,99 @@ echo "==> Start VM and check that variable does not exist anymore"
 lxc start v1
 waitInstanceReady v1
 ! lxc exec v1 -- test -e /sys/firmware/efi/efivars/"${EFI_VAR_FULL_NAME}" || false
+
+# Artificially reproduce https://github.com/canonical/lxd/issues/17729 without
+# needing multiple reboots to fill the NVRAM store and trigger GC.
+echo "==> [Phase 1/2] Pre-fill NVRAM store via host API to trigger GC at next boot"
+lxc exec v1 -- sync
+lxc stop -f v1
+
+echo "==> Start VM and establish baseline boot time before NVRAM GC"
+start=$(date +%s)
+lxc start v1
+waitInstanceReady v1
+normal_boot_elapsed=$(( $(date +%s) - start ))
+echo "Boot time (normal, baseline): ${normal_boot_elapsed}s"
+
+# Fill the NVRAM store with a large number of variables to trigger GC at next boot.
+# lxc config uefi set writes directly to the NVRAM backing file, bypassing EDK2
+# entirely. GC cannot trigger during these writes; any GC pressure will only
+# surface when EDK2 loads the bloated store on the next boot.
+lxc exec v1 -- sync
+lxc stop -f v1
+GC_FILL_VARS=50
+for i in $(seq 1 "${GC_FILL_VARS}"); do
+    lxc config uefi set v1 "gctest-host-${i}-${EFI_GLOBAL_VARIABLE_GUID}"="${EFI_VAR_VALUE}"
+done
+
+echo "==> Timing VM boot to observe NVRAM GC at startup"
+start=$(date +%s)
+lxc start v1
+waitInstanceReady v1
+boot_elapsed=$(( $(date +%s) - start ))
+echo "Boot time (Phase 1): ${boot_elapsed}s"
+if [ "${boot_elapsed}" -gt $(( normal_boot_elapsed + 45 )) ]; then
+    boot_delta=$(( boot_elapsed - normal_boot_elapsed ))
+    echo "::warning::NVRAM GC caused a slow boot (${boot_elapsed}s, +${boot_delta}s vs ${normal_boot_elapsed}s baseline)"
+fi
+
+echo "==> [Phase 2/2] In-guest timing loop: re-fill the NVRAM store to trigger in-guest GC"
+# After the Phase 1 boot-time GC, the store is compacted but all 50 host vars
+# written above remain as valid live entries. Writing a large number of additional
+# variables from the guest via SetVariable() will re-fill the store and trigger
+# another GC, this time visible as a stall inside the write loop.
+# OVMF's NV_VARIABLE_STORE partition is ~84 KB; system vars + the 50 host vars
+# consume ~23 KB, leaving ~61 KB free. At ~612 bytes per variable (with 512-byte
+# payload), ~100 writes exhaust that space; 150 gives a comfortable margin.
+#
+# A custom vendor GUID must be used: EDK2 rejects SetVariable() calls (with EINVAL) for
+# unrecognised names under EFI_GLOBAL_VARIABLE_GUID from the OS.
+# Using `>>` instead of `>` avoids O_TRUNC that's otherwise rejected by efivarfs.
+EFI_CI_TEST_GUID="a15a2fe6-d49e-4b8d-a5f3-3614a2ee3f3f"
+lxc exec v1 -- bash << GUEST_SCRIPT
+set -eu
+GUID="${EFI_CI_TEST_GUID}"
+GC_VAR_NUM=""
+NUM_GC_VARS=150
+total_elapsed=0
+normal_write_count=0
+
+# Build the variable payload once: 4-byte LE attributes (0x07 = NV|BS|RT) + 512 bytes of 0xFF.
+# A 512-byte payload costs ~612 bytes per variable in the NVRAM store (header + name + data),
+# so ~100 writes would exhaust the ~61 KB of free space after the Phase 1 boot-time GC;
+# NUM_GC_VARS=150 provides a comfortable safety margin.
+# The attributes and data must arrive in a single write() call (efivarfs requirement); cat
+# satisfies this for small files by issuing one read()+write() pair.
+printf '\x07\x00\x00\x00' > /tmp/efi_payload
+dd if=/dev/zero bs=512 count=1 2>/dev/null | tr '\000' '\377' >> /tmp/efi_payload
+
+for i in \$(seq 1 "\${NUM_GC_VARS}"); do
+    start=\$(date +%s%N)
+    cat /tmp/efi_payload >> /sys/firmware/efi/efivars/gctest-in-\${i}-\${GUID}
+    elapsed=\$(( (\$(date +%s%N) - start) / 1000000 ))
+    printf "  Write %\${#NUM_GC_VARS}d/\${NUM_GC_VARS}: \${elapsed}ms\n" "\${i}"
+    if [ -z "\${GC_VAR_NUM}" ] && [ "\${elapsed}" -gt 1000 ]; then
+        GC_VAR_NUM="\${i}"
+        avg_elapsed=\$(( normal_write_count > 0 ? total_elapsed / normal_write_count : elapsed ))
+        write_delta=\$(( elapsed - avg_elapsed ))
+        echo "::warning::NVRAM GC detected during in-guest write \${i}/\${NUM_GC_VARS} (\${elapsed}ms, +\${write_delta}ms vs \${avg_elapsed}ms avg)"
+    else
+        total_elapsed=\$(( total_elapsed + elapsed ))
+        normal_write_count=\$(( normal_write_count + 1 ))
+    fi
+done
+if [ -z "\${GC_VAR_NUM}" ]; then
+    echo "==> No slow in-guest writes detected (GC may not have kicked in yet)"
+fi
+GUEST_SCRIPT
+
+echo "==> Checking final MTC value"
+mtc="$(get_mtc_value)"
+echo "Final MTC = ${mtc}"
+expected_final_mtc=$(( first_boot_mtc + 4 ))
+if [ "${mtc}" -ne "${expected_final_mtc}" ]; then
+  echo "WARNING: Expected MTC=${expected_final_mtc} (first_boot=${first_boot_mtc} + 4 subsequent boots), got ${mtc}"
+fi
 
 # Cleanup
 echo "==> Stopping and deleting VM"
