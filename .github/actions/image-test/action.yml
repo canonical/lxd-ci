@@ -23,14 +23,16 @@ runs:
   steps:
     - name: Test image
       shell: bash
+      env:
+        TYPE: ${{ inputs.type }}
+        TARGET: ${{ inputs.target }}
+        DISTRO: ${{ inputs.distro }}
+        RELEASE: ${{ inputs.release }}
+        VARIANT: ${{ inputs.variant }}
       run: |
-        TYPE=${{ inputs.type }}
-        TARGET=${{ inputs.target }}
-        DISTRO=${{ inputs.distro }}
-        RELEASE=${{ inputs.release }}
-        VARIANT=${{ inputs.variant }}
-
         set -eux
+        # FIXME: needed to expand despite the `${HOME}`
+        TARGET="$(eval echo "${TARGET}")"
 
         TEST_ID="${DISTRO}-${RELEASE}-${VARIANT} (${TYPE})"
         echo "==> TEST: ${TEST_ID}"

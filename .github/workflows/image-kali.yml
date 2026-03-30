@@ -47,10 +47,12 @@ jobs:
         uses: ./.github/actions/image-setup
 
       - name: Build image
+        env:
+          ARCH: ${{ matrix.architecture }}
+          DISTRO: ${{ env.distro }}
         run: |
           TIMEOUT=1800
-          YAML="images/${{ env.distro }}.yaml"
-          ARCH="${{ matrix.architecture }}"
+          YAML="images/${DISTRO}.yaml"
           TYPE="${{ env.type }}"
 
           ./bin/build-distro "${YAML}" "${ARCH}" "${TYPE}" "${TIMEOUT}" "${{ env.target }}" \

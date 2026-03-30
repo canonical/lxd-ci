@@ -51,8 +51,10 @@ jobs:
         uses: ./.github/actions/image-setup
 
       - name: Determine image types
+        env:
+          ARCH: ${{ matrix.architecture }}
         run: |
-          if [ "${{ matrix.architecture }}" = "amd64" ]; then
+          if [ "${ARCH}" = "amd64" ]; then
               echo "type=container,vm" >> $GITHUB_ENV
           fi
 
@@ -61,10 +63,12 @@ jobs:
           fi
 
       - name: Build image
+        env:
+          ARCH: ${{ matrix.architecture }}
+          DISTRO: ${{ env.distro }}
         run: |
           TIMEOUT=1800
-          YAML="images/${{ env.distro }}.yaml"
-          ARCH="${{ matrix.architecture }}"
+          YAML="images/${DISTRO}.yaml"
           TYPE="${{ env.type }}"
 
           IMAGE_ARCH="${ARCH}"
