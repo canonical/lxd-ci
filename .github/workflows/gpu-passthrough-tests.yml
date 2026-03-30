@@ -72,7 +72,7 @@ jobs:
           mv $TESTFLINGER_DIR/uc-nvidia-cdi-job.temp $TESTFLINGER_DIR/uc-nvidia-cdi-job.yml
 
       - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@main
+        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
         with:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/uc-nvidia-cdi-job.yml
@@ -107,7 +107,7 @@ jobs:
           mv $TESTFLINGER_DIR/nvidia-cdi-job.temp $TESTFLINGER_DIR/nvidia-cdi-job.yml
 
       - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@main
+        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
         with:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/nvidia-cdi-job.yml
@@ -142,7 +142,7 @@ jobs:
           mv $TESTFLINGER_DIR/nvidia-legacy-runtime-job.temp $TESTFLINGER_DIR/nvidia-legacy-runtime-job.yml
 
       - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@main
+        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
         with:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/nvidia-legacy-runtime-job.yml
@@ -176,7 +176,7 @@ jobs:
           mv $TESTFLINGER_DIR/amd-cdi-job.temp $TESTFLINGER_DIR/amd-cdi-job.yaml
 
       - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@main
+        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
         with:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/amd-cdi-job.yaml
