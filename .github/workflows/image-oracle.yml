@@ -106,4 +106,4 @@ jobs:
         with:
           target: ${{ env.target }}
           image_dir: "${{ env.distro }}/${{ matrix.release }}/${{ matrix.architecture }}/${{ matrix.variant }}"
-          ssh_private_key: "${{ secrets.LXD_INFRA_IMAGES_KEY }}"
+          ssh_private_key: "${{ secrets.LXD_INFRA_IMAGES_KEY }}" # zizmor: ignore[secrets-outside-env]
