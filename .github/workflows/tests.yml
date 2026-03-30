@@ -78,7 +78,7 @@ jobs:
           persist-credentials: false
 
       - name: Require GHA pinning
-        uses: canonical/lxd/.github/actions/require-gha-pinning@main
+        uses: canonical/lxd/.github/actions/require-gha-pinning@main # zizmor: ignore[unpinned-uses]
 
       - id: ShellCheck
         name: Differential ShellCheck
@@ -317,18 +317,18 @@ jobs:
 
     steps:
       - name: Tune disk performance
-        uses: canonical/lxd/.github/actions/tune-disk-performance@main
+        uses: canonical/lxd/.github/actions/tune-disk-performance@main # zizmor: ignore[unpinned-uses]
 
       - name: Reclaim some memory
-        uses: canonical/lxd/.github/actions/reclaim-memory@main
+        uses: canonical/lxd/.github/actions/reclaim-memory@main # zizmor: ignore[unpinned-uses]
 
       - name: Reclaim disk space
         # This can take multiple minutes if the runner is busy/slow so only run it when/where absolutely needed.
         if: ${{ matrix.test == 'conversion' || matrix.test == 'vm-nesting' || startsWith(matrix.test, 'storage-') }}
-        uses: canonical/lxd/.github/actions/reclaim-disk-space@main
+        uses: canonical/lxd/.github/actions/reclaim-disk-space@main # zizmor: ignore[unpinned-uses]
 
       - name: Disable Docker
-        uses: canonical/lxd/.github/actions/disable-docker@main
+        uses: canonical/lxd/.github/actions/disable-docker@main # zizmor: ignore[unpinned-uses]
 
       - name: "Disable br_netfilter"
         run: |
@@ -365,11 +365,11 @@ jobs:
 
       - name: Setup MicroCeph
         if: ${{ matrix.test == 'conversion' || matrix.test == 'storage-buckets' || matrix.test == 'storage-vm ceph' || matrix.test == 'storage-volumes-vm' || startsWith(matrix.test, 'ui ') }}
-        uses: canonical/lxd/.github/actions/setup-microceph@main
+        uses: canonical/lxd/.github/actions/setup-microceph@main # zizmor: ignore[unpinned-uses]
 
       - name: Setup MicroOVN
         if: ${{ startsWith(matrix.test, 'ui ') }}
-        uses: canonical/lxd/.github/actions/setup-microovn@main
+        uses: canonical/lxd/.github/actions/setup-microovn@main # zizmor: ignore[unpinned-uses]
 
       - name: CPU info
         run: lscpu
