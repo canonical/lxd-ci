@@ -58,8 +58,22 @@ test_lxd_installer() {
 test_lxd() {
     local instance="${1}"
     local release="${2}"
+    local vm_uname
 
-    echo "==> ${instance} (${release})"
+    vm_uname="$(lxc exec "${instance}" -- uname -r)"
+    echo "==> ${instance} (${release} with kernel: ${vm_uname})"
+
+    # new Ubuntu releases have split out the ZFS kernel module into a separate
+    # package, so check if modinfo can find it and if not install the package
+    # that provides it.
+    if ! lxc exec "${instance}" -- modinfo -F version zfs; then
+      lxc exec "${instance}" -- apt-get update
+      # XXX: the linux-modules-zfs-generic metapackage is avoided as it might
+      # pull a module for a newer kernel than the one running in the VM, which
+      # would cause modprobe to fail with a version mismatch error. Instead we
+      # install the specific package for the running kernel.
+      lxc exec "${instance}" -- apt-get install --no-install-recommends -y linux-main-modules-zfs-"${vm_uname}"
+    fi
 
     # check that ZFS is functional
     lxc exec "${instance}" -- lxd init --auto --storage-backend "zfs"
