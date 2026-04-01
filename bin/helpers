@@ -260,7 +260,9 @@ configure_ovn() {
         echo "" > /var/log/ovn/ovn-controller.log
     else
         microovn status || microovn cluster bootstrap
-        lxc config set network.ovn.northbound_connection "ssl:127.0.0.1:6641"
+        if ! hasNeededAPIExtension ovn_dynamic_northbound_connection; then
+          lxc config set network.ovn.northbound_connection "ssl:127.0.0.1:6641"
+        fi
     fi
 }
 
