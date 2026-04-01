@@ -366,6 +366,16 @@ createPowerFlexPool() (
     powerflex.mode="${POWERFLEX_MODE:-nvme}"
 )
 
+# createPowerStorePool: creates a new storage pool using the PowerStore driver.
+createPowerStorePool() (
+  lxc storage create "${1}" powerstore \
+    powerstore.gateway="${POWERSTORE_GATEWAY}" \
+    powerstore.gateway.verify="${POWERSTORE_GATEWAY_VERIFY:-true}" \
+    powerstore.user.name="${POWERSTORE_USER}" \
+    powerstore.user.password="${POWERSTORE_PASSWORD}" \
+    powerstore.mode="${POWERSTORE_MODE:-nvme}"
+)
+
 # createPureStoragePool: creates a new storage pool using the Pure Storage driver.
 createPureStoragePool() (
   lxc storage create "${1}" pure \
