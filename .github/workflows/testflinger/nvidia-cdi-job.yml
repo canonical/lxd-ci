@@ -13,6 +13,22 @@ test_data:
     # This is used, along with DEVICE_IP, by all scriptlets to access the device
     export DEVICE_USER="ubuntu"
 
+    # Function to check ldconfig contains key nvidia libraries
+    check_ldconfig() {
+      local container=$1
+      _run lxc exec "$container" -- ldconfig -p | grep "libcuda.so"
+      _run lxc exec "$container" -- ldconfig -p | grep "libnvidia-ml.so"
+      _run lxc exec "$container" -- ldconfig -p | grep "libnvidia-encode.so"
+      _run lxc exec "$container" -- ldconfig -p | grep "libnvidia-glcore.so"
+    }
+
+    # Function to check mountinfo contains expected nvidia files
+    check_mountinfo() {
+      local container=$1
+      _run lxc exec "$container" -- cat /proc/self/mountinfo | grep "nvidia_icd.json"
+      _run lxc exec "$container" -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
+    }
+
     # retrieve the tools installer
     curl -Ls -o install_tools.sh https://raw.githubusercontent.com/canonical/hwcert-jenkins-tools/main/install_tools.sh
 
@@ -88,22 +104,27 @@ test_data:
     # Check LXD is ready
     _run lxd waitready --timeout=60
 
+    # Check adding the CDI device to a stopped container
     _run "lxc init ubuntu:noble c1 </dev/null"
     _run lxc config device add c1 gpu0 gpu gputype=physical id=nvidia.com/gpu=0
-
     _run lxc start c1
+    check_ldconfig c1
+    check_mountinfo c1
 
-    # print out all mounts we have so we can compare it later if anything goes wrong
+    # Print out all mounts we have so we can compare it later if anything goes wrong
     _run lxc exec c1 -- cat /proc/self/mountinfo
 
     # Verify that exactly one DRM card device and a render node exist in the container
     _run "lxc exec c1 -- sh -c 'ls /dev/dri/card[0-9]* | wc -l | grep -qx 1'"
     _run lxc exec c1 -- sh -c 'ls /dev/dri/renderD[0-9]*'
 
-    # check that nvidia-smi works
+    # Check that nvidia-smi works
     _run lxc exec c1 -- nvidia-smi
+    _run lxc delete -f c1
 
-    # check presence of a few different files to catch regressions
-    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "nvidia_icd.json"
-    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
-    _run lxc exec c1 -- cat /proc/self/mountinfo | grep "libcuda.so"
+    # Check hotplugging of the CDI device
+    _run "lxc launch ubuntu:noble c1 </dev/null"
+    _run lxc config device add c1 gpu0 gpu gputype=physical id=nvidia.com/gpu=0
+    check_ldconfig c1
+    check_mountinfo c1
+    _run lxc exec c1 -- nvidia-smi
