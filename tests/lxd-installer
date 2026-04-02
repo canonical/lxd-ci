@@ -58,12 +58,27 @@ test_lxd_installer() {
 test_lxd() {
     local instance="${1}"
     local release="${2}"
+    local vm_uname
 
-    echo "==> ${instance} (${release})"
+    vm_uname="$(lxc exec "${instance}" -- uname -r)"
+    echo "==> ${instance} (${release} with kernel: ${vm_uname})"
 
-    # XXX: Temporarily refresh to `latest/edge` if the automatically installed snap doesn't support ZFS 2.4
-    if [ "${release}" = "26.04" ] && ! lxc exec v1 -- test -d /snap/lxd/current/zfs-2.4; then
-      lxc exec "${instance}" -- snap refresh lxd --channel latest/edge
+    # new Ubuntu releases have split out the ZFS kernel module into a separate
+    # package, so check if modinfo can find it and if not install the package
+    # that provides it.
+    if ! lxc exec "${instance}" -- modinfo -F version zfs; then
+      lxc exec "${instance}" -- apt-get update
+      # XXX: the linux-modules-zfs-generic metapackage is avoided as it might
+      # pull a module for a newer kernel than the one running in the VM, which
+      # would cause modprobe to fail with a version mismatch error. Instead we
+      # install the specific package for the running kernel.
+      lxc exec "${instance}" -- apt-get install --no-install-recommends -y linux-main-modules-zfs-"${vm_uname}"
+    fi
+
+    # Older snaps are unable to detect that ZFS is available on 26.04
+    # TODO: remove once setup-zfs is available in the snap on 26.04.
+    if [ "${release}" = "26.04" ] && ! lxc exec "${instance}" -- test -e /snap/lxd/current/commands/setup-zfs; then
+      lxc exec "${instance}" -- snap restart lxd
     fi
 
     # check that ZFS is functional
@@ -93,12 +108,6 @@ export WARNING_PREFIX="false"
 for remote in ubuntu-minimal-daily ubuntu-daily; do
     for release in $RELEASES; do
         IMAGE="${remote}:${release}"
-
-        echo "==> container (${IMAGE})"
-        lxc launch "${IMAGE}" c1
-        waitInstanceBooted c1
-        test_lxd_installer c1 "${release}"
-        lxc delete -f c1
 
         echo "==> VM (${IMAGE})"
         lxc launch "${IMAGE}" v1 --vm -c security.devlxd.images=true
