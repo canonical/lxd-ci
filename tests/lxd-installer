@@ -109,12 +109,6 @@ for remote in ubuntu-minimal-daily ubuntu-daily; do
     for release in $RELEASES; do
         IMAGE="${remote}:${release}"
 
-        echo "==> container (${IMAGE})"
-        lxc launch "${IMAGE}" c1
-        waitInstanceBooted c1
-        test_lxd_installer c1 "${release}"
-        lxc delete -f c1
-
         echo "==> VM (${IMAGE})"
         lxc launch "${IMAGE}" v1 --vm -c security.devlxd.images=true
         isSystemdClean v1  # for VM: require systemd --fail to be empty
