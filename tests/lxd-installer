@@ -75,6 +75,12 @@ test_lxd() {
       lxc exec "${instance}" -- apt-get install --no-install-recommends -y linux-main-modules-zfs-"${vm_uname}"
     fi
 
+    # Older snaps are unable to detect that ZFS is available on 26.04
+    # TODO: remove once setup-zfs is available in the snap on 26.04.
+    if [ "${release}" = "26.04" ] && ! lxc exec "${instance}" -- test -e /snap/lxd/current/commands/setup-zfs; then
+      lxc exec "${instance}" -- snap restart lxd
+    fi
+
     # check that ZFS is functional
     lxc exec "${instance}" -- lxd init --auto --storage-backend "zfs"
     lxc exec "${instance}" -- lxc storage show default | grep -xF 'driver: zfs'
