@@ -128,7 +128,7 @@ if [ "${VM_IN_CTN}" = "1" ]; then
     cmd "${nestedVMs}" "snap install lxd --channel ${LXD_SNAP_CHANNEL}"
     cmd "${nestedVMs}" "lxd init --auto"
     cmd "${nestedVMs}" "lxc profile device set default root size=3584MiB"
-    cmd "${nestedVMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=510MiB --quiet"
+    cmd "${nestedVMs}" "lxc launch ${IMAGE} nested --vm -c limits.memory=512MiB --quiet"
 else
     echo "Skipping VM in container tests on ${LXD_SNAP_CHANNEL}"
 fi
