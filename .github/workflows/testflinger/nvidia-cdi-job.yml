@@ -108,6 +108,7 @@ test_data:
     _run "lxc init ubuntu:noble c1 </dev/null"
     _run lxc config device add c1 gpu0 gpu gputype=physical id=nvidia.com/gpu=0
     _run lxc start c1
+    sleep 5
     check_ldconfig c1
     check_mountinfo c1
 
