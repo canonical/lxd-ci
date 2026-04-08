@@ -260,7 +260,9 @@ configure_ovn() {
         echo "" > /var/log/ovn/ovn-controller.log
     else
         microovn status || microovn cluster bootstrap
-        lxc config set network.ovn.northbound_connection "ssl:127.0.0.1:6641"
+        if ! hasNeededAPIExtension ovn_dynamic_northbound_connection; then
+          lxc config set network.ovn.northbound_connection "ssl:127.0.0.1:6641"
+        fi
     fi
 }
 
@@ -332,7 +334,7 @@ hasNeededAPIExtension() (
     { set +x; } 2>/dev/null
     local lxc_info_out
     lxc_info_out="$(lxc info)" || exit 1
-    grep -qxFm1 -- "- ${1}" <<< "${lxc_info_out}"
+    echo "${lxc_info_out}" | grep -qxFm1 -- "- ${1}"
 )
 
 # runsMinimumKernel: check if the running kernel is at least the minimum version.

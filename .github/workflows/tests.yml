@@ -78,7 +78,7 @@ jobs:
           persist-credentials: false
 
       - name: Require GHA pinning
-        uses: canonical/lxd/.github/actions/require-gha-pinning@main
+        uses: canonical/lxd/.github/actions/require-gha-pinning@main # zizmor: ignore[unpinned-uses]
 
       - id: ShellCheck
         name: Differential ShellCheck
@@ -317,18 +317,18 @@ jobs:
 
     steps:
       - name: Tune disk performance
-        uses: canonical/lxd/.github/actions/tune-disk-performance@main
+        uses: canonical/lxd/.github/actions/tune-disk-performance@main # zizmor: ignore[unpinned-uses]
 
       - name: Reclaim some memory
-        uses: canonical/lxd/.github/actions/reclaim-memory@main
+        uses: canonical/lxd/.github/actions/reclaim-memory@main # zizmor: ignore[unpinned-uses]
 
       - name: Reclaim disk space
         # This can take multiple minutes if the runner is busy/slow so only run it when/where absolutely needed.
         if: ${{ matrix.test == 'conversion' || matrix.test == 'vm-nesting' || startsWith(matrix.test, 'storage-') }}
-        uses: canonical/lxd/.github/actions/reclaim-disk-space@main
+        uses: canonical/lxd/.github/actions/reclaim-disk-space@main # zizmor: ignore[unpinned-uses]
 
       - name: Disable Docker
-        uses: canonical/lxd/.github/actions/disable-docker@main
+        uses: canonical/lxd/.github/actions/disable-docker@main # zizmor: ignore[unpinned-uses]
 
       - name: "Disable br_netfilter"
         run: |
@@ -356,7 +356,7 @@ jobs:
 
       # for simplicity, just use one cache directory
       # and make it valid for one day
-      - uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      - uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         id: cache-restore
         if: ${{ matrix.test == 'qemu-external-vm' }}
         with:
@@ -365,11 +365,11 @@ jobs:
 
       - name: Setup MicroCeph
         if: ${{ matrix.test == 'conversion' || matrix.test == 'storage-buckets' || matrix.test == 'storage-vm ceph' || matrix.test == 'storage-volumes-vm' || startsWith(matrix.test, 'ui ') }}
-        uses: canonical/lxd/.github/actions/setup-microceph@main
+        uses: canonical/lxd/.github/actions/setup-microceph@main # zizmor: ignore[unpinned-uses]
 
       - name: Setup MicroOVN
         if: ${{ startsWith(matrix.test, 'ui ') }}
-        uses: canonical/lxd/.github/actions/setup-microovn@main
+        uses: canonical/lxd/.github/actions/setup-microovn@main # zizmor: ignore[unpinned-uses]
 
       - name: CPU info
         run: lscpu
@@ -445,7 +445,7 @@ jobs:
           name: test-report-${{ matrix.test }}-lxd-${{ steps.lxd-env.outputs.LXD_CHANNEL }}-os-${{ matrix.os }}
           path: lxd-ui/test-results
           retention-days: 1
-      - uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      - uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         if: ${{ matrix.test == 'qemu-external-vm' }}
         with:
           path: /home/runner/work/cache
@@ -463,7 +463,7 @@ jobs:
 
       - name: Tmate debugging session (self-hosted)
         if: ${{ failure() && inputs.tmate-debug && inputs.self-hosted-runner }}
-        uses: canonical/action-tmate@main
+        uses: canonical/action-tmate@bda82e73586a62bf621881aab872a527c8a46e2d # main
         timeout-minutes: ${{ fromJSON(inputs.tmate-timeout) }}
       - name: Tmate debugging session (gh-hosted)
         if: ${{ failure() && inputs.tmate-debug && !inputs.self-hosted-runner }}

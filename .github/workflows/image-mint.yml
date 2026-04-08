@@ -3,12 +3,13 @@ name: Linux Mint
 on:
   schedule:
     - cron: '30 5 * * 1-5'  # Build amd64
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.ubuntu-releases }}-${{ inputs.snap-track }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ inputs.build-arm64 }}
   # XXX: scheduled runs should not cancel manually triggered ones
   cancel-in-progress: ${{ !contains(github.event_name, 'schedule')}}
 
@@ -41,10 +42,12 @@ jobs:
         uses: ./.github/actions/image-setup
 
       - name: Build image
+        env:
+          ARCH: ${{ matrix.architecture }}
+          DISTRO: ${{ env.distro }}
         run: |
           TIMEOUT=3600
-          YAML="images/${{ env.distro }}.yaml"
-          ARCH="${{ matrix.architecture }}"
+          YAML="images/${DISTRO}.yaml"
           TYPE="${{ env.type }}"
           RELEASE="${{ matrix.release}}"
 
@@ -92,4 +95,4 @@ jobs:
         with:
           target: ${{ env.target }}
           image_dir: "${{ env.distro }}/${{ matrix.release }}/${{ matrix.architecture }}/${{ matrix.variant }}"
-          ssh_private_key: "${{ secrets.LXD_INFRA_IMAGES_KEY }}"
+          ssh_private_key: "${{ secrets.LXD_INFRA_IMAGES_KEY }}" # zizmor: ignore[secrets-outside-env]
