@@ -2,7 +2,6 @@
 
 import json
 import sys
-from urllib.parse import quote
 from urllib.request import urlopen
 
 # Convenience functions
