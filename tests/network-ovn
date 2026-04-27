@@ -1028,8 +1028,14 @@ ovn_load_balancer_tests() {
     echo "==> Check basic load balancer with backend and port configuration produces config in OVN"
     lxc network load-balancer backend add ovn-virtual-network2 192.0.2.2 test-backend "${ip4AddressPrefix2}.2"
     lxc network load-balancer backend add ovn-virtual-network2 2001:db8:1:2::2 test-backend "${ip6AddressPrefix2}::2"
-    lxc network load-balancer port add ovn-virtual-network2 192.0.2.2 tcp 53 test-backend
-    lxc network load-balancer port add ovn-virtual-network2 2001:db8:1:2::2 tcp 53 test-backend
+    if hasNeededAPIExtension network_load_balancer_pool; then
+        # Starting with the "network_load_balancer_pool" extension a port can either specify a list of backends or a pool.
+        lxc network load-balancer port add ovn-virtual-network2 192.0.2.2 tcp 53 target_backend=test-backend
+        lxc network load-balancer port add ovn-virtual-network2 2001:db8:1:2::2 tcp 53 target_backend=test-backend
+    else
+        lxc network load-balancer port add ovn-virtual-network2 192.0.2.2 tcp 53 test-backend
+        lxc network load-balancer port add ovn-virtual-network2 2001:db8:1:2::2 tcp 53 test-backend
+    fi
 
     echo "==> Check changing network's subnet(s) are prevented if load balancers backends exist that conflict"
     ! lxc network set ovn-virtual-network2 ipv4.address=192.168.0.1/24 || false
@@ -1054,16 +1060,26 @@ ovn_load_balancer_tests() {
     echo "==> Add incompatible load balancer backend for u1"
     lxc network load-balancer backend add ovn-virtual-network 192.0.2.1 u1 "${U1_IPV4}" 53-63,80
     lxc network load-balancer backend add ovn-virtual-network 2001:db8:1:2::1 u1 "${U1_IPV6}" 53-63,80
-    ! lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 u1 || false
-    ! lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 u1 || false
+    if hasNeededAPIExtension network_load_balancer_pool; then
+        ! lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 target_backend=u1 || false
+        ! lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 target_backend=u1 || false
+    else
+        ! lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 u1 || false
+        ! lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 u1 || false
+    fi
 
     echo "==> Add compatible explicit single port backend for u1"
     lxc network load-balancer backend remove ovn-virtual-network 192.0.2.1 u1
     lxc network load-balancer backend remove ovn-virtual-network 2001:db8:1:2::1 u1
     lxc network load-balancer backend add ovn-virtual-network 192.0.2.1 u1 "${U1_IPV4}" 54
     lxc network load-balancer backend add ovn-virtual-network 2001:db8:1:2::1 u1 "${U1_IPV6}" 54
-    lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 u1
-    lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 u1
+    if hasNeededAPIExtension network_load_balancer_pool; then
+        lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 target_backend=u1
+        lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 target_backend=u1
+    else
+        lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 u1
+        lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 u1
+    fi
 
     echo "==> Check can't remove backend in use"
     ! lxc network load-balancer backend remove ovn-virtual-network 192.0.2.1 u1 || false
@@ -1076,8 +1092,13 @@ ovn_load_balancer_tests() {
     echo "==> Add load balancer ports towards u1 using no port target"
     lxc network load-balancer backend add ovn-virtual-network 192.0.2.1 u1 "${U1_IPV4}"
     lxc network load-balancer backend add ovn-virtual-network 2001:db8:1:2::1 u1 "${U1_IPV6}"
-    lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 u1
-    lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 u1
+    if hasNeededAPIExtension network_load_balancer_pool; then
+        lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 target_backend=u1
+        lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 target_backend=u1
+    else
+        lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 u1
+        lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 u1
+    fi
 
     echo "==> Check DNS TCP forwarding towards u1"
     # Relies on static route (above) rather than neighbour adverts see https://github.com/ovn-org/ovn/issues/124
@@ -1123,8 +1144,13 @@ EOF
     echo "==> Change load balancer ports towards u2"
     lxc network load-balancer port remove ovn-virtual-network 192.0.2.1 tcp 53
     lxc network load-balancer port remove ovn-virtual-network 2001:db8:1:2::1 tcp 53
-    lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 u2
-    lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 u2
+    if hasNeededAPIExtension network_load_balancer_pool; then
+        lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 target_backend=u2
+        lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 target_backend=u2
+    else
+        lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 u2
+        lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 u2
+    fi
 
     echo "==> Check DNS TCP forwarding towards u2"
     lxc exec u2 -- systemctl mask dnsmasq
@@ -1151,8 +1177,13 @@ EOF
     echo "==> Change load balancer ports towards u1 and u2"
     lxc network load-balancer port remove ovn-virtual-network 192.0.2.1 tcp 53
     lxc network load-balancer port remove ovn-virtual-network 2001:db8:1:2::1 tcp 53
-    lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 u1,u2
-    lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 u1,u2
+    if hasNeededAPIExtension network_load_balancer_pool; then
+        lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 target_backend=u1,u2
+        lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 target_backend=u1,u2
+    else
+        lxc network load-balancer port add ovn-virtual-network 192.0.2.1 tcp 53 u1,u2
+        lxc network load-balancer port add ovn-virtual-network 2001:db8:1:2::1 tcp 53 u1,u2
+    fi
 
     echo "==> Check OVN config mentions both backend target IPs"
     ovn-nbctl list load_balancer | grep -F "{\"192.0.2.1:53\"=\"${U1_IPV4}:53,${U2_IPV4}:53\"}"
@@ -1203,8 +1234,13 @@ EOF
         lxc network load-balancer backend add ovn-virtual-network "${ip6AddressPrefix}::10" u2 "${U2_IPV6}"
 
         echo "==> Configure ports for the load balancers towards u1 and u2"
-        lxc network load-balancer port add ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53 u1,u2
-        lxc network load-balancer port add ovn-virtual-network "${ip6AddressPrefix}::10" tcp 53 u1,u2
+        if hasNeededAPIExtension network_load_balancer_pool; then
+            lxc network load-balancer port add ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53 target_backend=u1,u2
+            lxc network load-balancer port add ovn-virtual-network "${ip6AddressPrefix}::10" tcp 53 target_backend=u1,u2
+        else
+            lxc network load-balancer port add ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53 u1,u2
+            lxc network load-balancer port add ovn-virtual-network "${ip6AddressPrefix}::10" tcp 53 u1,u2
+        fi
 
         echo "==> Check OVN config mentions both backend target IPs"
         ovn-nbctl list load_balancer | grep -F "{\"${ip4AddressPrefix}.10:53\"=\"${U1_IPV4}:53,${U2_IPV4}:53\"}"
@@ -1249,8 +1285,13 @@ EOF
         echo "==> Change load balancer ports towards u2 only"
         lxc network load-balancer port remove ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53
         lxc network load-balancer port remove ovn-virtual-network "${ip6AddressPrefix}::10" tcp 53
-        lxc network load-balancer port add ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53 u2
-        lxc network load-balancer port add ovn-virtual-network "${ip6AddressPrefix}::10" tcp 53 u2
+        if hasNeededAPIExtension network_load_balancer_pool; then
+            lxc network load-balancer port add ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53 target_backend=u2
+            lxc network load-balancer port add ovn-virtual-network "${ip6AddressPrefix}::10" tcp 53 target_backend=u2
+        else
+            lxc network load-balancer port add ovn-virtual-network "${ip4AddressPrefix}.10" tcp 53 u2
+            lxc network load-balancer port add ovn-virtual-network "${ip6AddressPrefix}::10" tcp 53 u2
+        fi
 
         echo "==> Check accessing load balancer inside the u1 and u2"
         lxc exec u2 -- systemctl start dnsmasq
