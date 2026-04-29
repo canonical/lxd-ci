@@ -52,22 +52,40 @@ runs:
         # Ensure path of the source directory is expanded.
         VERSION="$(cat "${SRC_DIR}/serial")"
 
-        # Create directory structure that will be mirrored on the target server.
-        mkdir -p "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
-        mv "${SRC_DIR}"/* "${SRC_DIR}-upload/${IMG_DIR}/.${VERSION}"
+        # Use a stable, flat staging directory named after all image path components
+        # PLUS the version. This guarantees concurrent jobs never share any remote
+        # parent directory or files, eliminating all setstat and upload conflicts.
+        STAGING_DIR=".staging-$(echo "${IMG_DIR}" | sed 's|/|-|g')-${VERSION}"
+
+        # Create an isolated local staging structure to ensure that when we `put -R`,
+        # no remote paths are shared with any other concurrent job.
+        mkdir -p "${SRC_DIR}-upload/${STAGING_DIR}"
+        mv "${SRC_DIR}"/* "${SRC_DIR}-upload/${STAGING_DIR}/"
 
         # First upload contents to the temporary dir and once fully uploaded
         # move the directory to the final destination to avoid potential race
         # where simplestream-maintainer includes partially uploaded images.
-        JITTER="$((RANDOM % 10))"
-
         SFTP_BATCHFILE="$(mktemp)"
         cat << EOF > "${SFTP_BATCHFILE}"
-        put -R "${SRC_DIR}"-upload/*
-        rename "${IMG_DIR}/.${VERSION}" "${IMG_DIR}/${VERSION}"
+        put -R "${SRC_DIR}-upload/${STAGING_DIR}"
+        EOF
+
+        # Ensure each path component of IMG_DIR exists on the remote so the
+        # rename target's parent is present, even for new distro/release/arch/variant paths.
+        # (emulating `mkdir -p`)
+        PARTIAL=""
+        for part in ${IMG_DIR//\// }; do
+            PARTIAL="${PARTIAL:+${PARTIAL}/}${part}"
+            echo "-mkdir \"${PARTIAL}\""
+        done >> "${SFTP_BATCHFILE}"
+
+        cat << EOF >> "${SFTP_BATCHFILE}"
+        # Atomically rename the staging dir to its final destination.
+        rename "${STAGING_DIR}" "${IMG_DIR}/${VERSION}"
         bye
         EOF
 
+        JITTER="$((RANDOM % 10))"
         SUCCESS="false"
         for attempt in 1 2 3 4 5; do
           if sftp -oHostKeyAlgorithms=ssh-ed25519 -P "${SSH_PORT}" -oConnectionAttempts=5 -oConnectTimeout=5 -b "${SFTP_BATCHFILE}" "${SSH_USER}@${SSH_HOST}"; then
