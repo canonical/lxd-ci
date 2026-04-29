@@ -87,14 +87,15 @@ runs:
 
         JITTER="$((RANDOM % 10))"
         SUCCESS="false"
-        for attempt in 1 2 3 4 5; do
+        for attempt in 1 2 3; do
           if sftp -oHostKeyAlgorithms=ssh-ed25519 -P "${SSH_PORT}" -oConnectionAttempts=5 -oConnectTimeout=5 -b "${SFTP_BATCHFILE}" "${SSH_USER}@${SSH_HOST}"; then
             SUCCESS="true"
             break
           fi
 
           DELAY="$((JITTER + attempt * 5))"
-          [ "${attempt}" -gt 1 ] && echo "Attempt ${attempt}/5 failed, waiting ${DELAY}s before retrying..."
+          [ "${attempt}" -gt 1 ] && echo "Attempt ${attempt}/3 failed, waiting ${DELAY}s before retrying..."
+          sleep "${DELAY}"
         done
 
         rm -f "${SFTP_BATCHFILE}"
