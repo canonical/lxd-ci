@@ -33,6 +33,7 @@ runs:
         # Try to get own public IP
         MY_PUBLIC_IP="$(curl --silent --max-time 5 https://api.ipify.org || true)"
         echo "Unable to connect from ${MY_PUBLIC_IP:-"unknown"}!"
+        exit 1
 
     - name: Install dependencies
       shell: bash
