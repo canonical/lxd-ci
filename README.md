@@ -77,7 +77,7 @@ This will be copied to `/var/snap/lxd/common/lxd.debug` and the daemon will be r
 LXD_SIDELOAD_PATH=/tmp/lxd ./bin/local-run tests/interception latest/edge
 ```
 
-To also test a custom build of `lxc`, you can set the `LXC_SIDELOAD_PATH` environment variable. 
+To also test a custom build of `lxc`, you can set the `LXC_SIDELOAD_PATH` environment variable.
 This will be copied to `/var/snap/lxd/common/lxc.debug` and used by the tests.
 
 ```sh
@@ -139,6 +139,16 @@ To run the VM storage tests on the Dell PowerFlex driver, provide the following 
 
 Use a PowerFlex storage pool (`POWERFLEX_POOL`) which has zero-padding enabled.
 Using non zero-padding enabled pools is not allowed.
+
+# Running Dell PowerStore VM storage tests
+
+To run the VM storage tests using Dell PowerStore driver, provide the following environment variables:
+
+* `POWERSTORE_GATEWAY`: Address of the PowerStore gateway.
+* `POWERSTORE_GATEWAY_VERIFY`: Whether to verify the HTTP gateway's certificate. The default is `true`.
+* `POWERSTORE_USER`: Name of the PowerStore user.
+* `POWERSTORE_PASSWORD`: Password for PowerStore user.
+* `POWERSTORE_MODE`: Operation mode for the consumption of storage volumes. The default is `nvme`.
 
 # Running Pure Storage VM storage tests
 
