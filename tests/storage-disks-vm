@@ -223,6 +223,12 @@ lxc project create restricted \
   -c restricted=true \
   -c restricted.devices.disk=allow \
   -c restricted.devices.disk.paths="${testRoot}/allowed1,${testRoot}/allowed2"
+
+# Allow the project to access image registries.
+if hasNeededAPIExtension "image_registries"; then
+  lxc project set restricted restricted.registries=allow
+fi
+
 lxc project switch restricted
 lxc profile device add default root disk path="/" pool=default
 lxc profile device add default eth0 nic network=lxdbr0
