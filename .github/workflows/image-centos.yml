@@ -21,7 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         release:
-          - 9-Stream  # EOL: 2032-05-31
+          - 9-Stream  # EOL: 2027-05-31
+          - 10-Stream # EOL: 2030-05-31
         variant:
           - default
           - cloud
