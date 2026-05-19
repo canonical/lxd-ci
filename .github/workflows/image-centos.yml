@@ -68,7 +68,7 @@ jobs:
               -o image.release=${{ matrix.release }} \
               -o image.variant=${{ matrix.variant }} \
               -o source.variant=boot \
-              -o source.url=https://dfw.mirror.rackspace.com/centos-stream
+              -o source.url=https://mirror.pilotfiber.com/centos-stream
 
       - name: Print build artifacts
         run: ls -lah "${{ env.target }}"
