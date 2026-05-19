@@ -67,6 +67,6 @@ runs:
         bye
         EOF
 
-        sftp -oHostKeyAlgorithms=ssh-ed25519 -P "${SSH_PORT}" -oConnectionAttempts=5 -oConnectTimeout=5 -b "${SFTP_BATCHFILE}" "${SSH_USER}@${SSH_HOST}"
+        sftp -oHostKeyAlgorithms=ssh-ed25519 -P "${SSH_PORT}" -oConnectionAttempts=5 -oConnectTimeout=5 -oServerAliveInterval=30 -b "${SFTP_BATCHFILE}" "${SSH_USER}@${SSH_HOST}"
 
         rm -f "${SFTP_BATCHFILE}"
