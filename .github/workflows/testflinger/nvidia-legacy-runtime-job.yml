@@ -44,9 +44,13 @@ test_data:
     # Apply the changes to the bootloader
     _run sudo update-grub
 
-    # install NVIDIA drivers and user space utilities
+    # Find the recommended NVIDIA server-open version
     _run install_packages ubuntu-drivers-common
-    _run sudo ubuntu-drivers install --gpgpu nvidia:570-server-open
+    NVIDIA_DRIVER="$(_run ubuntu-drivers --gpgpu devices | awk '/-server-open/ {print $3}' | sort -V -r | head -n1)"
+    NVIDIA_DRIVER_VERSION="$(echo "${NVIDIA_DRIVER}" | sed 's/.*-\([0-9]\+\)-server-open$/\1/')"
+
+    # install NVIDIA drivers and user space utilities
+    _run sudo ubuntu-drivers install --gpgpu nvidia:${NVIDIA_DRIVER_VERSION}-server-open
 
     # Let's try to be as close as we can to Ubuntu Core's
     # mesa-2404:kernel-gpu-2404 components in terms of which packages
@@ -56,15 +60,15 @@ test_data:
     # Please, refer to
     # https://git.launchpad.net/~canonical-kernel-snaps/canonical-kernel-snaps/+git/kernel-snaps-u24.04/tree/snapcraft.yaml?h=pc-components#n162
     _run install_packages libnvidia-egl-wayland1 \
-                          libnvidia-cfg1-570-server \
-                          libnvidia-common-570-server \
-                          libnvidia-compute-570-server \
-                          libnvidia-decode-570-server \
-                          libnvidia-encode-570-server \
-                          libnvidia-extra-570-server \
-                          libnvidia-gl-570-server \
-                          libnvidia-fbc1-570-server \
-                          nvidia-utils-570-server
+                          libnvidia-cfg1-${NVIDIA_DRIVER_VERSION}-server \
+                          libnvidia-common-${NVIDIA_DRIVER_VERSION}-server \
+                          libnvidia-compute-${NVIDIA_DRIVER_VERSION}-server \
+                          libnvidia-decode-${NVIDIA_DRIVER_VERSION}-server \
+                          libnvidia-encode-${NVIDIA_DRIVER_VERSION}-server \
+                          libnvidia-extra-${NVIDIA_DRIVER_VERSION}-server \
+                          libnvidia-gl-${NVIDIA_DRIVER_VERSION}-server \
+                          libnvidia-fbc1-${NVIDIA_DRIVER_VERSION}-server \
+                          nvidia-utils-${NVIDIA_DRIVER_VERSION}-server
 
     # reboot and wait for machine to get back
     _run sudo reboot
