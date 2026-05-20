@@ -40,6 +40,9 @@ concurrency:
   # XXX: scheduled runs should not cancel manually triggered ones
   cancel-in-progress: ${{ !contains(github.event_name, 'schedule')}}
 
+env:
+  TESTFLINGER_DIR: .github/workflows/testflinger
+
 jobs:
   uc-nvidia-cdi:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
@@ -49,7 +52,6 @@ jobs:
         os:
           - core24-latest
     env:
-      TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
     steps:
       - name: Event data
@@ -84,7 +86,6 @@ jobs:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
     env:
-      TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
     steps:
       - name: Event data
@@ -119,7 +120,6 @@ jobs:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
     env:
-      TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
     steps:
       - name: Event data
@@ -153,7 +153,6 @@ jobs:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
     env:
-      TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
     steps:
       - name: Event data
