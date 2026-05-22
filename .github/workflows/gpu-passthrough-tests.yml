@@ -40,6 +40,9 @@ concurrency:
   # XXX: scheduled runs should not cancel manually triggered ones
   cancel-in-progress: ${{ !contains(github.event_name, 'schedule')}}
 
+env:
+  TESTFLINGER_DIR: .github/workflows/testflinger
+
 jobs:
   uc-nvidia-cdi:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
@@ -49,8 +52,8 @@ jobs:
         os:
           - core24-latest
     env:
-      TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
+      TFWORKFLOW: uc-nvidia-cdi-job
     steps:
       - name: Event data
         run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
@@ -64,18 +67,14 @@ jobs:
         env:
           JOB_QUEUE: lxd-nvidia
           DISTRO: ${{ matrix.os }}
-        run: |
-          # Prepare job
-          envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' \
-            < $TESTFLINGER_DIR/uc-nvidia-cdi-job.yml \
-            > $TESTFLINGER_DIR/uc-nvidia-cdi-job.temp
-          mv $TESTFLINGER_DIR/uc-nvidia-cdi-job.temp $TESTFLINGER_DIR/uc-nvidia-cdi-job.yml
+        working-directory: ${{ env.TESTFLINGER_DIR }}
+        run: ./run.sh --dryrun
 
       - name: Run tests
         uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
         with:
           poll: true
-          job-path: ${{ env.TESTFLINGER_DIR }}/uc-nvidia-cdi-job.yml
+          job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
 
   nvidia-cdi:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
@@ -84,8 +83,8 @@ jobs:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
     env:
-      TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
+      TFWORKFLOW: nvidia-cdi-job
     steps:
       - name: Event data
         run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
@@ -99,18 +98,14 @@ jobs:
         env:
           JOB_QUEUE: lxd-nvidia
           DISTRO: ${{ matrix.os }}
-        run: |
-          # Prepare job
-          envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' \
-            < $TESTFLINGER_DIR/nvidia-cdi-job.yml \
-            > $TESTFLINGER_DIR/nvidia-cdi-job.temp
-          mv $TESTFLINGER_DIR/nvidia-cdi-job.temp $TESTFLINGER_DIR/nvidia-cdi-job.yml
+        working-directory: ${{ env.TESTFLINGER_DIR }}
+        run: ./run.sh --dryrun
 
       - name: Run tests
         uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
         with:
           poll: true
-          job-path: ${{ env.TESTFLINGER_DIR }}/nvidia-cdi-job.yml
+          job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
 
   nvidia-legacy-runtime:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
@@ -119,8 +114,8 @@ jobs:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
     env:
-      TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
+      TFWORKFLOW: nvidia-legacy-runtime-job
     steps:
       - name: Event data
         run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
@@ -134,18 +129,14 @@ jobs:
         env:
           JOB_QUEUE: lxd-nvidia
           DISTRO: ${{ matrix.os }}
-        run: |
-          # Prepare job
-          envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' \
-            < $TESTFLINGER_DIR/nvidia-legacy-runtime-job.yml \
-            > $TESTFLINGER_DIR/nvidia-legacy-runtime-job.temp
-          mv $TESTFLINGER_DIR/nvidia-legacy-runtime-job.temp $TESTFLINGER_DIR/nvidia-legacy-runtime-job.yml
+        working-directory: ${{ env.TESTFLINGER_DIR }}
+        run: ./run.sh --dryrun
 
       - name: Run tests
         uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
         with:
           poll: true
-          job-path: ${{ env.TESTFLINGER_DIR }}/nvidia-legacy-runtime-job.yml
+          job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
   amd-cdi:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
@@ -153,8 +144,8 @@ jobs:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
     env:
-      TESTFLINGER_DIR: .github/workflows/testflinger
       SNAP_CHANNEL: ${{ matrix.track }}
+      TFWORKFLOW: amd-cdi-job
     steps:
       - name: Event data
         run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
@@ -168,15 +159,11 @@ jobs:
         env:
           JOB_QUEUE: lxd-amd
           DISTRO: ${{ matrix.os }}
-        run: |
-          # Prepare job
-          envsubst '$JOB_QUEUE $DISTRO $SNAP_CHANNEL' \
-            < $TESTFLINGER_DIR/amd-cdi-job.yaml \
-            > $TESTFLINGER_DIR/amd-cdi-job.temp
-          mv $TESTFLINGER_DIR/amd-cdi-job.temp $TESTFLINGER_DIR/amd-cdi-job.yaml
+        working-directory: ${{ env.TESTFLINGER_DIR }}
+        run: ./run.sh --dryrun
 
       - name: Run tests
         uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
         with:
           poll: true
-          job-path: ${{ env.TESTFLINGER_DIR }}/amd-cdi-job.yaml
+          job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
