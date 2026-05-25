@@ -9,6 +9,46 @@ if [ "${architecture}" != "x86_64" ] && [ "${architecture}" != "aarch64" ]; then
   exit 0
 fi
 
+# Determine whether 2023 Microsoft CA certs are expected based on the LXD channel.
+# They are only shipped in LXD 6/* and latest/* builds.
+case "${LXD_SNAP_CHANNEL}" in
+  6/* | latest/*)
+    EXPECT_2023_CERTS=true
+    ;;
+  *)
+    EXPECT_2023_CERTS=false
+    ;;
+esac
+
+efi_sb_key_tests() {
+  lxc exec v1 -- apt-get update
+  lxc exec v1 -- apt-get install -y --no-install-recommends efitools
+
+  echo "==> Read Microsoft UEFI CA certs from KEK variable"
+  lxc exec v1 -- efi-readvar -v KEK
+  for k in "KEK CA 2011" "KEK 2K CA 2023"; do
+    if [ "${EXPECT_2023_CERTS}" = "true" ] || [ "${k}" != "KEK 2K CA 2023" ]; then
+      lxc exec v1 -- efi-readvar -v KEK | grep -F "${k}"
+    else
+      ! lxc exec v1 -- efi-readvar -v KEK | grep -F "${k}" || false
+    fi
+  done
+
+  echo "==> Read Microsoft UEFI CA certs from db variable"
+  lxc exec v1 -- efi-readvar -v db
+  for k in "UEFI CA 2011" "UEFI CA 2023"; do
+    if [ "${EXPECT_2023_CERTS}" = "true" ] || [ "${k}" != "UEFI CA 2023" ]; then
+      lxc exec v1 -- efi-readvar -v db | grep -F "${k}"
+    else
+      ! lxc exec v1 -- efi-readvar -v db | grep -F "${k}" || false
+    fi
+  done
+
+  if [ "${EXPECT_2023_CERTS}" = "false" ]; then
+    echo "::notice::Microsoft UEFI CA 2023 certs missing from KEK and db variables (expected for channel ${LXD_SNAP_CHANNEL})"
+  fi
+}
+
 uefi_vars_tests() {
   EFI_GLOBAL_VARIABLE_GUID="8be4df61-93ca-11d2-aa0d-00e098032b8c"
   EFI_VAR_NAME="testvar"
@@ -69,6 +109,9 @@ lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
 # Wait for instance to be ready ensures LXD is done initializing the NVRAM
 waitInstanceReady v1
 lxc info v1
+
+echo "==> Verify Microsoft UEFI CA presence in VM"
+efi_sb_key_tests
 
 echo "==> UEFI vars tests"
 if hasNeededAPIExtension instances_uefi_vars; then
