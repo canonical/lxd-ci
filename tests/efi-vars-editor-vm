@@ -9,15 +9,47 @@ if [ "${architecture}" != "x86_64" ] && [ "${architecture}" != "aarch64" ]; then
   exit 0
 fi
 
+uefi_vars_tests() {
+  EFI_GLOBAL_VARIABLE_GUID="8be4df61-93ca-11d2-aa0d-00e098032b8c"
+  EFI_VAR_NAME="testvar"
+  EFI_VAR_FULL_NAME="${EFI_VAR_NAME}-${EFI_GLOBAL_VARIABLE_GUID}"
+
+  # "Hello from LXD" in ASCII
+  EFI_VAR_VALUE_ASCII="Hello from LXD"
+  EFI_VAR_VALUE="48656c6c6f2066726f6d204c5844"
+
+  echo "==> Try to set EFI variable while VM is running (should fail)"
+  ! lxc config uefi set v1 "${EFI_VAR_FULL_NAME}"="${EFI_VAR_VALUE}" || false
+
+  # Stop VM and set EFI variable
+  lxc stop -f v1
+
+  echo "==> Try to set invalid data as EFI variable value"
+  # Try to set invalid data ("0" is not a valid HEX-encoding for a byte, should be "00")
+  ! lxc config uefi set v1 "${EFI_VAR_FULL_NAME}"="0" || false
+
+  echo "==> Set a valid variable data"
+  lxc config uefi set v1 "${EFI_VAR_FULL_NAME}"="${EFI_VAR_VALUE}"
+
+  echo "==> Start VM and try to read a set value back from efivarfs"
+  lxc start v1
+  waitInstanceReady v1
+  lxc exec v1 -- grep -xF "${EFI_VAR_VALUE_ASCII}" /sys/firmware/efi/efivars/"${EFI_VAR_FULL_NAME}"
+
+  echo "==> Try to unset with VM running (should fail)"
+  ! lxc config uefi unset v1 "${EFI_VAR_FULL_NAME}" || false
+
+  lxc stop -f v1
+  lxc config uefi unset v1 "${EFI_VAR_FULL_NAME}"
+
+  echo "==> Start VM and check that variable does not exist anymore"
+  lxc start v1
+  waitInstanceReady v1
+  ! lxc exec v1 -- test -e /sys/firmware/efi/efivars/"${EFI_VAR_FULL_NAME}" || false
+}
+
 # Install LXD
 install_lxd
-
-if ! hasNeededAPIExtension instances_uefi_vars; then
-  echo "Skipping test as not supported"
-  # shellcheck disable=SC2034
-  FAIL=0
-  exit 0
-fi
 
 # Configure LXD
 lxc network create lxdbr0
@@ -38,42 +70,12 @@ lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
 waitInstanceReady v1
 lxc info v1
 
-EFI_GLOBAL_VARIABLE_GUID="8be4df61-93ca-11d2-aa0d-00e098032b8c"
-EFI_VAR_NAME="testvar"
-EFI_VAR_FULL_NAME="${EFI_VAR_NAME}-${EFI_GLOBAL_VARIABLE_GUID}"
-
-# "Hello from LXD" in ASCII
-EFI_VAR_VALUE_ASCII="Hello from LXD"
-EFI_VAR_VALUE="48656c6c6f2066726f6d204c5844"
-
-echo "==> Try to set EFI variable while VM is running (should fail)"
-! lxc config uefi set v1 "${EFI_VAR_FULL_NAME}"="${EFI_VAR_VALUE}" || false
-
-# Stop VM and set EFI variable
-lxc stop -f v1
-
-echo "==> Try to set invalid data as EFI variable value"
-# Try to set invalid data ("0" is not a valid HEX-encoding for a byte, should be "00")
-! lxc config uefi set v1 "${EFI_VAR_FULL_NAME}"="0" || false
-
-echo "==> Set a valid variable data"
-lxc config uefi set v1 "${EFI_VAR_FULL_NAME}"="${EFI_VAR_VALUE}"
-
-echo "==> Start VM and try to read a set value back from efivarfs"
-lxc start v1
-waitInstanceReady v1
-lxc exec v1 -- grep -xF "${EFI_VAR_VALUE_ASCII}" /sys/firmware/efi/efivars/"${EFI_VAR_FULL_NAME}"
-
-echo "==> Try to unset with VM running (should fail)"
-! lxc config uefi unset v1 "${EFI_VAR_FULL_NAME}" || false
-
-lxc stop -f v1
-lxc config uefi unset v1 "${EFI_VAR_FULL_NAME}"
-
-echo "==> Start VM and check that variable does not exist anymore"
-lxc start v1
-waitInstanceReady v1
-! lxc exec v1 -- test -e /sys/firmware/efi/efivars/"${EFI_VAR_FULL_NAME}" || false
+echo "==> UEFI vars tests"
+if hasNeededAPIExtension instances_uefi_vars; then
+  uefi_vars_tests
+else
+  echo "Skipping UEFI vars tests as not supported"
+fi
 
 # Cleanup
 echo "==> Stopping and deleting VM"
