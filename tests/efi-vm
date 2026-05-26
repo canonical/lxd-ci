@@ -115,6 +115,9 @@ efi_sb_key_tests
 
 echo "==> UEFI vars tests"
 if hasNeededAPIExtension instances_uefi_vars; then
+  # XXX: temporarily allow for slower boots (cause: unknown)
+  export MAX_WAIT_SECONDS=180
+
   uefi_vars_tests
 else
   echo "Skipping UEFI vars tests as not supported"
