@@ -54,9 +54,9 @@ uefi_vars_tests() {
   EFI_VAR_NAME="testvar"
   EFI_VAR_FULL_NAME="${EFI_VAR_NAME}-${EFI_GLOBAL_VARIABLE_GUID}"
 
-  # "Hello from LXD" in ASCII
-  EFI_VAR_VALUE_ASCII="Hello from LXD"
-  EFI_VAR_VALUE="48656c6c6f2066726f6d204c5844"
+  # Convert ASCII value to HEX string
+  EFI_VAR_VALUE_ASCII="Hey"
+  EFI_VAR_VALUE="$(printf '%s' "${EFI_VAR_VALUE_ASCII}" | xxd -p -c 256)"
 
   echo "==> Try to set EFI variable while VM is running (should fail)"
   ! lxc config uefi set v1 "${EFI_VAR_FULL_NAME}"="${EFI_VAR_VALUE}" || false
