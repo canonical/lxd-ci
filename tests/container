@@ -273,6 +273,9 @@ func main() {
 }
 EOF
 
+    if ! command -v go; then
+        snap install go --classic
+    fi
     GOOS=linux GOARCH=arm64 go build -o hello hello.go
 
     echo "Pushing binary to container"
