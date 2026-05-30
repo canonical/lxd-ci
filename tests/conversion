@@ -43,8 +43,12 @@ if [[ ${LXD_SNAP_CHANNEL:-latest/stable} =~ ^[45]\. ]]; then
     GIT_BRANCH="stable-5.21"
 fi
 
-CGO_ENABLED=0 go install "github.com/canonical/lxd/${LXD_CONVERT_TOOL}@${GIT_BRANCH}"
-strip --strip-all "$(command -v "${LXD_CONVERT_TOOL}")"
+# Look for a pre-built conversion tool in the PATH, and if not found, build it from the source.
+# The pre-built tool might have Go coverage instrumentation that is best kept for testing.
+if ! command -v "${LXD_CONVERT_TOOL}" > /dev/null; then
+  CGO_ENABLED=0 go install "github.com/canonical/lxd/${LXD_CONVERT_TOOL}@${GIT_BRANCH}"
+  strip --strip-all "$(command -v "${LXD_CONVERT_TOOL}")"
+fi
 
 # Configure LXD
 lxd init --auto --network-address "[::]" --network-port "8443"
