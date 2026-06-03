@@ -264,10 +264,20 @@ packages:
 
   - packages:
     - cloud-utils-growpart
+    action: install
+    types:
+    - vm
+    variants:
+    - cloud
+
+  - packages:
     - gdisk
     action: install
     types:
     - vm
+    releases:
+    - 8-Stream
+    - 9-Stream
     variants:
     - cloud
 
