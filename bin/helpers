@@ -301,6 +301,11 @@ install_lxd() (
         fi
     fi
 
+    # Switch all `coreXX` bases to `latest/candidate`
+    for core in $(snap list | awk '/^core[0-9]+/ {print $1}'); do
+        snap refresh "${core}" --channel=latest/candidate --cohort=+
+    done
+
     snap list lxd
     uname -a
     cat /proc/cmdline
