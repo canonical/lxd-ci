@@ -47,6 +47,20 @@ else
     exit 1
 fi
 
+# check_cloud_init_status: waits for cloud-init to complete and verifies it succeeded
+check_cloud_init_status() {
+    local instance="${1}"
+    local context="${2}"
+
+    # cloud-init status returns error codes even on warnings, so ignore the
+    # return code and check the status output instead.
+    lxc exec "${instance}" -- cloud-init status --wait --long || true
+    if [ "$(lxc exec "${instance}" -- cloud-init status)" != "status: done" ]; then
+        echo "===> FAIL: cloud-init status ${context}: ${instance}"
+        FAIL=1
+    fi
+}
+
 # has_cloud_init: returns 0 if yes, 1 otherwise
 has_cloud_init() {
     if [ "${VARIANT}" = "cloud" ] || [ "${VARIANT}" = "desktop" ]; then
@@ -206,7 +220,7 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
 
     # cloud-init might reconfigure the network, so wait for it to complete before checking the network state.
     if has_cloud_init; then
-        lxc exec "${name}" -- cloud-init status --wait --long
+        check_cloud_init_status "${name}" "before network check"
     fi
 
     # Get the addresses.
@@ -285,8 +299,7 @@ done
 if has_cloud_init; then
     echo "==> Performing post cloud-init reboot test"
     for name in ${INSTANCES}; do
-        lxc exec "${name}" -- cloud-init status --wait --long
-        [ "$(lxc exec "${name}" -- cloud-init status)" = "status: done" ]
+        check_cloud_init_status "${name}" "before reboot"
 
         # If systemd is available, use it to wait for any other job to complete before the restart
         if lxc exec "${name}" -- test -d /run/systemd/system/; then
