@@ -292,6 +292,17 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
             echo "===> FAIL: cloud-init vendor-data provisioning: ${name}"
             FAIL=1
         fi
+
+        # Rootfs growth (cloud-init grows the rootfs on first boot, VM only).
+        if [ "${TYPE}" = "vm" ]; then
+            rootfs_gb="$(lxc exec "${name}" -- df -BG / 2>/dev/null | awk 'NR==2 {gsub(/G/,""); print $2}')"
+            if [ -n "${rootfs_gb}" ] && [ "${rootfs_gb}" -gt 5 ]; then
+                echo "===> PASS: cloud-init rootfs growth (${rootfs_gb}GiB): ${name}"
+            else
+                echo "===> FAIL: cloud-init rootfs growth (${rootfs_gb:-unknown}GiB): ${name}"
+                FAIL=1
+            fi
+        fi
     fi
 done
 
