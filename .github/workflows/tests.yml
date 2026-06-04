@@ -119,7 +119,7 @@ jobs:
           - devlxd-container
           - devlxd-vm
           - docker
-          - efi-vars-editor-vm
+          - efi-vm
           - lxd-installer
           - lxd-user
           - interception
@@ -180,8 +180,6 @@ jobs:
             track: "4.0/edge"
           - test: docker
             track: "4.0/candidate"
-          - test: efi-vars-editor-vm
-            track: "4.0/candidate"
           - test: lxd-installer
             track: "4.0/candidate"
           - test: lxd-user
@@ -232,8 +230,6 @@ jobs:
             track: "4.0/edge"
           - test: devlxd-vm
             track: "4.0/edge"
-          - test: efi-vars-editor-vm
-            track: "4.0/edge"
           - test: lxd-installer
             track: "4.0/edge"
           - test: lxd-user
@@ -281,10 +277,6 @@ jobs:
             track: "5.0/edge"
           - test: docker
             track: "5.0/candidate"
-          - test: efi-vars-editor-vm
-            track: "5.0/candidate"
-          - test: efi-vars-editor-vm
-            track: "5.0/edge"
           - test: lxd-installer
             track: "5.0/candidate"
           - test: lxd-installer
