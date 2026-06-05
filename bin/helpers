@@ -242,8 +242,6 @@ install_ovn() (
         # Avoid clashing with the deb packages
         apt-get autopurge --yes ovn-host ovn-central || true
 
-        # XXX: microovn latest/edge now depends on core26 which is still `grade: devel` so it needs to be manually installed first.
-        snap install core26 --channel=latest/edge --cohort=+
         snap install microovn --channel="${OVN_SOURCE:-latest/edge}" --cohort=+
     fi
 )
@@ -287,10 +285,6 @@ install_lxd() (
             snap remove --purge lxd || true
         fi
 
-        if [[ "${LXD_SNAP_CHANNEL}" =~ ^(latest|6)/edge$ ]]; then
-            snap refresh core26 --channel latest/edge || snap install core26 --channel latest/edge
-        fi
-
         # Installing a locally provided snap requires to first install from the
         # snapstore then install with --dangerous. The alias needs to be created
         # manually too.
@@ -306,6 +300,11 @@ install_lxd() (
             fi
         fi
     fi
+
+    # Switch all `coreXX` bases to `latest/candidate`
+    for core in $(snap list | awk '/^core[0-9]+/ {print $1}'); do
+        snap refresh "${core}" --channel=latest/candidate --cohort=+
+    done
 
     snap list lxd
     uname -a
