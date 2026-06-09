@@ -2,12 +2,22 @@
 set -eux
 
 # XXX: avoid known issue: https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2147374
-# VM inside container causes a kernel NULL pointer dereference on 6.17 so skip those tests on 6.17 until the issue is fixed.
-if [[ "$(uname -r)" =~ ^6\.17\.0 ]]; then
-  echo "Skipping storage-metadata tests on kernel 6.17 that has a known issue"
-  # shellcheck disable=SC2034
-  FAIL=0
-  exit 0
+# VM inside container causes a kernel NULL pointer dereference on 6.17; fixed in -generic >= 6.17.0-29
+# and -azure >= 6.17.0-1015. Skip on all other 6.17 kernels until the issue is fixed.
+_kernel="$(uname -r)"
+if [[ "${_kernel}" =~ ^6\.17\.0 ]]; then
+  _skip=1
+  if [[ "${_kernel}" =~ ^6\.17\.0-([0-9]+)-generic$ ]] && [ "${BASH_REMATCH[1]}" -ge 29 ]; then
+    _skip=0
+  elif [[ "${_kernel}" =~ ^6\.17\.0-([0-9]+)-azure ]] && [ "${BASH_REMATCH[1]}" -ge 1015 ]; then
+    _skip=0
+  fi
+  if [ "${_skip}" = "1" ]; then
+    echo "Skipping storage-metadata tests on kernel ${_kernel} that has a known issue (LP: #2147374)"
+    # shellcheck disable=SC2034
+    FAIL=0
+    exit 0
+  fi
 fi
 
 # Checks the given backup file contents for format version 1.
