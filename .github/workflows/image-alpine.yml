@@ -31,6 +31,8 @@ jobs:
         architecture:
           - amd64
           - arm64
+        exclude:
+          - {release: "3.21", variant: cloud}
     env:
       type: "container"
       distro: "${{ github.job }}"
