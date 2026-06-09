@@ -322,6 +322,10 @@ install_lxd() (
         mount --bind "${LXD_AGENT_SIDELOAD_PATH}" /snap/lxd/current/bin/lxd-agent
     fi
 
+    if [ -n "${LXD_ZFS_EXTERNAL:-}" ]; then
+        snap set lxd zfs.external=true
+    fi
+
     if [ "$start_daemon" = "true" ]; then
         lxd waitready --timeout=300
     fi
@@ -367,6 +371,10 @@ createPowerFlexPool() (
     powerflex.user.name="${POWERFLEX_USER}" \
     powerflex.user.password="${POWERFLEX_PASSWORD}" \
     powerflex.mode="${POWERFLEX_MODE:-nvme}"
+
+  if [ -n "${POWERFLEX_SNAPSHOT_COPY:-}" ]; then
+    lxc storage set "${1}" powerflex.snapshot_copy=true
+  fi
 )
 
 # createPowerStorePool: creates a new storage pool using the PowerStore driver.

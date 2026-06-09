@@ -90,6 +90,12 @@ To test a custom snap of LXD, you can set the `LXD_SNAP_PATH` environment variab
 LXD_SNAP_PATH=/tmp/lxd_0+git.89550582_amd64.snap ./bin/local-run tests/interception latest/edge
 ```
 
+To use the system's ZFS tools, you can set the `LXD_ZFS_EXTERNAL` environment variable.
+
+```sh
+LXD_ZFS_EXTERNAL=1 ./bin/local-run tests/interception latest/edge
+```
+
 To run `tests/network-ovn` against various OVN implementation:
 
 ```sh
@@ -136,6 +142,7 @@ To run the VM storage tests on the Dell PowerFlex driver, provide the following 
 * `POWERFLEX_USER`: Name of the PowerFlex user
 * `POWERFLEX_PASSWORD`: Password of the PowerFlex user
 * `POWERFLEX_MODE`: Operation mode for the consumption of storage volumes. The default is `nvme`.
+* `POWERFLEX_SNAPSHOT_COPY`: If enabled, the driver uses PowerFlex snapshots for optimized copy
 
 Use a PowerFlex storage pool (`POWERFLEX_POOL`) which has zero-padding enabled.
 Using non zero-padding enabled pools is not allowed.
