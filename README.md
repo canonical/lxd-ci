@@ -90,6 +90,12 @@ To test a custom snap of LXD, you can set the `LXD_SNAP_PATH` environment variab
 LXD_SNAP_PATH=/tmp/lxd_0+git.89550582_amd64.snap ./bin/local-run tests/interception latest/edge
 ```
 
+To use the system's ZFS tools, you can set the `LXD_ZFS_EXTERNAL` environment variable.
+
+```sh
+LXD_ZFS_EXTERNAL=1 ./bin/local-run tests/interception latest/edge
+```
+
 To run `tests/network-ovn` against various OVN implementation:
 
 ```sh
