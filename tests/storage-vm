@@ -49,9 +49,11 @@ if echo "${poolDriverList}" | grep -qwF "zfs" && grep -qwFm1 zfs_external /snap/
     lxc storage delete zexternal
     ! zpool status zexternal || false
 
-    echo "==> Use internal ZFS tools"
-    snap unset lxd zfs.external
-    systemctl restart snap.lxd.daemon.service
+    echo "==> Use internal ZFS tools if not explicitly set to use external"
+    if [ -z "${LXD_ZFS_EXTERNAL:-}" ]; then
+        snap unset lxd zfs.external
+        systemctl restart snap.lxd.daemon.service
+    fi
 else
     echo "==> Skipping zfs.external test"
 fi
