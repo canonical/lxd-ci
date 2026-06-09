@@ -322,6 +322,10 @@ install_lxd() (
         mount --bind "${LXD_AGENT_SIDELOAD_PATH}" /snap/lxd/current/bin/lxd-agent
     fi
 
+    if [ -n "${LXD_ZFS_EXTERNAL:-}" ]; then
+        snap set lxd zfs.external=true
+    fi
+
     if [ "$start_daemon" = "true" ]; then
         lxd waitready --timeout=300
     fi
