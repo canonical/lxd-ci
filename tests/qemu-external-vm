@@ -19,6 +19,11 @@ fi
 # Install LXD
 install_lxd
 
+# LXD 5.21 will remain based on `core24` but newer versions will move to `core26`
+# Look at the installed snap for a `gpu-XXYY` directory to know which `mesa-XXYY` snap to install and connect with.
+GPU_DIR="$(basename /snap/lxd/current/gpu-*)"
+GPU_VERSION="${GPU_DIR#gpu-}"
+
 # Configure LXD
 lxd init --auto
 
@@ -63,11 +68,11 @@ ls -la "${CACHE_PATH}/"
 
 snap install "${SNAP_TO_INSTALL_PATH}" --dangerous
 
-# install gpu-2404 interface snap
-snap install mesa-2404
+# install mesa snap providing the right GPU interface
+snap install "mesa-${GPU_VERSION}"
 
 # connect snaps
-snap connect lxd:gpu-2404 mesa-2404:gpu-2404
+snap connect "lxd:gpu-${GPU_VERSION}" "mesa-${GPU_VERSION}:gpu-${GPU_VERSION}"
 snap connect lxd:qemu-external qemu-for-lxd:qemu-external
 
 # let LXD to reload
@@ -81,7 +86,7 @@ journalctl --quiet --no-hostname --no-pager --boot=0 --unit=snap.lxd.daemon.serv
 lxc query /1.0 | jq '.environment.driver' | grep "qemu"
 lxc query /1.0 | jq '.environment.driver_version' | grep "(external)"
 
-# check that connection with mesa-2404 snap works
+# check that connection with the mesa snap works
 serverPID="$(lxc query /1.0 | jq .environment.server_pid)"
 grep -aF LIBGL_DRIVERS "/proc/${serverPID}/environ"
 
