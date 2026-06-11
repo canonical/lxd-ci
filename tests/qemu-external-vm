@@ -23,6 +23,9 @@ install_lxd
 lxd init --auto
 
 # Get the source
+if ! command -v git >/dev/null; then
+  install_deps git
+fi
 git clone --depth=1 "https://github.com/canonical/lxd-pkg-snap.git" -b "latest-edge"
 
 # Build qemu-for-lxd snap
