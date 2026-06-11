@@ -44,39 +44,101 @@ env:
   TESTFLINGER_DIR: .github/workflows/testflinger
 
 jobs:
-  uc-nvidia-cdi:
-    runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
-    strategy:
-      matrix:
-        track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
-        os:
-          - core24-latest
-    env:
-      SNAP_CHANNEL: ${{ matrix.track }}
-      TFWORKFLOW: uc-nvidia-cdi-job
-    steps:
-      - name: Event data
-        run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
+  # uc-nvidia-cdi:
+  #   runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
+  #   strategy:
+  #     matrix:
+  #       track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
+  #       os:
+  #         - core24-latest
+  #   env:
+  #     SNAP_CHANNEL: ${{ matrix.track }}
+  #     TFWORKFLOW: uc-nvidia-cdi-job
+  #   steps:
+  #     - name: Event data
+  #       run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
+  #
+  #     - name: Checkout code
+  #       uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+  #       with:
+  #         persist-credentials: false
+  #
+  #     - name: Create Testflinger job
+  #       env:
+  #         JOB_QUEUE: lxd-nvidia
+  #         DISTRO: ${{ matrix.os }}
+  #       working-directory: ${{ env.TESTFLINGER_DIR }}
+  #       run: ./run.sh --dryrun
+  #
+  #     - name: Run tests
+  #       uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
+  #       with:
+  #         poll: true
+  #         job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
 
-      - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with:
-          persist-credentials: false
+  # nvidia-cdi:
+  #   runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
+  #   strategy:
+  #     matrix:
+  #       track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
+  #       os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
+  #   env:
+  #     SNAP_CHANNEL: ${{ matrix.track }}
+  #     TFWORKFLOW: nvidia-cdi-job
+  #   steps:
+  #     - name: Event data
+  #       run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
+  #
+  #     - name: Checkout code
+  #       uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+  #       with:
+  #         persist-credentials: false
+  #
+  #     - name: Create Testflinger job
+  #       env:
+  #         JOB_QUEUE: lxd-nvidia
+  #         DISTRO: ${{ matrix.os }}
+  #       working-directory: ${{ env.TESTFLINGER_DIR }}
+  #       run: ./run.sh --dryrun
+  #
+  #     - name: Run tests
+  #       uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
+  #       with:
+  #         poll: true
+  #         job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
 
-      - name: Create Testflinger job
-        env:
-          JOB_QUEUE: lxd-nvidia
-          DISTRO: ${{ matrix.os }}
-        working-directory: ${{ env.TESTFLINGER_DIR }}
-        run: ./run.sh --dryrun
+  # nvidia-legacy-runtime:
+  #   runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
+  #   strategy:
+  #     matrix:
+  #       track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
+  #       os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
+  #   env:
+  #     SNAP_CHANNEL: ${{ matrix.track }}
+  #     TFWORKFLOW: nvidia-legacy-runtime-job
+  #   steps:
+  #     - name: Event data
+  #       run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
+  #
+  #     - name: Checkout code
+  #       uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+  #       with:
+  #         persist-credentials: false
+  #
+  #     - name: Create Testflinger job
+  #       env:
+  #         JOB_QUEUE: lxd-nvidia
+  #         DISTRO: ${{ matrix.os }}
+  #       working-directory: ${{ env.TESTFLINGER_DIR }}
+  #       run: ./run.sh --dryrun
+  #
+  #     - name: Run tests
+  #       uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
+  #       with:
+  #         poll: true
+  #         job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
 
-      - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
-        with:
-          poll: true
-          job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
-
-  nvidia-cdi:
+  nvidia-mig:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
@@ -84,7 +146,7 @@ jobs:
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
     env:
       SNAP_CHANNEL: ${{ matrix.track }}
-      TFWORKFLOW: nvidia-cdi-job
+      TFWORKFLOW: nvidia-mig-job
     steps:
       - name: Event data
         run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
@@ -96,7 +158,7 @@ jobs:
 
       - name: Create Testflinger job
         env:
-          JOB_QUEUE: lxd-nvidia
+          JOB_QUEUE: torchtusk
           DISTRO: ${{ matrix.os }}
         working-directory: ${{ env.TESTFLINGER_DIR }}
         run: ./run.sh --dryrun
@@ -107,63 +169,33 @@ jobs:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
 
-  nvidia-legacy-runtime:
-    runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
-    strategy:
-      matrix:
-        track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
-        os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
-    env:
-      SNAP_CHANNEL: ${{ matrix.track }}
-      TFWORKFLOW: nvidia-legacy-runtime-job
-    steps:
-      - name: Event data
-        run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
-
-      - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with:
-          persist-credentials: false
-
-      - name: Create Testflinger job
-        env:
-          JOB_QUEUE: lxd-nvidia
-          DISTRO: ${{ matrix.os }}
-        working-directory: ${{ env.TESTFLINGER_DIR }}
-        run: ./run.sh --dryrun
-
-      - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
-        with:
-          poll: true
-          job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
-  amd-cdi:
-    runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
-    strategy:
-      matrix:
-        track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
-        os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
-    env:
-      SNAP_CHANNEL: ${{ matrix.track }}
-      TFWORKFLOW: amd-cdi-job
-    steps:
-      - name: Event data
-        run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
-
-      - name: Checkout code
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with:
-          persist-credentials: false
-
-      - name: Create Testflinger job
-        env:
-          JOB_QUEUE: lxd-amd
-          DISTRO: ${{ matrix.os }}
-        working-directory: ${{ env.TESTFLINGER_DIR }}
-        run: ./run.sh --dryrun
-
-      - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
-        with:
-          poll: true
-          job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
+  # amd-cdi:
+  #   runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
+  #   strategy:
+  #     matrix:
+  #       track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
+  #       os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
+  #   env:
+  #     SNAP_CHANNEL: ${{ matrix.track }}
+  #     TFWORKFLOW: amd-cdi-job
+  #   steps:
+  #     - name: Event data
+  #       run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
+  #
+  #     - name: Checkout code
+  #       uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+  #       with:
+  #         persist-credentials: false
+  #
+  #     - name: Create Testflinger job
+  #       env:
+  #         JOB_QUEUE: lxd-amd
+  #         DISTRO: ${{ matrix.os }}
+  #       working-directory: ${{ env.TESTFLINGER_DIR }}
+  #       run: ./run.sh --dryrun
+  #
+  #     - name: Run tests
+  #       uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
+  #       with:
+  #         poll: true
+  #         job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
