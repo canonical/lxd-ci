@@ -88,7 +88,8 @@ lxc query /1.0 | jq '.environment.driver_version' | grep "(external)"
 
 # check that connection with the mesa snap works
 serverPID="$(lxc query /1.0 | jq .environment.server_pid)"
-grep -aF LIBGL_DRIVERS "/proc/${serverPID}/environ"
+# Look in LXD daemon env for a variable that was exported by the 'gpu-${GPU_VERSION}-provider-wrapper' script
+grep -aF VK_LAYER_PATH "/proc/${serverPID}/environ"
 
 # shellcheck disable=SC2034
 FAIL=0
