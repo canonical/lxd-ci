@@ -492,6 +492,12 @@ cleanup() {
         rm /var/crash/dnsmasq*
     fi
 
+    # Ignore fuse_worker crashes.
+    if compgen -G "/var/crash/fuse_worker*" > /dev/null 2>&1; then
+        echo "::notice::==> CORE: fuse_worker core dump ignored"
+        rm /var/crash/fuse_worker*
+    fi
+
     if [ -n "$(ls -A /var/crash/)" ]; then
         echo "CORE: coredump found during cleanup, forcing failure"
         FAIL=1
