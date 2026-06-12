@@ -71,7 +71,7 @@ jobs:
         run: ./run.sh --dryrun
 
       - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
+        uses: canonical/testflinger/.github/actions/submit@545ed69f17a5e639a2299e325f5fb199ca9f98af # main
         with:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
@@ -104,7 +104,7 @@ jobs:
         run: ./run.sh --dryrun
 
       - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
+        uses: canonical/testflinger/.github/actions/submit@545ed69f17a5e639a2299e325f5fb199ca9f98af # main
         with:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
@@ -137,7 +137,7 @@ jobs:
         run: ./run.sh --dryrun
 
       - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
+        uses: canonical/testflinger/.github/actions/submit@545ed69f17a5e639a2299e325f5fb199ca9f98af # main
         with:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
@@ -170,7 +170,7 @@ jobs:
         run: ./run.sh --dryrun
 
       - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@eacde25fc895399c96961496096e4cb7d1b38a37 # main
+        uses: canonical/testflinger/.github/actions/submit@545ed69f17a5e639a2299e325f5fb199ca9f98af # main
         with:
           poll: true
           job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
