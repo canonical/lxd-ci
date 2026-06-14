@@ -204,6 +204,7 @@ conversion() {
         instTypeCode="1" # Container.
 
         lxdMigrateCmd="lxc exec ${instName} -- /root/go/bin/${LXD_CONVERT_TOOL}"
+        setup_instance_gocoverage "${instName}"
 
         # Install rsync and conversion tool.
         lxc exec "${instName}" -- apt-get update
