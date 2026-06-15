@@ -76,8 +76,12 @@ else
     echo "==> SKIP: Not enough CPUs to test limits.cpu=0,2"
 fi
 
-lxc config set c1 limits.cpu=2-2
-[ "$(lxc exec c1 -- nproc)" = "1" ]
+if [ "${NPROC}" -ge 3 ]; then
+  lxc config set c1 limits.cpu=2-2
+  [ "$(lxc exec c1 -- nproc)" = "1" ]
+else
+    echo "==> SKIP: Not enough CPUs to test limits.cpu=2-2"
+fi
 
 lxc config unset c1 limits.cpu
 # XXX: avoid a race (https://github.com/canonical/lxd/issues/12659)
