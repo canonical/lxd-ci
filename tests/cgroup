@@ -58,11 +58,7 @@ if [ -e "/sys/fs/cgroup/net_prio" ]; then
 fi
 
 NPROC="$(nproc)"
-if [ "${NPROC}" -lt 3 ]; then
-    # The number 3 comes from `limits.cpu=0,2` which takes the 1st and 3rd host's CPUs
-    echo "This test requires 3 CPUs or more to be available (not ${NPROC})" >&2
-    exit 1
-fi
+
 
 echo "==> Testing CPU limits"
 lxc config set c1 limits.cpu=2
@@ -72,8 +68,13 @@ lxc config set c1 limits.cpu=2
 lxc config set c1 limits.cpu="$((NPROC+2))"
 [ "$(lxc exec c1 -- nproc)" = "${NPROC}" ]
 
-lxc config set c1 limits.cpu=0,2
-[ "$(lxc exec c1 -- nproc)" = "2" ]
+# The number 3 comes from `limits.cpu=0,2` which takes the 1st and 3rd host's CPUs
+if [ "${NPROC}" -ge 3 ]; then
+    lxc config set c1 limits.cpu=0,2
+    [ "$(lxc exec c1 -- nproc)" = "2" ]
+else
+    echo "==> SKIP: Not enough CPUs to test limits.cpu=0,2"
+fi
 
 lxc config set c1 limits.cpu=2-2
 [ "$(lxc exec c1 -- nproc)" = "1" ]
