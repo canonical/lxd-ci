@@ -37,15 +37,15 @@ identical_nvidia_gpus="$(lxc query /1.0/resources | jq -r '.gpu.cards | .[] | se
 first_card_pci_slot="$(lxc query /1.0/resources | jq -r '.gpu.cards | .[] | select(.driver == "nvidia") | .pci_address' | head -n1)"
 first_card_product_id="$(lxc query /1.0/resources | jq -r ".gpu.cards | .[] | select(.pci_address == \"${first_card_pci_slot}\") | .product_id")"
 
-# Setup MIG
-nvidia-smi -mig 1
-nvidia-smi mig -lgip
-nvidia-smi mig -cgi 2g.10gb,1g.5gb,1g.5gb
-nvidia-smi mig -lgi
-nvidia-smi mig -lcip
-nvidia-smi mig -cci 1g.5gb -gi 7
-nvidia-smi mig -cci 1g.5gb -gi 13
-nvidia-smi mig -cci 1c.2g.10gb,1c.2g.10gb -gi 5
+# Setup MIG on the first NVIDIA card only to keep the test deterministic on multi-GPU hosts.
+nvidia-smi -i "${first_card_pci_slot}" -mig 1
+nvidia-smi mig -i "${first_card_pci_slot}" -lgip
+nvidia-smi mig -i "${first_card_pci_slot}" -cgi 2g.10gb,1g.5gb,1g.5gb
+nvidia-smi mig -i "${first_card_pci_slot}" -lgi
+nvidia-smi mig -i "${first_card_pci_slot}" -lcip
+nvidia-smi mig -i "${first_card_pci_slot}" -cci 1g.5gb -gi 7
+nvidia-smi mig -i "${first_card_pci_slot}" -cci 1g.5gb -gi 13
+nvidia-smi mig -i "${first_card_pci_slot}" -cci 1c.2g.10gb,1c.2g.10gb -gi 5
 nvidia-smi
 
 UUIDS="$(nvidia-smi -L | sed -n "/(UUID: MIG-/ s/.* \(MIG-[^)]\+\))$/\1/p")"
@@ -99,9 +99,9 @@ lxc list
 lxc stop -f --all
 
 # Cleanup MIG
-nvidia-smi mig -dci
-nvidia-smi mig -dgi
-nvidia-smi -mig 0
+nvidia-smi mig -i "${first_card_pci_slot}" -dci
+nvidia-smi mig -i "${first_card_pci_slot}" -dgi
+nvidia-smi -i "${first_card_pci_slot}" -mig 0
 
 echo "==> Cleaning up"
 lxc delete nvidia-mig1 nvidia-mig2 nvidia-mig3 nvidia-mig4
