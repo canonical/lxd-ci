@@ -67,17 +67,19 @@ for i in $(seq "${cpuCount}" -1 1); do
   [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${i}" ]
 done
 
-echo "==> Check that there is no CPU pinning set"
-QEMU_PID="$(lxc list -f csv -c p v1)"
-! taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ':\s+[0-9]+$' || false
-taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ":\s+0-$((cpuCount-1))$"
+if [ "$(nproc)" -gt 2 ]; then
+  echo "==> Check that there is no CPU pinning set"
+  QEMU_PID="$(lxc list -f csv -c p v1)"
+  ! taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ':\s+[0-9]+$' || false
+  taskset --cpu-list -a -p "${QEMU_PID}" | grep -E ":\s+0-$((cpuCount-1))$"
 
-# Set max CPU count
-lxc config set v1 limits.cpu="${cpuCount}"
-[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${cpuCount}" ]
+  # Set max CPU count
+  lxc config set v1 limits.cpu="${cpuCount}"
+  [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${cpuCount}" ]
 
-# Try doing pinning while VM is running (shouldn't work)
-! lxc config set v1 limits.cpu=1,2 || false
+  # Try doing pinning while VM is running (shouldn't work)
+  ! lxc config set v1 limits.cpu=1,2 || false
+fi
 
 # Unset CPU limit
 lxc config unset v1 limits.cpu
