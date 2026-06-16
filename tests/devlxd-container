@@ -48,6 +48,8 @@ if ! echo "${LXD_SNAP_CHANNEL}" | grep -qE "^[45]\.0/"; then
   lxc exec c1 -- bash -c "exec -a '[lxc monitor]' curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data --proxy ' missing_missing'" | grep -Fq 'local-hostname: c1'
 
   # Next check the second discovery method (where the curl process is under the lxc monitor process tree).
+  # systemd-run requires D-Bus, so wait until c1 is fully booted before proceeding.
+  waitInstanceBooted c1
   lxc exec c1 -- systemd-run --pipe --wait --quiet bash -c "exec -a '[lxc monitor]' curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data --proxy ' default_c2'" | grep -Fq 'local-hostname: c1'
   lxc exec c1 -- systemd-run --pipe --wait --quiet bash -c "exec -a '[lxc monitor]' curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data --proxy ' default_missing'" | grep -Fq 'local-hostname: c1'
   lxc exec c1 -- systemd-run --pipe --wait --quiet bash -c "exec -a '[lxc monitor]' curl --silent --show-error --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data --proxy ' missing_missing'" | grep -Fq 'local-hostname: c1'
