@@ -153,8 +153,8 @@ firewallTests() {
 
         lxc launch "${IMAGE}" c1
         lxc launch "${IMAGE}" c2 -n lxdbr1
-        waitInstanceReady c1
-        waitInstanceReady c2
+        waitInstanceBooted c1  # Allow time for DHCP/SLAAC/DAD to complete
+        waitInstanceReady c2   # Static IPs can be set immediately
 
         lxc exec c2 -- ip a add 192.0.3.254/24 dev eth0
         lxc exec c2 -- ip a add 2001:db9::254/64 dev eth0 nodad
