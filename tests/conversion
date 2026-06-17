@@ -127,6 +127,13 @@ testImportedInstance() {
         [ "$(lxc query "/1.0/instances/${instName}/state" | jq -r '.network | .[].addresses | .[] | select(.scope == "global") | .address' | wc -l)" -ge 2 ] && break
     done
 
+    # XXX: CentOS needs more time to get the network up.
+    #      using waitInstanceBooted runs into other issues
+    if lxc exec "${instName}" -- sh -c "command -v nm-online" >/dev/null; then
+        echo "Waiting for NetworkManager to be online in instance ${instName}..."
+        lxc exec "${instName}" -- nm-online --timeout=90
+    fi
+
     # Print the instances.
     lxc list
 

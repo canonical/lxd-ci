@@ -153,8 +153,8 @@ firewallTests() {
 
         lxc launch "${IMAGE}" c1
         lxc launch "${IMAGE}" c2 -n lxdbr1
-        waitInstanceReady c1
-        waitInstanceReady c2
+        waitInstanceBooted c1  # Allow time for DHCP/SLAAC/DAD to complete
+        waitInstanceReady c2   # Static IPs can be set immediately
 
         lxc exec c2 -- ip a add 192.0.3.254/24 dev eth0
         lxc exec c2 -- ip a add 2001:db9::254/64 dev eth0 nodad
@@ -178,7 +178,7 @@ firewallTests() {
             lxc exec c2 -- apt-get install --no-install-recommends --yes socat
             lxc exec c2 -- socat udp4-recvfrom:1234,ip-add-membership=239.0.0.1:192.0.3.254,fork exec:hostname &
             server_process="$!"
-            sleep 1 # wait for the multicast server to settle.
+            sleep 2 # wait for the multicast server to settle.
 
             # Check if multicast traffic passes within the same network.
             waitInstanceReady c3
@@ -204,7 +204,7 @@ firewallTests() {
             # Check if multicast traffic passes within the same network.
             lxc exec c2 -- socat udp4-recvfrom:1234,ip-add-membership=239.0.0.1:192.0.3.254,fork exec:hostname &
             server_process="$!"
-            sleep 1
+            sleep 2 # wait for the multicast server to settle.
             [ "$(lxc exec c3 -- socat stdio udp4-datagram:239.0.0.1:1234 <<< "")" = "c2" ]
             kill "${server_process}"
 

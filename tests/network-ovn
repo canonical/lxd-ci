@@ -2403,6 +2403,7 @@ ovn_vlan_uplink_tests() {
     lxc exec c1-lxdbr0 -- ping -nc3 -i0.1 -w2 -4 "${ovn_address}"
 
     echo "==> Ensure OVN network can reach containers on the configured VLAN"
+    waitInstanceBooted c1-ovn # Allow time for DHCP/SLAAC/DAD to complete
     lxc exec c1-ovn -- ping -nc3 -i0.1 -w2 -4 10.10.10.100
 
     echo "==> Cleanup"

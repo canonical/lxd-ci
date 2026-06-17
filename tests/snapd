@@ -1,8 +1,6 @@
 #!/bin/bash
 set -eux
 
-TEST_USER="testuser"
-
 # Install lxd without starting daemon
 install_lxd false
 
@@ -38,13 +36,23 @@ lxd waitready --timeout=300
 [ "$(lxc config get core.https_address)" = "[::]:8443" ]
 
 # Check that user access works
-useradd -m ${TEST_USER} -G lxd
-LXC=$(command -v lxc)
-su ${TEST_USER} -c "${LXC} info"
+# Create testuser account
+useradd -m testuser -G lxd --uid 5000
+
+# Allow testuser to run lxd-user daemon without creating a systemd user session
+# See https://forum.snapcraft.io/t/46210
+loginctl enable-linger testuser
+sleep 3 # allow time for the session to be usable
+
+LXC="$(command -v lxc)"
+sudo -Hu testuser -- "${LXC}" info
+
+# End the user session
+loginctl terminate-user testuser
 
 # Cleanup
 echo "==> Deleting test user"
-userdel -r ${TEST_USER} 2>/dev/null || true
+userdel --remove --force testuser
 
 # shellcheck disable=SC2034
 FAIL=0
