@@ -223,6 +223,12 @@ for url in $(lxc query "/1.0/instances" | jq -r .[] | grep "${TEST_IMAGE}"); do
         check_cloud_init_status "${name}" "before network check"
     fi
 
+    # XXX: CentOS needs more time to get the network up.
+    if lxc exec "${name}" -- sh -c "command -v nm-online" >/dev/null; then
+        echo "Waiting for NetworkManager to be online in instance ${name}..."
+        lxc exec "${name}" -- nm-online --timeout=90
+    fi
+
     # Get the addresses.
     address=$(lxc query "${url}/state" | jq -r ".network.eth0.addresses | .[] | select(.scope | contains(\"global\")) | .address" 2>/dev/null || true)
     if [ -z "${address}" ]; then
