@@ -40,7 +40,11 @@ test_data:
     esac
 
     # get device nodes on module load
-    _run sudo snap refresh "core${CORE_VERSION}" --no-wait
+    if [ "${CORE_VERSION}" = "26" ]; then
+      _run sudo snap refresh "core${CORE_VERSION}" --edge --no-wait
+    else
+      _run sudo snap refresh "core${CORE_VERSION}" --no-wait
+    fi
     wait-for-snap-changes
 
     # refresh to the new kernel
