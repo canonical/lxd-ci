@@ -31,12 +31,21 @@ test_data:
     _run sudo snap refresh snapd --channel=latest/beta --no-wait
     wait-for-snap-changes
 
+    # LXD 5.21 is based on `core24` and newer versions are moving to `core26`.
+    # Currently only the `6/edge` and `latest/edge` LXD snaps use `core26`.
+    # The host base/kernel snaps are set up before LXD is installed,
+    # so derive the matching version from the target LXD snap channel.
+    case "$SNAP_CHANNEL" in
+      6/edge|latest/edge) CORE_VERSION="26" ;;
+      *) CORE_VERSION="24" ;;
+    esac
+
     # get device nodes on module load
-    _run sudo snap refresh core24 --no-wait
+    _run sudo snap refresh "core${CORE_VERSION}" --no-wait
     wait-for-snap-changes
 
     # refresh to the new kernel
-    _run sudo snap refresh pc-kernel --channel 24/candidate --no-wait
+    _run sudo snap refresh pc-kernel --channel "${CORE_VERSION}/candidate" --no-wait
     # Add some extra time to ensure that machine has rebooted after updating the kernel
     sleep 30
     wait-for-snap-changes
@@ -57,17 +66,28 @@ test_data:
     _run_retry sudo modprobe nvidia_uvm
     _run ls /dev/nvidia*
 
-    # install mesa snap
-    _run_retry sudo snap install mesa-2404 --channel latest/candidate --no-wait
-    wait-for-snap-changes
-
-    # check for auto connection of kernel-gpu-2404 content interface being populated
-    _run find /snap/mesa-2404/current/ -print
-    _run find /var/snap/pc-kernel/common/kernel-gpu-2404/ -print
-
     # LXD working
     _run_retry sudo snap install lxd --channel=$SNAP_CHANNEL --no-wait --cohort=+
     wait-for-snap-changes
+
+    # LXD 5.21 will remain based on `core24` but newer versions will move to `core26`.
+    # Look at the installed snap for a `gpu-XXYY` directory to know which `mesa-XXYY` snap to install and connect with.
+    GPU_DIR="$(_run 'basename /snap/lxd/current/gpu-*')"
+    GPU_VERSION="${GPU_DIR#gpu-}"
+
+    # Ensure the coreXX, mesa-XX04 and LXD's base are all aligned
+    if [ "${GPU_VERSION}" != "${CORE_VERSION}04" ]; then
+      echo "ERROR: LXD base mesa-${GPU_VERSION} does not match host core${CORE_VERSION}" >&2
+      exit 1
+    fi
+
+    # install mesa snap
+    _run_retry sudo snap install "mesa-${GPU_VERSION}" --channel latest/candidate --no-wait
+    wait-for-snap-changes
+
+    # check for auto connection of kernel-gpu-XXYY content interface being populated
+    _run find "/snap/mesa-${GPU_VERSION}/current/" -print
+    _run find "/var/snap/pc-kernel/common/kernel-gpu-${GPU_VERSION}/" -print
 
     # Pre-test diagnostics II
     _run snap list
