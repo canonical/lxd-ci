@@ -10,12 +10,12 @@ on:
   workflow_dispatch:
     inputs:
       ubuntu-releases:
-        description: Ubuntu releases to run the tests against. In JSON format, i.e. '["jammy", "noble"]'.
+        description: Ubuntu releases to run the tests against. In JSON format, i.e. '["resolute", "noble"]'.
         type: choice
         default: '["noble"]'
         options:
-          - '["jammy", "noble"]'
-          - '["jammy"]'
+          - '["resolute", "noble"]'
+          - '["resolute"]'
           - '["noble"]'
       snap-track:
         description: Snap track to run the tests i.e. '["latest/edge", "6/candidate"]'.
