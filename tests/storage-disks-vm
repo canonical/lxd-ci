@@ -33,17 +33,17 @@ truncate -s 5m "${testRoot}/allowed1/lxd-block-test"
 touch "${testRoot}/allowed1/lxd-test"
 
 # Create loop device to use as NVMe disk
-loopImgNVME="$(mktemp --suffix -nvme)"
+loopImgNVME="$(mktemp --suffix=-nvme)"
 truncate -s 100M "${loopImgNVME}"
 loopDevNVME="$(losetup --show --find "${loopImgNVME}")"
 
 # Create loop device to use as virtio-blk disk
-loopImgVirtioBlk="$(mktemp --suffix -virtio-blk)"
+loopImgVirtioBlk="$(mktemp --suffix=-virtio-blk)"
 truncate -s 100M "${loopImgVirtioBlk}"
 loopDevVirtioBlk="$(losetup --show --find "${loopImgVirtioBlk}")"
 
 # Create loop device to use as virtio-scsi disk
-loopImgVirtioSCSI="$(mktemp --suffix -virtio-scsi)"
+loopImgVirtioSCSI="$(mktemp --suffix=-virtio-scsi)"
 truncate -s 100M "${loopImgVirtioSCSI}"
 loopDevVirtioSCSI="$(losetup --show --find "${loopImgVirtioSCSI}")"
 
