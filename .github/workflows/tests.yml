@@ -10,13 +10,16 @@ on:
   workflow_dispatch:
     inputs:
       ubuntu-releases:
-        description: Ubuntu releases to run the tests against. In JSON format, i.e. '["22.04", "24.04"]'.
+        description: Ubuntu releases to run the tests against. In JSON format, i.e. '["22.04", "24.04", "26.04"]'.
         type: choice
-        default: '["22.04", "24.04"]'
+        default: '["22.04", "24.04", "26.04"]'
         options:
+          - '["22.04", "24.04", "26.04"]'
+          - '["24.04", "26.04"]'
           - '["22.04", "24.04"]'
           - '["22.04"]'
           - '["24.04"]'
+          - '["26.04"]'
       snap-track:
         description: Snap track to run the tests i.e. '["latest/edge", "5.0/candidate"]'.
         type: choice
@@ -68,7 +71,7 @@ jobs:
   code-tests:
     if: ${{ github.event_name == 'pull_request' || github.repository == 'canonical/lxd-ci' }}
     name: Code
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -102,7 +105,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(inputs.ubuntu-releases || '["22.04", "24.04"]') }}
+        os: ${{ fromJSON(inputs.ubuntu-releases || '["22.04", "24.04", "26.04"]') }}
         track: ${{ fromJSON(inputs.snap-track || '["6/edge", "5.21/edge", "5.0/edge"]') }}
         test:
           - cgroup
