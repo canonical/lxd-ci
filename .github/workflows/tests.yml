@@ -321,6 +321,14 @@ jobs:
             track: "5.0/candidate"
           - os: 24.04
             track: "5.0/edge"
+          - os: 26.04
+            track: "4.0/candidate"
+          - os: 26.04
+            track: "4.0/edge"
+          - os: 26.04
+            track: "5.0/candidate"
+          - os: 26.04
+            track: "5.0/edge"
 
     steps:
       - name: Tune disk performance
