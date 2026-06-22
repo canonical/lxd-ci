@@ -24,6 +24,9 @@ shift 2
 test_name="$(basename "${script}")"
 _script="$(mktemp -t "${test_name}.XXXX")"
 
+# Create GOCOVERDIR if needed and make it world-writable
+[ -n "${GOCOVERDIR:-}" ] && mkdir -p "${GOCOVERDIR}" && chmod 0777 "${GOCOVERDIR}"
+
 echo "==> Running the job ${test_name} against ${lxd_snap_channel}" >&2
 sed "1 r bin/helpers" "${script}" | sed "s|@@LXD_SNAP_CHANNEL@@$|LXD_SNAP_CHANNEL=${lxd_snap_channel}|" > "${_script}"
 [ -s "${_script}" ]
