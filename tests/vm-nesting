@@ -27,23 +27,6 @@ if echo "${LXD_SNAP_CHANNEL}" | grep -qE "^4\.0/"; then
     fi
 fi
 
-# XXX: workaround for https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2147374
-# VM inside container causes a kernel NULL pointer dereference on 6.17; fixed in -generic >= 6.17.0-29
-# and -azure >= 6.17.0-1015. Skip on all other 6.17 kernels until the issue is fixed.
-_kernel="$(uname -r)"
-if [[ "${_kernel}" =~ ^6\.17\.0 ]]; then
-	_skip=1
-	if [[ "${_kernel}" =~ ^6\.17\.0-([0-9]+)-generic$ ]] && [ "${BASH_REMATCH[1]}" -ge 29 ]; then
-		_skip=0
-	elif [[ "${_kernel}" =~ ^6\.17\.0-([0-9]+)-azure ]] && [ "${BASH_REMATCH[1]}" -ge 1015 ]; then
-		_skip=0
-	fi
-	if [ "${_skip}" = "1" ]; then
-		echo "::warning:: Skipping VM in container tests on kernel ${_kernel} due to a known issue (LP: #2147374)"
-		VM_IN_CTN=0
-	fi
-fi
-
 # Configure LXD.
 lxc project switch default
 lxc storage create default "${storageDriver}" size=30GiB
