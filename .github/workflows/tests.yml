@@ -10,13 +10,16 @@ on:
   workflow_dispatch:
     inputs:
       ubuntu-releases:
-        description: Ubuntu releases to run the tests against. In JSON format, i.e. '["22.04", "24.04"]'.
+        description: Ubuntu releases to run the tests against. In JSON format, i.e. '["22.04", "24.04", "26.04"]'.
         type: choice
-        default: '["22.04", "24.04"]'
+        default: '["22.04", "24.04", "26.04"]'
         options:
+          - '["22.04", "24.04", "26.04"]'
+          - '["24.04", "26.04"]'
           - '["22.04", "24.04"]'
           - '["22.04"]'
           - '["24.04"]'
+          - '["26.04"]'
       snap-track:
         description: Snap track to run the tests i.e. '["latest/edge", "5.0/candidate"]'.
         type: choice
@@ -66,9 +69,9 @@ defaults:
 
 jobs:
   code-tests:
-    if: ${{ github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci' }}
+    if: ${{ github.event_name == 'pull_request' || github.repository == 'canonical/lxd-ci' }}
     name: Code
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -83,14 +86,12 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           strict-check-on-push: true
-        if: github.event_name == 'pull_request'
 
       - name: Upload artifact with ShellCheck defects in SARIF format
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: Differential ShellCheck SARIF
           path: ${{ steps.ShellCheck.outputs.sarif }}
-        if: github.event_name == 'pull_request'
 
   system-tests:
     if: ${{ github.event_name != 'schedule' || github.repository == 'canonical/lxd-ci' }}
@@ -104,7 +105,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(inputs.ubuntu-releases || '["22.04", "24.04"]') }}
+        os: ${{ fromJSON(inputs.ubuntu-releases || '["22.04", "24.04", "26.04"]') }}
         track: ${{ fromJSON(inputs.snap-track || '["6/edge", "5.21/edge", "5.0/edge"]') }}
         test:
           - cgroup
@@ -306,6 +307,19 @@ jobs:
             track: "5.21/candidate"
           - test: qemu-external-vm
             track: "5.21/edge"
+          # known broken (https://github.com/canonical/lxd-ui/issues/2094)
+          - os: 26.04
+            test: ui chromium
+            track: "5.21/candidate"
+          - os: 26.04
+            test: ui chromium
+            track: "5.21/edge"
+          - os: 26.04
+            test: ui firefox
+            track: "5.21/candidate"
+          - os: 26.04
+            test: ui firefox
+            track: "5.21/edge"
           # some tests are not worth testing on specific OSes
           - os: 22.04
             test: lxd-installer
@@ -319,6 +333,14 @@ jobs:
           - os: 24.04
             track: "5.0/candidate"
           - os: 24.04
+            track: "5.0/edge"
+          - os: 26.04
+            track: "4.0/candidate"
+          - os: 26.04
+            track: "4.0/edge"
+          - os: 26.04
+            track: "5.0/candidate"
+          - os: 26.04
             track: "5.0/edge"
 
     steps:
@@ -413,11 +435,6 @@ jobs:
           if [ "${TEST_SCRIPT}" = "cluster" ]; then
             dst_track="${MATRIX_TRACK}"
             src_track="$(echo "${dst_track}" | cut -d/ -f1)/stable"
-            # `*/stable` are not all working on 6.17 due to dqlite bug
-            # use `*/candidate` which has the fixed dqlite.
-            if [[ "$(uname -r)" =~ ^6\.17\.0 ]]; then
-              src_track="$(echo "${dst_track}" | cut -d/ -f1)/candidate"
-            fi
             EXTRA_ARGS="${EXTRA_ARGS:-3} ${src_track} ${MATRIX_TRACK}"
           elif [ "${TEST_SCRIPT}" = "network-ovn" ]; then
             if [ -n "${EXTRA_ARGS}" ]; then

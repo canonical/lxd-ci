@@ -13,20 +13,20 @@ check_format_version1() {
 
     # These fields are only relevant for instances.
     if [ "${backupFileType}" = "instance" ]; then
-        [ "$(yq .config.container < "${backupFile}")" != "null" ]
-        [ "$(yq .config.pool < "${backupFile}")" != "null" ]
-        [ "$(yq '.config.snapshots | length' < "${backupFile}")" = "1" ]
+        yq --exit-status '.config.container' < "${backupFile}"
+        yq --exit-status '.config.pool' < "${backupFile}"
+        yq --exit-status '.config.snapshots | length == 1' < "${backupFile}"
     fi
 
-    [ "$(yq .config.volume < "${backupFile}")" != "null" ]
-    [ "$(yq '.config.volume_snapshots | length' < "${backupFile}")" = "1" ]
-    [ "$(yq '.snapshots | length' < "${backupFile}")" = "1" ]
+    yq --exit-status '.config.volume' < "${backupFile}"
+    yq --exit-status '.config.volume_snapshots | length == 1' < "${backupFile}"
+    yq --exit-status '.snapshots | length == 1' < "${backupFile}"
 
     # New fields which should not appear in the old default format.
-    [ "$(yq .config.instance < "${backupFile}")" = "null" ]
-    [ "$(yq .config.version < "${backupFile}")" = "null" ]
-    [ "$(yq .config.pools < "${backupFile}")" = "null" ]
-    [ "$(yq .config.volumes < "${backupFile}")" = "null" ]
+    yq --exit-status '.config.instance == null' < "${backupFile}"
+    yq --exit-status '.config.version == null' < "${backupFile}"
+    yq --exit-status '.config.pools == null' < "${backupFile}"
+    yq --exit-status '.config.volumes == null' < "${backupFile}"
 }
 
 # Checks the given backup file contents for format version 2.
@@ -41,20 +41,20 @@ check_format_version2() {
 
     # These fields are only relevant for instances.
     if [ "${backupFileType}" = "instance" ]; then
-        [ "$(yq .config.instance < "${backupFile}")" != "null" ]
-        [ "$(yq '.config.pools | length' < "${backupFile}")" = "1" ]
+        yq --exit-status '.config.instance' < "${backupFile}"
+        yq --exit-status '.config.pools | length == 1' < "${backupFile}"
     fi
 
-    [ "$(yq .config.version < "${backupFile}")" != "null" ]
-    [ "$(yq '.config.volumes | length' < "${backupFile}")" = "1" ]
-    [ "$(yq '.config.volumes.[0].snapshots | length' < "${backupFile}")" = "1" ]
-    [ "$(yq '.snapshots | length' < "${backupFile}")" = "1" ]
+    yq --exit-status '.config.version' < "${backupFile}"
+    yq --exit-status '.config.volumes | length == 1' < "${backupFile}"
+    yq --exit-status '.config.volumes.[0].snapshots | length == 1' < "${backupFile}"
+    yq --exit-status '.snapshots | length == 1' < "${backupFile}"
 
     # Deprecated fields which should not appear in the new default format.
-    [ "$(yq .config.container < "${backupFile}")" = "null" ]
-    [ "$(yq .config.pool < "${backupFile}")" = "null" ]
-    [ "$(yq .config.volume < "${backupFile}")" = "null" ]
-    [ "$(yq .config.volume_snapshots < "${backupFile}")" = "null" ]
+    yq --exit-status '.config.container == null' < "${backupFile}"
+    yq --exit-status '.config.pool == null' < "${backupFile}"
+    yq --exit-status '.config.volume == null' < "${backupFile}"
+    yq --exit-status '.config.volume_snapshots == null' < "${backupFile}"
 }
 
 # Install dependencies.

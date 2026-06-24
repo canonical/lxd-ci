@@ -47,8 +47,9 @@ get_upgrade_chain() {
 
     local src="${track}/stable"
 
-    # Workaround for dqlite SOCK_CLOEXEC/AppArmor issue on kernel 6.17.0.
-    if [[ "$(uname -r)" =~ ^6\.17\.0 ]]; then
+    # Workaround for dqlite SOCK_CLOEXEC/AppArmor issue on kernel 6.17+
+    # affecting `*/stable` except `6/stable`.
+    if [[ "${track}" =~ ^[4-5] ]] && dpkg --compare-versions "$(uname -r)" "ge" "6.17"; then
         src="${track}/candidate"
     fi
 

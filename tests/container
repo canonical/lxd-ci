@@ -111,6 +111,10 @@ ignore_known_issues() {
     return 1
 }
 
+# Some host versions cannot run some guest versions
+# shellcheck disable=SC1091
+. /etc/os-release
+
 # Silence GH warnings in isSystemdClean
 export WARNING_PREFIX="false"
 for release in $RELEASES; do
@@ -119,6 +123,11 @@ for release in $RELEASES; do
             echo "Skip ${release} container tests on ${LXD_SNAP_CHANNEL}"
             continue
         fi
+    fi
+
+    if [ "${release}" = "20.04" ] && dpkg --compare-versions "${VERSION_ID}" gt "24.04"; then
+        echo "Skip ${release} container tests on ${VERSION_ID} host"
+        continue
     fi
 
     IMAGE="ubuntu-minimal-daily:${release}"
