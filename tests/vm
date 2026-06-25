@@ -21,6 +21,7 @@ lxc image alias delete vmalias
 echo "==> Start test instance"
 lxc start v1
 waitInstanceBooted v1
+setup_instance_gocoverage v1
 
 echo "==> Test cleanly stopping a VM"
 lxc stop v1
@@ -44,6 +45,8 @@ if ! echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
     done
 
     echo "==> Test lxc exec exit code when stopping the VM abruptly"
+    # XXX: intentionally not using 'prepare_vm_for_hard_stop v1' here as that would
+    #      kill the lxd-agent inside the VM.
     (sleep 5 && lxc stop -f v1) &
     lxc exec v1 -- sleep 60 || exitCode=$?
     [ "${exitCode:-0}" -eq 129 ]
@@ -59,6 +62,7 @@ if ! echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
 fi
 
 # Cleanup
+prepare_vm_for_hard_stop v1
 lxc delete -f v1
 
 # shellcheck disable=SC2034
