@@ -21,6 +21,7 @@ echo "==> Starting VM with TPM"
 lxc config device remove v1 tpm2
 lxc start v1
 waitInstanceReady v1
+setup_instance_gocoverage v1
 
 echo "==> Check if TPM files are present"
 lxc exec v1 -- stat /dev/tpm0
@@ -32,6 +33,7 @@ lxc exec v1 -- stat /dev/tpm0
 lxc exec v1 -- stat /dev/tpmrm0
 
 echo "==> Stopping VM and removing TPM"
+prepare_vm_for_hard_stop v1
 lxc stop v1 --force
 lxc config device remove v1 tpm1
 
@@ -40,6 +42,7 @@ lxc start v1
 waitInstanceReady v1
 ! lxc exec v1 -- stat /dev/tpm0 || false
 ! lxc exec v1 -- stat /dev/tpmrm0 || false
+prepare_vm_for_hard_stop v1
 lxc stop v1 --force
 
 # TPM names are included on the swtpm socket path and long socket paths can cause problems if not handled correctly.
@@ -55,6 +58,7 @@ lxc start v1
 waitInstanceReady v1
 lxc exec v1 -- stat /dev/tpm0
 lxc exec v1 -- stat /dev/tpmrm0
+prepare_vm_for_hard_stop v1
 lxc delete v1 --force
 
 # shellcheck disable=SC2034
