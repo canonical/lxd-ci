@@ -481,8 +481,8 @@ jobs:
       - name: Tmate debugging session (self-hosted)
         if: ${{ failure() && inputs.tmate-debug && inputs.self-hosted-runner }}
         uses: canonical/action-tmate@bda82e73586a62bf621881aab872a527c8a46e2d # main
-        timeout-minutes: ${{ fromJSON(inputs.tmate-timeout) }}
+        timeout-minutes: ${{ inputs.tmate-timeout }}
       - name: Tmate debugging session (gh-hosted)
         if: ${{ failure() && inputs.tmate-debug && !inputs.self-hosted-runner }}
         uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
-        timeout-minutes: ${{ fromJSON(inputs.tmate-timeout) }}
+        timeout-minutes: ${{ inputs.tmate-timeout }}
