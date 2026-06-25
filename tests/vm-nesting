@@ -69,6 +69,7 @@ function start() {
 function wait() {
 	for i in $(seq "$1"); do
 		waitInstanceReady "t${i}"
+		setup_instance_gocoverage "t${i}"
 	done
 }
 
@@ -84,6 +85,7 @@ function delete() {
 	instances=()
 	for i in $(seq "$1"); do
 		instances["$i"]="t$i"
+		prepare_vm_for_hard_stop "t$i"
 	done
 
 	echo "Delete ${instances[*]}"
