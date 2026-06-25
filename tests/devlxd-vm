@@ -27,6 +27,7 @@ else
 fi
 
 waitInstanceReady v1
+setup_instance_gocoverage v1
 lxc info v1
 
 echo "==> Checking devlxd is working"
@@ -39,7 +40,8 @@ lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta
 lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0/meta-data | grep -q 'local-hostname:'
 
 # Run sync before forcefully restarting the VM otherwise the filesystem will be corrupted.
-lxc exec v1 -- "sync"
+lxc exec v1 -- sync
+prepare_vm_for_hard_stop v1
 lxc restart -f v1
 waitInstanceReady v1
 
@@ -57,7 +59,8 @@ echo "==> Checking devlxd is not working"
 
 ! lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock http://custom.socket/1.0 || false
 
-lxc exec v1 -- "sync"
+lxc exec v1 -- sync
+prepare_vm_for_hard_stop v1
 lxc restart -f v1
 waitInstanceReady v1
 
@@ -102,6 +105,7 @@ if hasNeededAPIExtension instance_ready_state; then
 
   lxc exec v1 -- curl -s --unix-socket /dev/lxd/sock -X PATCH -d '{"state":"Ready"}' http://custom.socket/1.0
   [ "$(lxc config get v1 volatile.last_state.ready)" = "true" ]
+  prepare_vm_for_hard_stop v1
   lxc stop -f v1
   sleep 5
   [ "$(lxc config get v1 volatile.last_state.ready)" = "false" ]
@@ -149,6 +153,7 @@ if hasNeededAPIExtension devlxd_images_vm; then
 fi
 
 echo "==> Deleting VM"
+prepare_vm_for_hard_stop v1
 lxc delete -f v1
 lxc profile device remove default eth0
 
