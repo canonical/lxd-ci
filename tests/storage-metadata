@@ -163,7 +163,7 @@ for vers in "latest" "5.21" "5.0"; do
             lxc import "${tmpdir}/i1.tar" i1
             lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
-            lxc delete -f i1
+            lxc delete i1
         else
             check_format_version2 "${tmpdir}/backup/index.yaml" instance
 
@@ -173,7 +173,7 @@ for vers in "latest" "5.21" "5.0"; do
                 lxc import "${tmpdir}/i1.tar" i1
                 lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
-                lxc delete -f i1
+                lxc delete i1
             fi
         fi
 
@@ -199,7 +199,7 @@ for vers in "latest" "5.21" "5.0"; do
             lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
             rm "${tmpdir}/i1.tar"
-            lxc delete -f i1
+            lxc delete i1
 
             echo "==> Export using the new backup format 2 explicitly"
             lxc export c1:i1 "${tmpdir}/i1.tar" --export-version 2 --compression none --optimized-storage
@@ -217,7 +217,7 @@ for vers in "latest" "5.21" "5.0"; do
                 lxc import "${tmpdir}/i1.tar" i1
                 lxc query "/1.0/instances/i1?recursion=1" | jq --exit-status '.snapshots | length == 1'
 
-                lxc delete -f i1
+                lxc delete i1
             fi
 
             rm "${tmpdir}/i1.tar"
