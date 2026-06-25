@@ -6,10 +6,6 @@ set -o pipefail
 if command -v cloud-init > /dev/null; then
     echo "Waiting for cloud-init"
     cloud-init status --wait --long
-
-    # cloud-init might put environment variables which we'd miss if we 'lxc shell'ed in too early
-    . /etc/environment
-
     echo "Done"
 fi
 
