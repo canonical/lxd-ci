@@ -43,6 +43,7 @@ lxc delete v0
 echo "==> Create and boot VM"
 lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
 waitInstanceReady v1
+setup_instance_gocoverage v1
 lxc info v1
 
 # Get number of CPUs
@@ -88,6 +89,7 @@ lxc config unset v1 limits.cpu
 [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "1" ]
 
 echo "==> Deleting VM"
+prepare_vm_for_hard_stop v1
 lxc delete -f v1
 
 if hasNeededAPIExtension vm_limits_cpu_pin_strategy; then
