@@ -42,6 +42,7 @@ lxc start member2
 
 for instance in member1 member2; do
     waitInstanceReady "${instance}"
+    setup_instance_gocoverage "${instance}"
     lxc exec "${instance}" -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
 done
 
@@ -111,6 +112,11 @@ lxc exec member1 -- timeout 600 lxc move v1 --target member2
 
 # Verify the migration did succeeded and the VM is running on member2.
 [ "$(lxc exec member1 -- lxc list -c L -f csv v1)" = "member2" ]
+
+# Cleanup
+prepare_vm_for_hard_stop member1
+prepare_vm_for_hard_stop member2
+lxc delete -f member1 member2
 
 # shellcheck disable=SC2034
 FAIL=0
