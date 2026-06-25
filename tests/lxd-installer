@@ -113,8 +113,10 @@ for remote in ubuntu-minimal-daily ubuntu-daily; do
         echo "==> VM (${IMAGE})"
         lxc launch "${IMAGE}" v1 --vm -c security.devlxd.images=true
         isSystemdClean v1  # for VM: require systemd --fail to be empty
+        setup_instance_gocoverage v1
         test_lxd_installer v1 "${release}"
         test_lxd v1 "${release}"
+        prepare_vm_for_hard_stop v1
         lxc delete -f v1
     done
 done
