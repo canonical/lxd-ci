@@ -24,6 +24,7 @@ set -x
 echo "==> Launch a VM which will be the target of the copy"
 lxc launch "${IMAGE}" target --vm -d root,size=8GiB
 waitInstanceBooted target
+setup_instance_gocoverage target
 
 echo "==> Setup LXD on the target VM"
 lxc exec target -- sh -c "$(declare -f waitSnapdSeed); waitSnapdSeed"
@@ -80,6 +81,7 @@ done
 
 echo "==> Clean up LXD and remove the loop device"
 lxc remote remove target
+prepare_vm_for_hard_stop target
 lxc delete target -f
 losetup --detach "${loopdev}"
 rm -rf "${test_dir}"
