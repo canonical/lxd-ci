@@ -107,12 +107,14 @@ fi
 lxc config device add v1 config disk source=cloud-init:config
 lxc start v1
 waitInstanceBooted v1
+setup_instance_gocoverage v1
 lxc exec v1 -- cloud-init status --wait --long
 lxc exec v1 -- cloud-init status --long | grep "detail: DataSourceNoCloud"
 lxc exec v1 -- getent passwd user
 ! lxc exec v1 -- getent passwd ubuntu || false
 
 # Cleanup
+prepare_vm_for_hard_stop v1
 lxc delete -f v1
 
 # shellcheck disable=SC2034
