@@ -71,6 +71,7 @@ uefi_vars_tests() {
   ! lxc config uefi set v1 "${EFI_VAR_FULL_NAME}"="${EFI_VAR_VALUE}" || false
 
   # Stop VM and set EFI variable
+  prepare_vm_for_hard_stop v1
   lxc stop -f v1
 
   echo "==> Try to set invalid data as EFI variable value"
@@ -88,6 +89,7 @@ uefi_vars_tests() {
   echo "==> Try to unset with VM running (should fail)"
   ! lxc config uefi unset v1 "${EFI_VAR_FULL_NAME}" || false
 
+  prepare_vm_for_hard_stop v1
   lxc stop -f v1
   lxc config uefi unset v1 "${EFI_VAR_FULL_NAME}"
 
@@ -117,6 +119,7 @@ lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
 
 # Wait for instance to be ready ensures LXD is done initializing the NVRAM
 waitInstanceReady v1
+setup_instance_gocoverage v1
 lxc info v1
 
 echo "==> Verify Microsoft UEFI CA presence in VM"
@@ -134,6 +137,7 @@ fi
 
 # Cleanup
 echo "==> Stopping and deleting VM"
+prepare_vm_for_hard_stop v1
 lxc delete -f v1
 
 lxc profile device remove default eth0
