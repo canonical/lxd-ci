@@ -451,8 +451,13 @@ teardown_swap() {
     rm "${LXD_CI_SWAPFILE}"
 }
 
-# Returns true if Go coverage collection is enabled (GOCOVERDIR is set).
+# Returns true if Go coverage collection is enabled (GOCOVERDIR is set) and testing against a modern LXD version.
 coverage_enabled() {
+  # Never collect coverage data on older LXD versions
+  if [[ "${LXD_SNAP_CHANNEL}" =~ ^[45]\. ]]; then
+    return 1
+  fi
+
   [ -n "${GOCOVERDIR:-}" ]
 }
 
