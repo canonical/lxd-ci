@@ -88,14 +88,16 @@ lxc config device add c1 gpus gpu
 sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_gpu}" ]
 
-# Test nvidia runtime
-echo "==> Testing nvidia runtime"
-! lxc exec c1 -- nvidia-smi || false
-lxc stop -f c1
-lxc config set c1 nvidia.runtime true
-lxc start c1
-waitInstanceReady c1
-lxc exec c1 -- nvidia-smi
+# Test nvidia runtime (legacy, requires the nvidia_runtime API extension)
+if hasNeededAPIExtension "nvidia_runtime"; then
+    echo "==> Testing nvidia runtime"
+    ! lxc exec c1 -- nvidia-smi || false
+    lxc stop -f c1
+    lxc config set c1 nvidia.runtime true
+    lxc start c1
+    waitInstanceReady c1
+    lxc exec c1 -- nvidia-smi
+fi
 
 # Test with PCI addresses
 echo "==> Testing PCI address selection"
@@ -103,7 +105,9 @@ lxc config device remove c1 gpus
 lxc config device add c1 gpu1 gpu pci="${first_card_pci_slot}"
 sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "1" ]
-lxc exec c1 -- nvidia-smi
+if hasNeededAPIExtension "nvidia_runtime"; then
+    lxc exec c1 -- nvidia-smi
+fi
 
 # Test with vendor
 echo "==> Testing PCI vendor selection"
@@ -111,7 +115,9 @@ lxc config device remove c1 gpu1
 lxc config device add c1 gpus gpu vendorid=10de
 sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_nvidia_gpu}" ]
-lxc exec c1 -- nvidia-smi
+if hasNeededAPIExtension "nvidia_runtime"; then
+    lxc exec c1 -- nvidia-smi
+fi
 
 # Test with vendor and product
 echo "==> Testing PCI vendor and product selection"
@@ -119,12 +125,16 @@ lxc config device remove c1 gpus
 lxc config device add c1 gpus gpu vendorid=10de productid="${first_card_product_id}"
 sleep 1
 [ "$(lxc exec c1 -- ls /dev/dri/ | grep -c '^card[0-9]')" = "${total_nvidia_gpu_with_product_id}" ]
-lxc exec c1 -- nvidia-smi
+if hasNeededAPIExtension "nvidia_runtime"; then
+    lxc exec c1 -- nvidia-smi
+
+    # Clean up nvidia runtime
+    lxc config unset c1 nvidia.runtime
+fi
 
 # Test with fully-qualified CDI name
 if hasNeededAPIExtension "gpu_cdi"; then
     echo "==> Testing adding a GPU with a fully-qualified CDI name"
-    lxc config unset c1 nvidia.runtime
     lxc stop --force c1
     lxc config device remove c1 gpus
     lxc config device add c1 gpu0 gpu id="nvidia.com/gpu=0"
@@ -136,7 +146,7 @@ if hasNeededAPIExtension "gpu_cdi"; then
 
     lxc stop --force c1
 
-    lxc config set c1 security.nesting=true nvidia.driver.capabilities=all
+    lxc config set c1 security.nesting=true
     lxc start c1
     waitInstanceReady c1
 
