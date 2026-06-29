@@ -5,14 +5,12 @@ simplestream:
   release_aliases:
     jammy: 22.04
     noble: 24.04
-    questing: 25.10
     resolute: 26.04
   requirements:
   - requirements:
       cgroup: v2
     releases:
     - noble
-    - questing
     - resolute
 
 source:
@@ -448,7 +446,6 @@ packages:
     action: install
     releases:
     - noble
-    - questing
     - resolute
 
   - packages:
@@ -559,7 +556,6 @@ actions:
     ln -sf ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
   releases:
   - noble
-  - questing
   - resolute
 
 - trigger: post-packages
