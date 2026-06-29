@@ -133,3 +133,6 @@ test_data:
     check_ldconfig c1
     check_mountinfo c1
     _run lxc exec c1 -- nvidia-smi
+
+    _run git clone --depth=1 --branch main https://github.com/canonical/lxd-ci.git
+    _run "cd lxd-ci && sudo ./bin/local-run tests/gpu-container $SNAP_CHANNEL < /dev/null"
