@@ -366,7 +366,7 @@ waitInstanceReady v1
 
 # Check secure boot setting is applied to running VM at next startup.
 if lxc exec v1 -- mount | grep -qwF /boot/efi; then
-  lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot enabled"
+  [ "$(lxc exec v1 -- mokutil --sb-state)" = "SecureBoot enabled" ]
   if hasNeededAPIExtension instance_boot_mode; then
     lxc profile set default boot.mode=uefi-nosecureboot
   else
