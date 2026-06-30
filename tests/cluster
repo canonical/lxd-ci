@@ -2,7 +2,7 @@
 set -eux
 
 # Known LXD snap tracks in ascending order. Update when a new track is opened.
-KNOWN_TRACKS=("5.0" "5.21" "6")
+KNOWN_TRACKS=("4.0" "5.0" "5.21" "6")
 
 # get_upgrade_chain returns the ordered list of channels to upgrade through.
 # The first element is the source (install) channel.
