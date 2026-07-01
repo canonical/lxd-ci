@@ -139,9 +139,11 @@ do
 	echo "==> Start VM and add content to custom block volume"
 	lxc start v1
 	waitInstanceReady v1
+	setup_instance_gocoverage v1
 	lxc exec v1 -- /bin/sh -c "mkfs.ext4 /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_vol1 && mount /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_vol1 /mnt && echo foo > /mnt/bar && umount /mnt"
 
 	echo "==> Stop VM and detach custom volumes"
+	prepare_vm_for_hard_stop v1
 	lxc stop -f v1
 	lxc storage volume detach "${poolName}" vol1 v1
 	lxc storage volume detach "${poolName}" vol4 v1
@@ -157,6 +159,7 @@ do
 	sleep 3
 	! lxc exec v1 -- stat "$BLOCK_SPECIAL_FILE" || false
 	! lxc exec v1 -- stat /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_vol1 || false
+	prepare_vm_for_hard_stop v1
 	lxc stop -f v1
 
 	echo "==> Backup custom block volume"
@@ -216,10 +219,13 @@ do
 	  lxc start v1 v2
 	  waitInstanceReady v1
 	  waitInstanceReady v2
+	  setup_instance_gocoverage v2
 	  lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_vol5
 	  lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_vol6
 	  lxc exec v2 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_vol5
 	  lxc exec v2 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_CD-ROM_lxd_vol6
+	  prepare_vm_for_hard_stop v1
+	  prepare_vm_for_hard_stop v2
 	  lxc stop -f v1 v2
     else
 	  echo "==> Skipping custom ISO volume tests, not supported"
@@ -277,8 +283,10 @@ do
 	[ "$(lxc exec v1 -- cat /sys/block/"${DISK_DEV}"/ro)" -eq 1 ]
 
 	echo "==> Detaching volumes"
-	lxc exec v1 -- "sync"
+	lxc exec v1 -- sync
+	prepare_vm_for_hard_stop v1
 	lxc stop -f v1
+	prepare_vm_for_hard_stop v2
 	lxc delete -f v2
 	lxc storage volume detach "${poolName}" vol1 v1
 	lxc storage volume detach "${poolName}" vol2 v1
@@ -376,6 +384,7 @@ do
 		# device detach.
 		lxc start v2
 		waitInstanceReady v2
+		setup_instance_gocoverage v2
 
 		# `lxc stop [-f]` won't fail if unmounting the device fails
 		# `detach` will fail if the unmount fails, so just detach/reattach
@@ -386,6 +395,7 @@ do
 		# LXD's lvm reference counts allow v2-root to be detached (above)
 		lxc storage volume detach "${poolName}" virtual-machine/v2/snap0 v1
 
+		prepare_vm_for_hard_stop v2
 		lxc stop v2 --force
 
 		# Snapshots attached via profile
@@ -395,6 +405,7 @@ do
 		lxc exec v1 -- test -L "${snap0_path}"
 		lxc profile remove v1 v2-snap0
 
+		prepare_vm_for_hard_stop v1
 		lxc stop --force v1
 
 		# Can't unset security.shared when v1's root volume is attached elsewhere

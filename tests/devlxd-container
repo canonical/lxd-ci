@@ -11,6 +11,8 @@ install_lxd
 lxc network create lxdbr0
 lxc profile device add default eth0 nic network=lxdbr0
 
+IMAGE="${TEST_IMG:-ubuntu-minimal-daily:26.04}"
+
 poolName="ctpool$$"
 poolDriver=dir
 
@@ -18,8 +20,7 @@ echo "==> Create storage pool using driver ${poolDriver}"
 lxc storage create "${poolName}" "${poolDriver}"
 
 echo "==> Create container and boot"
-# XXX: not using ubuntu-minimal-daily:24.04 due to unreliability
-lxc launch "${TEST_IMG:-ubuntu:24.04}" c1 -s "${poolName}" -c security.nesting=true
+lxc launch "${IMAGE}" c1 -s "${poolName}" -c security.nesting=true
 lxc info c1
 
 echo "==> Checking devlxd is working"
@@ -35,7 +36,7 @@ lxc exec c1 -- curl --silent --show-error --unix-socket /dev/lxd/sock http://cus
 
 # Check devlxd instance name validation works (5.21 onwards).
 if ! echo "${LXD_SNAP_CHANNEL}" | grep -qE "^[45]\.0/"; then
-  lxc launch "${TEST_IMG:-ubuntu:24.04}" c2 -s "${poolName}"
+  lxc launch "${IMAGE}" c2 -s "${poolName}"
 
   # First check first discovery method (where curl process isn't under the lxc monitor process tree).
   # Explanation of command:
@@ -133,7 +134,7 @@ lxc monitor --type lifecycle --format json > monitor.json 2>&1 &
 monitorPID="${!}"
 
 # Launch an image we know is on the host.
-lxc exec c1 -- /snap/bin/lxc launch "${TEST_IMG:-ubuntu:24.04}" c1c1
+lxc exec c1 -- /snap/bin/lxc launch "${IMAGE}" c1c1
 lxc exec c1 -- /snap/bin/lxc info c1c1 | grep -F RUNNING
 
 kill "${monitorPID}"

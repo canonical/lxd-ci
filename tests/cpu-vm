@@ -43,6 +43,7 @@ lxc delete v0
 echo "==> Create and boot VM"
 lxc launch "${IMAGE}" v1 --vm -s "${poolName}"
 waitInstanceReady v1
+setup_instance_gocoverage v1
 lxc info v1
 
 # Get number of CPUs
@@ -55,6 +56,7 @@ cpuCount="$(ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')"
 # Set valid CPU limits (low to high)
 for i in $(seq 2 "${cpuCount}"); do
   lxc config set v1 limits.cpu="${i}"
+  sleep 0.1 # Give the guest kernel the time to react to the new CPU count
   [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${i}" ]
 done
 
@@ -64,6 +66,7 @@ done
 # Set valid CPU limits (high to low)
 for i in $(seq "${cpuCount}" -1 1); do
   lxc config set v1 limits.cpu="${i}"
+  sleep 0.1 # Give the guest kernel the time to react to the new CPU count
   [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${i}" ]
 done
 
@@ -75,6 +78,7 @@ if [ "$(nproc)" -gt 2 ]; then
 
   # Set max CPU count
   lxc config set v1 limits.cpu="${cpuCount}"
+  sleep 0.1 # Give the guest kernel the time to react to the new CPU count
   [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${cpuCount}" ]
 
   # Try doing pinning while VM is running (shouldn't work)
@@ -83,11 +87,13 @@ fi
 
 # Unset CPU limit
 lxc config unset v1 limits.cpu
+sleep 0.1 # Give the guest kernel the time to react to the new CPU count
 
 # Unsetting the limit should leave the VM with 1 CPU
 [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "1" ]
 
 echo "==> Deleting VM"
+prepare_vm_for_hard_stop v1
 lxc delete -f v1
 
 if hasNeededAPIExtension vm_limits_cpu_pin_strategy; then
