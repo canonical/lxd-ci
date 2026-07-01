@@ -366,7 +366,7 @@ waitInstanceReady v1
 
 # Check secure boot setting is applied to running VM at next startup.
 if lxc exec v1 -- mount | grep -qwF /boot/efi; then
-  lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot enabled"
+  [ "$(lxc exec v1 -- mokutil --sb-state)" = "SecureBoot enabled" ]
   if hasNeededAPIExtension instance_boot_mode; then
     lxc profile set default boot.mode=uefi-nosecureboot
   else
@@ -374,7 +374,18 @@ if lxc exec v1 -- mount | grep -qwF /boot/efi; then
   fi
   lxc restart -f v1
   waitInstanceReady v1
-  lxc exec v1 -- mokutil --sb-state | grep -Fx "SecureBoot disabled"
+
+  # Depending on LXD version, 'boot.mode=uefi-nosecureboot' can either disable Secure Boot ("SecureBoot disabled") by enabling Setup Mode
+  # or switch to firmware without Secure Boot support (error out with "This system doesn't support Secure Boot"). Accept both as valid.
+  sb_exit_code=0
+  sb_output="$(lxc exec v1 -- mokutil --sb-state 2>&1)" || sb_exit_code=$?
+
+  if [ "${sb_exit_code}" -eq 0 ]; then
+    # When in Setup Mode, verify that Secure Boot is reported as disabled
+    grep -Fx "SecureBoot disabled" <<< "${sb_output}"
+  else
+    [ "${sb_output}" = "This system doesn't support Secure Boot" ]
+  fi
 fi
 
 # Check io.threads is working and allowed only when restricted.virtual-machines.lowlevel is allow.
