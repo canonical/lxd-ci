@@ -78,8 +78,13 @@ if [ "$(nproc)" -gt 2 ]; then
 
   # Set max CPU count
   lxc config set v1 limits.cpu="${cpuCount}"
-  sleep 0.1 # Give the guest kernel the time to react to the new CPU count
-  [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${cpuCount}" ]
+  # Give the guest kernel the time to react to the new CPU count
+  for _ in $(seq 3); do
+    guestCPUCount="$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')"
+    [ "${guestCPUCount}" -eq "${cpuCount}" ] && break
+    sleep 1
+  done
+  [ "${guestCPUCount}" -eq "${cpuCount}" ]
 
   # Try doing pinning while VM is running (shouldn't work)
   ! lxc config set v1 limits.cpu=1,2 || false
