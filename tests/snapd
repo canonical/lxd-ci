@@ -5,10 +5,16 @@ set -eux
 install_lxd false
 
 test_lxc() {
+    local DURATION OUT
     DURATION="${1}"
 
     echo "Warmup"
-    lxc help >/dev/null
+    OUT="$(lxc help)"
+    if ! grep -xF "Description:" <<<"${OUT}"; then
+        echo "Unexpected lxc help output:" >&2
+        echo "${OUT}" >&2
+        exit 1
+    fi
 
     echo "Repeatedly call 'lxc help' for ${DURATION} and see how fast/slow it is"
     # shellcheck disable=SC2016
