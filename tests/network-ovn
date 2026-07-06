@@ -17,8 +17,7 @@ configure_ovn
 lxc project switch default
 lxc storage create default zfs
 
-# XXX: known DNS resolution on for .lxd domain with 24.04 instances
-IMAGE="${TEST_IMG:-ubuntu-daily:22.04}"
+IMAGE="${TEST_IMG:-ubuntu-daily:26.04}"
 
 can_test_ovn_forward_ping() {
     # Jammy's ovn-host/ovn-central deb packages 22.03.3-0ubuntu0.22.04.1 and
