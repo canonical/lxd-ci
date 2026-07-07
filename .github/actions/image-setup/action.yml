@@ -65,6 +65,6 @@ runs:
         lxd-imagebuilder --version
 
     - name: Setup LXD ${{ inputs.lxd-channel }}
-      uses: canonical/setup-lxd@d492474f6c8ceed1b716bb34c8f575a428871c70 # main
+      uses: canonical/setup-lxd@da2ac84e727dc534215fd14cd088b9209d65893b
       with:
         channel: ${{ inputs.lxd-channel }}
