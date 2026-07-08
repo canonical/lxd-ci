@@ -51,13 +51,12 @@ lxc info v1
 cpuCount="$(ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')"
 
 # VMs should have only 1 CPU per default
-[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "1" ]
+waitForGuestCPUCount v1 1
 
 # Set valid CPU limits (low to high)
 for i in $(seq 2 "${cpuCount}"); do
   lxc config set v1 limits.cpu="${i}"
-  sleep 0.1 # Give the guest kernel the time to react to the new CPU count
-  [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${i}" ]
+  waitForGuestCPUCount v1 "${i}"
 done
 
 # Try setting more CPUs than available
@@ -66,8 +65,7 @@ done
 # Set valid CPU limits (high to low)
 for i in $(seq "${cpuCount}" -1 1); do
   lxc config set v1 limits.cpu="${i}"
-  sleep 0.1 # Give the guest kernel the time to react to the new CPU count
-  [ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "${i}" ]
+  waitForGuestCPUCount v1 "${i}"
 done
 
 if [ "$(nproc)" -gt 2 ]; then
@@ -78,13 +76,7 @@ if [ "$(nproc)" -gt 2 ]; then
 
   # Set max CPU count
   lxc config set v1 limits.cpu="${cpuCount}"
-  # Give the guest kernel the time to react to the new CPU count
-  for _ in $(seq 3); do
-    guestCPUCount="$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')"
-    [ "${guestCPUCount}" -eq "${cpuCount}" ] && break
-    sleep 1
-  done
-  [ "${guestCPUCount}" -eq "${cpuCount}" ]
+  waitForGuestCPUCount v1 "${cpuCount}"
 
   # Try doing pinning while VM is running (shouldn't work)
   ! lxc config set v1 limits.cpu=1,2 || false
@@ -92,10 +84,9 @@ fi
 
 # Unset CPU limit
 lxc config unset v1 limits.cpu
-sleep 0.1 # Give the guest kernel the time to react to the new CPU count
 
 # Unsetting the limit should leave the VM with 1 CPU
-[ "$(lxc exec v1 -- ls /sys/devices/system/cpu | grep -xEc 'cpu[[:digit:]]+')" -eq "1" ]
+waitForGuestCPUCount v1 1
 
 echo "==> Deleting VM"
 prepare_vm_for_hard_stop v1
