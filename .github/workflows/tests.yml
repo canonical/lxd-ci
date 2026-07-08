@@ -480,7 +480,7 @@ jobs:
 
       - name: Tmate debugging session (self-hosted)
         if: ${{ failure() && inputs.tmate-debug && inputs.self-hosted-runner }}
-        uses: canonical/action-tmate@bda82e73586a62bf621881aab872a527c8a46e2d # main
+        uses: canonical/action-tmate@5f11b26528699b78dadfb61273f4c859ac7145cf
         timeout-minutes: ${{ inputs.tmate-timeout }}
       - name: Tmate debugging session (gh-hosted)
         if: ${{ failure() && inputs.tmate-debug && !inputs.self-hosted-runner }}
