@@ -537,6 +537,11 @@ EOF
   sleep 1
 }
 
+# count_gpu_devices: returns the number of GPU devices in the instance.
+count_gpu_devices() {
+  lxc exec "${1}" -- ls /dev/dri/ | grep -cx 'card[0-9]\+'
+}
+
 # cleanup: report if the test passed or not and return the appropriate return code.
 cleanup() {
     set +e
