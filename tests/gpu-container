@@ -112,7 +112,18 @@ if hasNeededAPIExtension "nvidia_runtime"; then
     lxc config set c1 nvidia.runtime true
     lxc start c1
     waitInstanceReady c1
+
+    # Print out all mounts we have so we can compare it later if anything goes wrong
+    lxc exec c1 -- cat /proc/self/mountinfo
+
+    # Verify DRM card device(s) and a render node exist in the container
+    lxc exec c1 -- sh -c 'ls /dev/dri/card[0-9]*'
+    lxc exec c1 -- sh -c 'ls /dev/dri/renderD[0-9]*'
+
     lxc exec c1 -- nvidia-smi
+
+    # Check presence of key libraries in the mounts to catch regressions
+    lxc exec c1 -- cat /proc/self/mountinfo | grep "libcuda.so"
 fi
 
 # Test with PCI addresses
