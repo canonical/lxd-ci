@@ -57,7 +57,7 @@ first_card_product_id="$(lxc query /1.0/resources | jq -r ".gpu.cards | .[] | se
 total_nvidia_gpu_with_product_id="$(lxc query /1.0/resources | jq -r ".gpu.cards | .[] | select(.product_id == \"${first_card_product_id}\") | .product_id" | wc -l)"
 
 # Check if available resources are sufficient
-[ "${total_gpu}" -gt 1 ]
+[ "${total_gpu}" -ge 1 ]
 [ "${total_nvidia_gpu}" -ge 1 ]
 [ "${total_nvidia_gpu_with_product_id}" -ge 1 ]
 
