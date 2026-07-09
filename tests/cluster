@@ -298,7 +298,7 @@ if [ "${TEST_RESTRICTED}" = "1" ]; then
   unrestricted_metrics_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/metrics.crt")"
   restricted_metrics_fingerprint="$(certificateFingerprintShort "${tmp_cert_dir}/metrics-restricted.crt")"
 
-  echo "==> Check the metrics certificates for its permissions"
+  echo "==> Check the metrics certificates for their permissions"
   lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -er '.restricted == false'
   lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -er '.type == "metrics"'
   lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -er '.restricted == true'
@@ -310,7 +310,7 @@ for step_idx in $(seq 1 $(( ${#UPGRADE_CHAIN[@]} - 1 ))); do
     upgrade_cluster "${UPGRADE_CHAIN[${step_idx}]}"
 done
 
-echo "==> Check the certificates for its permissions after cluster upgrade"
+echo "==> Check the certificates for their permissions after cluster upgrade"
 lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -er '.restricted == false'
 lxc query "/1.0/certificates/${unrestricted_fingerprint}" | jq -er '.type == "client"'
 if [ "${TEST_RESTRICTED}" = "1" ]; then
@@ -320,7 +320,7 @@ if [ "${TEST_RESTRICTED}" = "1" ]; then
 fi
 
 if [ "${TEST_RESTRICTED}" = "1" ]; then
-    echo "==> Check the metrics certificates for its permissions after cluster upgrade"
+    echo "==> Check the metrics certificates for their permissions after cluster upgrade"
     lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -er '.restricted == false'
     lxc query "/1.0/certificates/${unrestricted_metrics_fingerprint}" | jq -er '.type == "metrics"'
     lxc query "/1.0/certificates/${restricted_metrics_fingerprint}" | jq -er '.restricted == true'
