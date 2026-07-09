@@ -6,6 +6,7 @@ install_lxd false
 
 test_lxc() {
     local DURATION=30 OUT
+    local FORKS_PER_SECOND ITERATIONS
 
     echo "Warmup"
     OUT="$(lxc help)"
@@ -18,7 +19,10 @@ test_lxc() {
     echo "Repeatedly call 'lxc help' for ${DURATION} and see how fast/slow it is"
     # shellcheck disable=SC2016
     ITERATIONS="$(timeout "${DURATION}" bash -c 'i=0; trap "echo \$i" EXIT; while i=$((i+1)); do lxc help >/dev/null; done' || true)"
-    [ "${ITERATIONS}" -ge 0 ]
+    if ! [[ "${ITERATIONS}" =~ ^[0-9]+$ ]]; then
+        echo "Unexpected iterations value: '${ITERATIONS}'" >&2
+        exit 1
+    fi
     FORKS_PER_SECOND="$(awk "BEGIN {printf \"%d\n\", ${ITERATIONS}/${DURATION}}")"
 
     # Check that lxc forks/s are not below a certain threshold
