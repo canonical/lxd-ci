@@ -3,6 +3,22 @@ set -eux
 
 # testflinger_queue: rockman
 
+# check_ldconfig: verify key NVIDIA libraries are available in the container.
+check_ldconfig() {
+  local container="$1"
+  lxc exec "$container" -- ldconfig -p | grep "libcuda.so"
+  lxc exec "$container" -- ldconfig -p | grep "libnvidia-ml.so"
+  lxc exec "$container" -- ldconfig -p | grep "libnvidia-encode.so"
+  lxc exec "$container" -- ldconfig -p | grep "libnvidia-glcore.so"
+}
+
+# check_mountinfo: verify expected NVIDIA CDI files are mounted in the container.
+check_mountinfo() {
+  local container="$1"
+  lxc exec "$container" -- cat /proc/self/mountinfo | grep "nvidia_icd.json"
+  lxc exec "$container" -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
+}
+
 # Install required components from "restricted" pocket
 if ! grep -v '^#' /etc/apt/sources.list | grep -qwFm1 restricted; then
     ARCH="$(dpkg --print-architecture)"
@@ -134,12 +150,31 @@ fi
 
 # Test with fully-qualified CDI name
 if hasNeededAPIExtension "gpu_cdi"; then
-    echo "==> Testing adding a GPU with a fully-qualified CDI name"
+    echo "==> Testing adding a GPU with a fully-qualified CDI name to a stopped container"
     lxc stop --force c1
     lxc config device remove c1 gpus
     lxc config device add c1 gpu0 gpu id="nvidia.com/gpu=0"
     lxc start c1
+    waitInstanceReady c1
     [ "$(count_gpu_devices c1)" = "1" ]
+    check_ldconfig c1
+    check_mountinfo c1
+    # Print out all mounts we have so we can compare it later if anything goes wrong
+    lxc exec c1 -- cat /proc/self/mountinfo
+    # Verify exactly one DRM card device and a render node exist in the container
+    [ "$(lxc exec c1 -- sh -c 'ls /dev/dri/card[0-9]* | wc -l')" -eq 1 ]
+    lxc exec c1 -- sh -c 'ls /dev/dri/renderD[0-9]*'
+    lxc exec c1 -- nvidia-smi
+
+    echo "==> Testing hotplugging a GPU into a running container"
+    lxc config device remove c1 gpu0
+    sleep 1
+    [ "$(count_gpu_devices c1)" = "0" ]
+    lxc config device add c1 gpu0 gpu id="nvidia.com/gpu=0"
+    sleep 1
+    [ "$(count_gpu_devices c1)" = "1" ]
+    check_ldconfig c1
+    check_mountinfo c1
     lxc exec c1 -- nvidia-smi
 
     echo "==> Testing running nested Docker container with nvidia runtime"
