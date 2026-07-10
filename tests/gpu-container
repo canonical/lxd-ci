@@ -6,17 +6,17 @@ set -eux
 # check_ldconfig: verify key NVIDIA libraries are available in the container.
 check_ldconfig() {
   local container="$1"
-  lxc exec "$container" -- ldconfig -p | grep "libcuda.so"
-  lxc exec "$container" -- ldconfig -p | grep "libnvidia-ml.so"
-  lxc exec "$container" -- ldconfig -p | grep "libnvidia-encode.so"
-  lxc exec "$container" -- ldconfig -p | grep "libnvidia-glcore.so"
+  lxc exec "$container" -- ldconfig -p | grep -F "libcuda.so"
+  lxc exec "$container" -- ldconfig -p | grep -F "libnvidia-ml.so"
+  lxc exec "$container" -- ldconfig -p | grep -F "libnvidia-encode.so"
+  lxc exec "$container" -- ldconfig -p | grep -F "libnvidia-glcore.so"
 }
 
 # check_mountinfo: verify expected NVIDIA CDI files are mounted in the container.
 check_mountinfo() {
   local container="$1"
-  lxc exec "$container" -- cat /proc/self/mountinfo | grep "nvidia_icd.json"
-  lxc exec "$container" -- cat /proc/self/mountinfo | grep "10_nvidia_wayland.json"
+  lxc exec "$container" -- cat /proc/self/mountinfo | grep -F "nvidia_icd.json"
+  lxc exec "$container" -- cat /proc/self/mountinfo | grep -F "10_nvidia_wayland.json"
 }
 
 # Install required components from "restricted" pocket
@@ -173,7 +173,7 @@ if hasNeededAPIExtension "gpu_cdi"; then
     # Print out all mounts we have so we can compare it later if anything goes wrong
     lxc exec c1 -- cat /proc/self/mountinfo
     # Verify exactly one DRM card device and a render node exist in the container
-    [ "$(lxc exec c1 -- sh -c 'ls /dev/dri/card[0-9]* | wc -l')" -eq 1 ]
+    [ "$(count_gpu_devices c1)" = "1" ]
     lxc exec c1 -- sh -c 'ls /dev/dri/renderD[0-9]*'
     lxc exec c1 -- nvidia-smi
 
