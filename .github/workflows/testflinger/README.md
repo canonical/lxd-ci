@@ -12,8 +12,7 @@ Tested distros:
 - `noble`
 
 Current queue/workflow combinations:
-- NVIDIA CDI: `JOB_QUEUE=lxd-nvidia`, `TFWORKFLOW=nvidia-cdi-job`
-- NVIDIA legacy runtime: `JOB_QUEUE=lxd-nvidia`, `TFWORKFLOW=nvidia-legacy-runtime-job`
+- NVIDIA (CDI and legacy runtime): `JOB_QUEUE=lxd-nvidia`, `TFWORKFLOW=nvidia-gpu-job`
 - Ubuntu Core + NVIDIA CDI: `JOB_QUEUE=lxd-nvidia`, `TFWORKFLOW=uc-nvidia-cdi-job`
 - AMD CDI: `JOB_QUEUE=lxd-amd`, `TFWORKFLOW=amd-cdi-job`
 
@@ -39,14 +38,9 @@ To test Ubuntu Core + LXD + GPU passthrough in CDI mode:
 JOB_QUEUE=lxd-nvidia SNAP_CHANNEL=latest/edge DISTRO=core24-latest TFWORKFLOW=uc-nvidia-cdi-job ./run.sh
 ```
 
-To test Ubuntu Noble + LXD + GPU passthrough in CDI mode:
+To test Ubuntu Noble + LXD + GPU passthrough (CDI and legacy nvidia runtime):
 ```bash
-JOB_QUEUE=lxd-nvidia SNAP_CHANNEL=latest/edge DISTRO=noble TFWORKFLOW=nvidia-cdi-job ./run.sh
-```
-
-To test Ubuntu Noble + LXD + GPU passthrough using legacy nvidia runtime:
-```bash
-JOB_QUEUE=lxd-nvidia SNAP_CHANNEL=latest/edge DISTRO=noble TFWORKFLOW=nvidia-legacy-runtime-job ./run.sh
+JOB_QUEUE=lxd-nvidia SNAP_CHANNEL=latest/edge DISTRO=noble TFWORKFLOW=nvidia-gpu-job ./run.sh
 ```
 
 To test Ubuntu Noble + LXD + AMD GPU passthrough in CDI mode:

@@ -78,7 +78,7 @@ jobs:
           client-id: ${{ secrets.TESTFLINGER_CLIENT_ID }}
           secret-key: ${{ secrets.TESTFLINGER_SECRET_KEY }}
 
-  nvidia-cdi:
+  nvidia:
     runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
     strategy:
       matrix:
@@ -86,40 +86,7 @@ jobs:
         os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
     env:
       SNAP_CHANNEL: ${{ matrix.track }}
-      TFWORKFLOW: nvidia-cdi-job
-    steps:
-      - name: Event data
-        run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
-
-      - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
-
-      - name: Create Testflinger job
-        env:
-          JOB_QUEUE: lxd-nvidia
-          DISTRO: ${{ matrix.os }}
-        working-directory: ${{ env.TESTFLINGER_DIR }}
-        run: ./run.sh --dryrun
-
-      - name: Run tests
-        uses: canonical/testflinger/.github/actions/submit@545ed69f17a5e639a2299e325f5fb199ca9f98af
-        with:
-          poll: true
-          job-path: ${{ env.TESTFLINGER_DIR }}/${{ env.TFWORKFLOW }}.yml.tmp
-          client-id: ${{ secrets.TESTFLINGER_CLIENT_ID }}
-          secret-key: ${{ secrets.TESTFLINGER_SECRET_KEY }}
-
-  nvidia-legacy-runtime:
-    runs-on: [self-hosted, self-hosted-linux-amd64-jammy-private-endpoint-medium]
-    strategy:
-      matrix:
-        track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
-        os: ${{ fromJSON(inputs.ubuntu-releases || '["noble"]') }}
-    env:
-      SNAP_CHANNEL: ${{ matrix.track }}
-      TFWORKFLOW: nvidia-legacy-runtime-job
+      TFWORKFLOW: nvidia-gpu-job
     steps:
       - name: Event data
         run: "echo ::notice::Snap channel: $SNAP_CHANNEL"
