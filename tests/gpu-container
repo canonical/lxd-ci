@@ -173,7 +173,7 @@ if hasNeededAPIExtension "gpu_cdi"; then
     # Print out all mounts we have so we can compare it later if anything goes wrong
     lxc exec c1 -- cat /proc/self/mountinfo
     # Verify exactly one DRM card device and a render node exist in the container
-    [ "$(lxc exec c1 -- sh -c 'ls /dev/dri/card[0-9]* | wc -l')" -eq 1 ]
+    [ "$(count_gpu_devices c1)" = "1" ]
     lxc exec c1 -- sh -c 'ls /dev/dri/renderD[0-9]*'
     lxc exec c1 -- nvidia-smi
 
