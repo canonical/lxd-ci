@@ -23,11 +23,17 @@ esac
 efi_sb_key_tests() {
   # FirmwareSecvarUpdaterVersion is the trace of the patched EDK2 injecting the
   # 2023 Microsoft CA certs into the KEK and db variables on boot.
-  echo "==> Verify presence of FirmwareSecvarUpdaterVersion variable"
-  if [ "${EXPECT_2023_CERTS}" = "true" ]; then
-    lxc config uefi get v1 FirmwareSecvarUpdaterVersion-a2f5da32-9e4c-4f6b-b3a1-7c8d5e6f0a1b
+  # The `lxc config uefi` command requires the instances_uefi_vars API extension
+  # which is not available on 5.0/* and older.
+  if hasNeededAPIExtension instances_uefi_vars; then
+    echo "==> Verify presence of FirmwareSecvarUpdaterVersion variable"
+    if [ "${EXPECT_2023_CERTS}" = "true" ]; then
+      lxc config uefi get v1 FirmwareSecvarUpdaterVersion-a2f5da32-9e4c-4f6b-b3a1-7c8d5e6f0a1b
+    else
+      ! lxc config uefi get v1 FirmwareSecvarUpdaterVersion-a2f5da32-9e4c-4f6b-b3a1-7c8d5e6f0a1b || false
+    fi
   else
-    ! lxc config uefi get v1 FirmwareSecvarUpdaterVersion-a2f5da32-9e4c-4f6b-b3a1-7c8d5e6f0a1b || false
+    echo "==> Skipping FirmwareSecvarUpdaterVersion check as instances_uefi_vars API extension is not supported"
   fi
 
   lxc exec v1 -- apt-get update
