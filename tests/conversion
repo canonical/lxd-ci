@@ -21,6 +21,12 @@ install_lxd
 
 set -x
 
+# For LVM thin use external LVM tools to avoid errors like:
+# Failed to run: lvcreate --yes --wipesignatures y --thinpool --extents 100%FREE: Device or resource busy
+snap set lxd lvm.external=true
+systemctl reload snap.lxd.daemon.service
+lxd waitready --timeout=300
+
 if ! command -v go; then
     # Install go from Snap.
     waitSnapdSeed
