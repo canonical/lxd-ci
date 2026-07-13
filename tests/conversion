@@ -21,6 +21,12 @@ install_lxd
 
 set -x
 
+# For LVM thin use external LVM tools to avoid errors like:
+# Failed to run: lvcreate --yes --wipesignatures y --thinpool --extents 100%FREE: Device or resource busy
+snap set lxd lvm.external=true
+systemctl reload snap.lxd.daemon.service
+lxd waitready --timeout=300
+
 if ! command -v go; then
     # Install go from Snap.
     waitSnapdSeed
@@ -291,16 +297,7 @@ IMAGE_PATH="${tmpdir}/backup/virtual-machine.img"
 # Test VM migration using conversion mode. If server does not support
 # conversion API extension, the conversion tool must fallback to migration
 # mode and successfully transfer the VM disk.
-# Note: testing lvm first as it often fails
-for driver in lvm btrfs ceph dir zfs; do
-    if [ "${driver}" = "lvm" ]; then
-        # For LVM thin use external LVM tools to avoid errors like:
-        # Failed to run: lvcreate --yes --wipesignatures y --thinpool --extents 100%FREE: Device or resource busy
-        snap set lxd lvm.external=true
-        systemctl reload snap.lxd.daemon.service
-        lxd waitready --timeout=300
-    fi
-
+for driver in btrfs ceph dir lvm zfs; do
     conversion_vm alpine-raw "${driver}" "${IMAGE_PATH}" "no"
 done
 
