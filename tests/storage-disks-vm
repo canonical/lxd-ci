@@ -130,9 +130,18 @@ lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro
 lxc exec v1 -- test -b /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1rw
 
 # Check /dev/sd*
+# The root disk is always /dev/sda, but the order of the other disks is not guaranteed, so we check that the two block devices are /dev/sdb and /dev/sdc in some order.
 [ "$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_root)" = "/dev/sda" ]
-[ "$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro)" = "/dev/sdb" ]
-[ "$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1rw)" = "/dev/sdc" ]
+block1ro_dev="$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro)"
+block1rw_dev="$(lxc exec v1 -- readlink -f /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1rw)"
+case "${block1ro_dev} ${block1rw_dev}" in
+  "/dev/sdb /dev/sdc"|"/dev/sdc /dev/sdb")
+    ;;
+  *)
+    echo "Unexpected block device mapping: block1ro=${block1ro_dev}, block1rw=${block1rw_dev}"
+    false
+    ;;
+esac
 
 # Check the rw driver accepts writes and the ro does not.
 ! lxc exec v1 -- dd if=/dev/urandom of=/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_lxd_block1ro bs=512 count=2 || false
