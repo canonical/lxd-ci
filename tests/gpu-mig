@@ -43,9 +43,25 @@ nvidia-smi mig -i "${first_card_pci_slot}" -lgip
 nvidia-smi mig -i "${first_card_pci_slot}" -cgi 2g.10gb,1g.5gb,1g.5gb
 nvidia-smi mig -i "${first_card_pci_slot}" -lgi
 nvidia-smi mig -i "${first_card_pci_slot}" -lcip
-nvidia-smi mig -i "${first_card_pci_slot}" -cci 1g.5gb -gi 7
-nvidia-smi mig -i "${first_card_pci_slot}" -cci 1g.5gb -gi 13
-nvidia-smi mig -i "${first_card_pci_slot}" -cci 1c.2g.10gb,1c.2g.10gb -gi 5
+
+# GPU instance IDs are assigned by the driver and differ between GPU models, so
+# read back the IDs actually created above instead of hardcoding them. The -lgi
+# table lists one row per instance as "| GPU MIG <profile> <profileID> <instID> <placement> |",
+# so the instance ID is field 6.
+mapfile -t GI_1G5GB < <(nvidia-smi mig -i "${first_card_pci_slot}" -lgi | awk '$3 == "MIG" && $4 == "1g.5gb" {print $6}')
+mapfile -t GI_2G10GB < <(nvidia-smi mig -i "${first_card_pci_slot}" -lgi | awk '$3 == "MIG" && $4 == "2g.10gb" {print $6}')
+
+# The -cgi call above created two 1g.5gb and one 2g.10gb GPU instances. Fail early
+# with a clear message if they weren't found (e.g. MIG mode not actually enabled or
+# an unexpected -lgi output format) instead of a cryptic set -u "unbound variable".
+if [ "${#GI_1G5GB[@]}" -lt 2 ] || [ "${#GI_2G10GB[@]}" -lt 1 ]; then
+  echo "ERROR: expected two 1g.5gb and one 2g.10gb GPU instances, got ${#GI_1G5GB[@]} and ${#GI_2G10GB[@]}" >&2
+  exit 1
+fi
+
+nvidia-smi mig -i "${first_card_pci_slot}" -cci 1g.5gb -gi "${GI_1G5GB[0]}"
+nvidia-smi mig -i "${first_card_pci_slot}" -cci 1g.5gb -gi "${GI_1G5GB[1]}"
+nvidia-smi mig -i "${first_card_pci_slot}" -cci 1c.2g.10gb,1c.2g.10gb -gi "${GI_2G10GB[0]}"
 nvidia-smi
 
 UUIDS="$(nvidia-smi -L | sed -n "/(UUID: MIG-/ s/.* \(MIG-[^)]\+\))$/\1/p")"
