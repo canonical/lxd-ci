@@ -13,6 +13,7 @@ Tested distros:
 
 Current queue/workflow combinations:
 - NVIDIA (CDI and legacy runtime): `JOB_QUEUE=lxd-nvidia`, `TFWORKFLOW=nvidia-gpu-job`
+- NVIDIA MIG (Multi-Instance GPU): `JOB_QUEUE=lxd-mig`, `TFWORKFLOW=nvidia-mig-job`
 - Ubuntu Core + NVIDIA CDI: `JOB_QUEUE=lxd-nvidia`, `TFWORKFLOW=uc-nvidia-cdi-job`
 - AMD CDI: `JOB_QUEUE=lxd-amd`, `TFWORKFLOW=amd-cdi-job`
 
@@ -46,4 +47,9 @@ JOB_QUEUE=lxd-nvidia SNAP_CHANNEL=latest/edge DISTRO=noble TFWORKFLOW=nvidia-gpu
 To test Ubuntu Noble + LXD + AMD GPU passthrough in CDI mode:
 ```bash
 JOB_QUEUE=lxd-amd SNAP_CHANNEL=latest/edge DISTRO=noble TFWORKFLOW=amd-cdi-job ./run.sh
+```
+
+To test Ubuntu Noble + LXD + NVIDIA MIG (Multi-Instance GPU) passthrough:
+```bash
+JOB_QUEUE=lxd-mig SNAP_CHANNEL=latest/edge DISTRO=noble TFWORKFLOW=nvidia-mig-job ./run.sh
 ```
