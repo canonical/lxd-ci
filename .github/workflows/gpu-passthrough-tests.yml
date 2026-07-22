@@ -49,8 +49,6 @@ jobs:
     strategy:
       matrix:
         track: ${{ fromJSON(inputs.snap-track || '["latest/edge"]') }}
-        os:
-          - core24-latest
     env:
       SNAP_CHANNEL: ${{ matrix.track }}
       TFWORKFLOW: uc-nvidia-cdi-job
@@ -66,7 +64,9 @@ jobs:
       - name: Create Testflinger job
         env:
           JOB_QUEUE: lxd-nvidia
-          DISTRO: ${{ matrix.os }}
+          # Only the `6/*` and `latest/*` LXD snaps are based on `core26`,
+          # the rest still use `core24`.
+          DISTRO: ${{ (startsWith(matrix.track, '6/') || startsWith(matrix.track, 'latest/')) && 'core26-latest' || 'core24-latest' }}
         working-directory: ${{ env.TESTFLINGER_DIR }}
         run: ./run.sh --dryrun
 

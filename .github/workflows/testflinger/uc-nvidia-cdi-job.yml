@@ -31,17 +31,28 @@ test_data:
     _run sudo snap refresh snapd --channel=latest/beta --no-wait
     wait-for-snap-changes
 
-    # LXD 5.21 is based on `core24` and newer versions are moving to `core26`.
-    # Currently only the `6/edge` and `latest/edge` LXD snaps use `core26`.
+    # LXD 5.21 is based on `core24` and newer versions are using `core26`.
     # The host base/kernel snaps are set up before LXD is installed,
     # so derive the matching version from the target LXD snap channel.
     case "$SNAP_CHANNEL" in
-      6/edge|latest/edge) CORE_VERSION="26" ;;
+      6/*|latest/*) CORE_VERSION="26" ;;
       *) CORE_VERSION="24" ;;
     esac
 
+    # Fail fast if the provisioned device image (DISTRO) does not match
+    # the core version derived from the LXD snap channel, to avoid
+    # setting up core(24/26) snaps on a mismatched device.
+    if [ "$DISTRO" != "core${CORE_VERSION}-latest" ]; then
+      echo "ERROR: DISTRO=$DISTRO does not match core${CORE_VERSION} derived from SNAP_CHANNEL=$SNAP_CHANNEL" >&2
+      exit 1
+    fi
+
     # get device nodes on module load
-    _run sudo snap refresh "core${CORE_VERSION}" --no-wait
+    if [ "${CORE_VERSION}" = "26" ]; then
+      _run sudo snap refresh "core${CORE_VERSION}" --edge --no-wait
+    else
+      _run sudo snap refresh "core${CORE_VERSION}" --no-wait
+    fi
     wait-for-snap-changes
 
     # refresh to the new kernel
@@ -70,7 +81,7 @@ test_data:
     _run_retry sudo snap install lxd --channel=$SNAP_CHANNEL --no-wait --cohort=+
     wait-for-snap-changes
 
-    # LXD 5.21 will remain based on `core24` but newer versions will move to `core26`.
+    # LXD 5.21 will remain based on `core24` but newer versions are using `core26`.
     # Look at the installed snap for a `gpu-XXYY` directory to know which `mesa-XXYY` snap to install and connect with.
     GPU_DIR="$(_run 'basename /snap/lxd/current/gpu-*')"
     GPU_VERSION="${GPU_DIR#gpu-}"
