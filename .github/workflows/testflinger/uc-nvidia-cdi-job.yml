@@ -39,6 +39,14 @@ test_data:
       *) CORE_VERSION="24" ;;
     esac
 
+    # Fail fast if the provisioned device image (DISTRO) does not match
+    # the core version derived from the LXD snap channel, to avoid
+    # setting up core(24/26) snaps on a mismatched device.
+    if [ "$DISTRO" != "core${CORE_VERSION}-latest" ]; then
+      echo "ERROR: DISTRO=$DISTRO does not match core${CORE_VERSION} derived from SNAP_CHANNEL=$SNAP_CHANNEL" >&2
+      exit 1
+    fi
+
     # get device nodes on module load
     if [ "${CORE_VERSION}" = "26" ]; then
       _run sudo snap refresh "core${CORE_VERSION}" --edge --no-wait
