@@ -10,15 +10,11 @@ if [ "${architecture}" != "x86_64" ] && [ "${architecture}" != "aarch64" ]; then
 fi
 
 # Determine whether 2023 Microsoft CA certs are expected based on the LXD channel.
-# They are only shipped in LXD 6/* and some of the edge builds.
-case "${LXD_SNAP_CHANNEL}" in
-  6/* | latest/* | 5.21/edge | 5.0/edge)
-    EXPECT_2023_CERTS=true
-    ;;
-  *)
+# 4.0/* will never get the 2023 Microsoft CA certs
+EXPECT_2023_CERTS=true
+if echo "${LXD_SNAP_CHANNEL}" | grep -qE '^4\.0/'; then
     EXPECT_2023_CERTS=false
-    ;;
-esac
+fi
 
 efi_sb_key_tests() {
   # FirmwareSecvarUpdaterVersion is the trace of the patched EDK2 injecting the
