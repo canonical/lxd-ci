@@ -13,7 +13,7 @@ fi
 node --version
 
 echo "==> Get ui test code"
-install_deps git
+install_deps git yq
 
 TARGET="${LXD_SNAP_CHANNEL%%/*}"
 # The UI test suite for all the 6 channels match the suite for latest.
@@ -41,11 +41,37 @@ if [[ $LXD_SNAP_CHANNEL =~ ^5\.21 ]]; then
   PLAYWRIGHT_PROJECT="${BROWSER}:lxd-${TARGET:-latest}-edge"
 fi
 
+# Determine which lxd-ui revision matches the UI bundled in the snap under test.
+# When the snap is packed, its manifest records how the `lxd-ui` part was sourced:
+#   - candidate/stable builds pin an exact commit (source-commit)
+#   - edge builds of a release branch pin that branch (source-branch, e.g. stable-5.21)
+#   - latest/edge pins neither and tracks the default branch (main)
+# Prefer the manifest so the checked out test suite matches the bundled UI, falling
+# back to the channel-derived branch when the manifest is unavailable (e.g. old snaps).
+MANIFEST="/snap/lxd/current/snap/manifest.yaml"
+UI_COMMIT=""
+UI_BRANCH=""
+if [ -r "${MANIFEST}" ]; then
+  UI_COMMIT="$(yq -r '.parts."lxd-ui"."source-commit" // ""' < "${MANIFEST}")"
+  UI_BRANCH="$(yq -r '.parts."lxd-ui"."source-branch" // ""' < "${MANIFEST}")"
+fi
+
 # Remove any leftover clone
 [ -d lxd-ui ] && rm -rf lxd-ui
 
-# Clone LXD UI test suite
-git clone --depth=1 --single-branch --branch "${BRANCH}" https://github.com/canonical/lxd-ui.git
+# Clone the LXD UI test suite matching the bundled UI as closely as possible.
+if [ -n "${UI_COMMIT}" ]; then
+  # Commit-pinned build (candidate/stable): fetch that exact revision.
+  echo "==> Fetch lxd-ui test suite at commit ${UI_COMMIT} (bundled in the snap)"
+  git init -q lxd-ui
+  git -C lxd-ui fetch -q --depth=1 https://github.com/canonical/lxd-ui.git "${UI_COMMIT}"
+  git -C lxd-ui checkout -q FETCH_HEAD
+else
+  # No commit pin: use the branch bundled in the snap, else the channel default.
+  BRANCH="${UI_BRANCH:-${BRANCH}}"
+  echo "==> Clone lxd-ui test suite from branch ${BRANCH} (bundled in the snap)"
+  git clone --depth=1 --single-branch --branch "${BRANCH}" https://github.com/canonical/lxd-ui.git
+fi
 
 echo "==> Install dependencies"
 npm install -g yarn
