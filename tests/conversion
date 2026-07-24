@@ -289,8 +289,14 @@ systemctl restart systemd-resolved.service
 
 tmpdir="$(mktemp -d)"
 
+# Download and cache the image to avoid re-downloading it multiple times.
+# Skip the copy if the image already exists locally so reruns stay idempotent.
+if ! lxc image info alpine-edge-vm; then
+    lxc image copy images:alpine/edge local: --vm --alias alpine-edge-vm
+fi
+
 # Create an instance and export it to get raw image.
-lxc init images:alpine/edge tmp --vm --device root,size=4GiB
+lxc init alpine-edge-vm tmp --vm --device root,size=4GiB
 lxc export tmp --compression=none --quiet - | tar --occurrence=1 -xf - -C "${tmpdir}" "backup/virtual-machine.img"
 lxc delete tmp
 
@@ -395,10 +401,16 @@ if hasNeededAPIExtension instance_import_conversion; then
     # Test QCOW2 images.
     IMAGE_PATH="${tmpdir}/image"
 
-    lxc image export images:alpine/edge "${IMAGE_PATH}" --vm
+    lxc image export alpine-edge-vm "${IMAGE_PATH}" --vm
     conversion_vm alpine-qcow2 zfs "${IMAGE_PATH}.root" "no"
 
-    lxc image export images:centos/9-Stream "${IMAGE_PATH}" --vm
+    # Download and cache the image to avoid re-downloading it multiple times.
+    # Skip the copy if the image already exists locally so reruns stay idempotent.
+    if ! lxc image info centos-9-stream-vm; then
+        lxc image copy images:centos/9-Stream local: --vm --alias centos-9-stream-vm
+    fi
+
+    lxc image export centos-9-stream-vm "${IMAGE_PATH}" --vm
     conversion_vm centos9-qcow2 btrfs "${IMAGE_PATH}.root" "yes"
 
     rm "${IMAGE_PATH}" "${IMAGE_PATH}.root"
@@ -422,7 +434,7 @@ if hasNeededAPIExtension instance_import_conversion; then
         echo "===> SKIP: The virt-v2v-in-place is not installed"
     else
         # Create new instance.
-        lxc launch images:centos/9-Stream v1 --vm --config limits.cpu=2 --config limits.memory=2GiB --device root,size=4GiB
+        lxc launch centos-9-stream-vm v1 --vm --config limits.cpu=2 --config limits.memory=2GiB --device root,size=4GiB
         waitInstanceBooted v1
         sleep 1
 
@@ -452,12 +464,16 @@ if hasNeededAPIExtension instance_import_conversion; then
 
     # Cleanup.
     rm -rf "${tmpdir}"
+    lxc image delete centos-9-stream-vm
     lxc config unset storage.backups_volume
     lxc storage volume delete backups-pool backups-vol
     lxc storage delete backups-pool
 else
     echo "===> SKIP: VM image conversion skipped. Server does not support API extenison 'instance_import_conversion'"
 fi
+
+# Remove the locally cached Alpine conversion image (always downloaded above).
+lxc image delete alpine-edge-vm
 
 # shellcheck disable=SC2034
 FAIL=0
