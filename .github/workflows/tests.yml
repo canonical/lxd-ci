@@ -150,6 +150,7 @@ jobs:
           - vm
           - vm-migration
           - vm-nesting
+          - workshop
         exclude:
           - test: csi
             track: "4.0/candidate"
@@ -195,6 +196,8 @@ jobs:
           - test: qemu-external-vm
             track: "4.0/candidate"
           - test: snapcraft
+            track: "4.0/candidate"
+          - test: workshop
             track: "4.0/candidate"
           - test: storage-buckets
             track: "4.0/candidate"
@@ -247,6 +250,8 @@ jobs:
           - test: qemu-external-vm
             track: "4.0/edge"
           - test: snapcraft
+            track: "4.0/edge"
+          - test: workshop
             track: "4.0/edge"
           - test: storage-buckets
             track: "4.0/edge"
@@ -301,6 +306,10 @@ jobs:
             track: "5.0/candidate"
           - test: snapcraft
             track: "5.0/edge"
+          - test: workshop
+            track: "5.0/candidate"
+          - test: workshop
+            track: "5.0/edge"
           - test: vm-migration
             track: "5.0/candidate"
           - test: vm-migration
@@ -324,6 +333,12 @@ jobs:
             track: "5.21/candidate"
           - test: snapcraft
             track: "5.21/edge"
+          - test: workshop
+            track: "5.21/stable"
+          - test: workshop
+            track: "5.21/candidate"
+          - test: workshop
+            track: "5.21/edge"
           # some tests are not worth testing on specific OSes
           - os: 22.04
             test: lxd-installer
@@ -331,6 +346,8 @@ jobs:
             test: qemu-external-vm
           - os: 22.04
             test: snapcraft
+          - os: 22.04
+            test: workshop
           # skip track/os combinations that are too far appart
           - os: 24.04
             track: "4.0/candidate"
