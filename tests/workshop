@@ -1,0 +1,36 @@
+#!/bin/bash
+set -eux
+
+# Install and setup LXD.
+install_lxd
+lxd init --auto
+
+# Install Workshop.
+snap install workshop --classic --channel=latest/stable
+
+# Create the project directory that will back the workshop.
+tmpdir="$(mktemp -d)"
+cd "${tmpdir}"
+
+# Define a minimal workshop: a base image plus the built-in system SDK.
+workshop init dev --base ubuntu@24.04
+
+# The definition should now exist in the project directory.
+[ -f "${tmpdir}/.workshop/dev.yaml" ]
+
+# Launch the workshop (downloads the base image and provisions the LXD container).
+workshop launch dev
+
+# Verify the workshop is usable by running a command inside it and checking the base.
+workshop exec dev -- cat /etc/os-release | grep -qF 'VERSION_ID="24.04"'
+
+# Confirm Workshop successfully used LXD.
+lxc storage show workshop
+
+# Clean up the workshop and the temporary project directory.
+workshop remove dev
+cd - > /dev/null
+rm -rf "${tmpdir}"
+
+# shellcheck disable=SC2034
+FAIL=0
